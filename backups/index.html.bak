@@ -1,0 +1,1706 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>dashboard</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⬛</text></svg>"/>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;user-select:none;}
+:root{
+  --bg:#0d1117;--bg2:#161b22;--bg3:#1c2128;
+  --green:#39d353;--green-dim:#1a4a23;--green-t:#7ee787;
+  --border:#30363d;--text:#e6edf3;--dim:#8b949e;
+  --amber:#d29922;--amber-dim:#3d2b00;--red:#f85149;
+  --teal:#2ea58c;--teal-dim:#0d3328;--teal-t:#3ecfb0;
+  --mono:'JetBrains Mono','Fira Code','Courier New',monospace;
+}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--mono);overflow:hidden;}
+
+/* AUTH */
+#auth-overlay{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px;z-index:100;}
+#auth-overlay h1{font-size:20px;color:var(--green-t);letter-spacing:.08em;}
+#auth-overlay p{font-size:13px;color:var(--dim);text-align:center;max-width:340px;line-height:1.7;}
+#sign-in-btn{display:flex;align-items:center;gap:10px;padding:10px 24px;border-radius:6px;background:var(--bg2);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:13px;cursor:pointer;transition:border-color .15s;}
+#sign-in-btn:hover{border-color:var(--green);color:var(--green-t);}
+#sign-in-btn svg{width:18px;height:18px;}
+
+/* APP SHELL */
+#app{display:none;height:100vh;flex-direction:column;}
+
+/* TAB NAV */
+#tabnav{display:flex;align-items:stretch;background:var(--bg2);border-bottom:1px solid var(--border);height:40px;flex-shrink:0;}
+.tab{display:flex;align-items:center;gap:7px;padding:0 18px;font-size:12px;color:var(--dim);cursor:pointer;border-right:1px solid var(--border);transition:all .15s;white-space:nowrap;position:relative;}
+.tab .dot{width:6px;height:6px;border-radius:50%;background:currentColor;flex-shrink:0;}
+.tab.active{background:var(--bg);color:var(--green-t);}
+.tab.active::after{content:'';position:absolute;bottom:-1px;left:0;right:0;height:2px;background:var(--green);}
+.tab:hover:not(.active){color:var(--text);background:var(--bg3);}
+#tabnav-right{margin-left:auto;display:flex;align-items:center;gap:8px;padding:0 14px;font-size:11px;color:var(--dim);}
+#user-info{display:flex;align-items:center;gap:6px;}
+#avatar{width:22px;height:22px;border-radius:50%;border:1px solid var(--border);}
+#sign-out{cursor:pointer;color:var(--dim);font-size:11px;}
+#sign-out:hover{color:var(--red);}
+
+/* MODULE CONTAINER */
+#modules{flex:1;overflow:hidden;display:flex;flex-direction:column;}
+.module{display:none;flex:1;flex-direction:column;overflow:hidden;}
+.module.active{display:flex;}
+
+/* PLACEHOLDER */
+.placeholder{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:var(--dim);gap:12px;}
+.placeholder .ph-icon{font-size:48px;opacity:.3;}
+.placeholder .ph-title{font-size:16px;color:var(--text);opacity:.5;}
+.placeholder .ph-desc{font-size:12px;color:var(--dim);text-align:center;max-width:260px;line-height:1.8;}
+.ph-badge{padding:3px 12px;border-radius:10px;background:var(--amber-dim);border:1px solid var(--amber);color:var(--amber);font-size:10px;margin-top:4px;}
+
+/* CMD.BOOK STYLES */
+.t-btn{padding:4px 12px;border-radius:4px;background:var(--bg3);border:1px solid var(--border);color:var(--dim);font-family:var(--mono);font-size:11px;cursor:pointer;display:flex;align-items:center;gap:4px;transition:all .15s;white-space:nowrap;}
+.t-btn:hover{border-color:var(--green);color:var(--green-t);}
+.t-btn.danger:hover{border-color:var(--red);color:var(--red);}
+#cmdbook-topbar{display:flex;align-items:center;gap:8px;padding:7px 14px;border-bottom:1px solid var(--border);background:var(--bg2);font-size:12px;flex-shrink:0;}
+#sync-status{margin-left:auto;font-size:11px;color:var(--dim);white-space:nowrap;}
+#body{display:flex;flex:1;overflow:hidden;}
+#sidebar{width:230px;min-width:230px;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;}
+#search-wrap{padding:10px 12px;border-bottom:1px solid var(--border);}
+#search{width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:5px;font-size:12px;font-family:var(--mono);outline:none;}
+#search:focus{border-color:var(--green-dim);}
+#search::placeholder{color:var(--dim);}
+#tags-wrap{padding:8px 12px;border-bottom:1px solid var(--border);display:flex;flex-wrap:wrap;gap:4px;min-height:36px;}
+.tag-filter{padding:2px 8px;border-radius:3px;font-size:11px;cursor:pointer;background:var(--bg3);border:1px solid var(--border);color:var(--dim);transition:all .15s;}
+.tag-filter.active,.tag-filter:hover{background:var(--green-dim);border-color:var(--green);color:var(--green-t);}
+#count-line{padding:6px 14px 2px;font-size:10px;color:var(--dim);}
+#list{flex:1;overflow-y:auto;}
+#list::-webkit-scrollbar{width:3px;}
+#list::-webkit-scrollbar-thumb{background:var(--border);}
+.e-item{padding:9px 14px;cursor:pointer;border-left:2px solid transparent;transition:all .1s;}
+.e-item:hover{background:var(--bg3);}
+.e-item.active{background:var(--bg3);border-left-color:var(--green);}
+.e-title{font-size:12px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:2px;}
+.e-cmd-preview{font-size:11px;color:var(--green-t);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.e-date{font-size:10px;color:var(--dim);margin-top:2px;}
+#add-btn{margin:10px 12px;padding:8px;background:var(--green-dim);border:1px solid var(--green);color:var(--green-t);border-radius:5px;font-family:var(--mono);font-size:12px;cursor:pointer;text-align:center;transition:all .15s;}
+#add-btn:hover{background:#1e5c28;}
+#main{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+#content{flex:1;overflow-y:auto;padding:22px 26px;}
+#content::-webkit-scrollbar{width:3px;}
+#content::-webkit-scrollbar-thumb{background:var(--border);}
+.view-title{font-size:16px;color:var(--text);margin-bottom:18px;font-weight:500;}
+.term-block{background:var(--bg2);border:1px solid var(--border);border-radius:6px;margin-bottom:6px;overflow:hidden;}
+.term-cmd-row{display:flex;align-items:flex-start;padding:10px 14px;border-bottom:1px solid var(--border);position:relative;}
+.term-prompt{color:var(--green);font-size:14px;margin-right:8px;flex-shrink:0;padding-top:1px;}
+.term-cmd{color:var(--green-t);font-size:13px;word-break:break-all;flex:1;line-height:1.5;white-space:pre-wrap;}
+.term-copy{position:absolute;top:8px;right:10px;padding:2px 8px;background:var(--bg3);border:1px solid var(--border);color:var(--dim);border-radius:3px;font-size:10px;cursor:pointer;font-family:var(--mono);}
+.term-copy:hover{color:var(--green-t);border-color:var(--green);}
+.term-output{padding:10px 14px;font-size:12px;color:var(--dim);white-space:pre-wrap;word-break:break-all;line-height:1.6;background:var(--bg);}
+.term-imgs{display:flex;flex-wrap:wrap;gap:8px;padding:10px 14px;border-top:1px solid var(--border);background:var(--bg3);}
+.term-img-thumb{width:100px;height:68px;object-fit:cover;border-radius:4px;border:1px solid var(--border);cursor:pointer;transition:border-color .15s;}
+.term-img-thumb:hover{border-color:var(--green);}
+.sec-label{font-size:10px;color:var(--dim);letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px;}
+.scenario{color:var(--text);font-size:13px;line-height:1.75;white-space:pre-wrap;}
+.tags-row{display:flex;flex-wrap:wrap;gap:5px;margin-top:10px;}
+.tag-badge{padding:2px 9px;background:var(--amber-dim);border:1px solid var(--amber);color:var(--amber);border-radius:3px;font-size:11px;}
+.meta-line{margin-top:20px;font-size:11px;color:var(--dim);}
+#lightbox{position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:999;display:none;align-items:center;justify-content:center;flex-direction:column;}
+#lightbox.open{display:flex;}
+#lb-img{max-width:88vw;max-height:80vh;border-radius:6px;border:1px solid var(--border);object-fit:contain;transition:transform .2s;cursor:zoom-in;}
+#lb-img.zoomed{transform:scale(1.8);cursor:zoom-out;}
+#lb-controls{display:flex;align-items:center;gap:16px;margin-top:16px;}
+.lb-btn{padding:6px 18px;background:var(--bg2);border:1px solid var(--border);color:var(--text);border-radius:4px;font-family:var(--mono);font-size:13px;cursor:pointer;transition:all .15s;}
+.lb-btn:hover{border-color:var(--green);color:var(--green-t);}
+.lb-btn:disabled{opacity:.3;cursor:default;}
+#lb-counter{font-size:12px;color:var(--dim);}
+#lb-close{position:fixed;top:20px;right:24px;font-size:22px;color:var(--dim);cursor:pointer;background:none;border:none;font-family:var(--mono);}
+#lb-close:hover{color:var(--text);}
+#edit-mode{display:none;}
+.f-label{font-size:11px;color:var(--dim);letter-spacing:.06em;margin-bottom:6px;}
+.f-wrap{margin-bottom:18px;}
+.f-input{width:100%;background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:5px;font-family:var(--mono);font-size:13px;outline:none;user-select:text;}
+.f-input:focus{border-color:var(--green-dim);}
+textarea.f-input{resize:vertical;line-height:1.65;}
+.step-block{background:var(--bg2);border:1px solid var(--border);border-radius:6px;margin-bottom:4px;overflow:hidden;transition:border-color .15s;}
+.step-block:focus-within{border-color:var(--green-dim);}
+.step-header{display:flex;align-items:center;padding:5px 10px;background:var(--bg3);border-bottom:1px solid var(--border);gap:6px;}
+.step-num{font-size:10px;color:var(--dim);min-width:40px;}
+.step-actions{margin-left:auto;display:flex;gap:4px;}
+.step-act-btn{padding:2px 8px;background:transparent;border:1px solid transparent;color:var(--dim);border-radius:3px;font-size:10px;cursor:pointer;font-family:var(--mono);transition:all .12s;}
+.step-act-btn:hover{border-color:var(--border);color:var(--text);}
+.step-act-btn.del:hover{border-color:var(--red);color:var(--red);}
+.step-act-btn.up:hover,.step-act-btn.dn:hover{border-color:var(--amber);color:var(--amber);}
+.step-cmd-wrap{display:flex;align-items:flex-start;padding:8px 12px;gap:8px;}
+.step-dollar{color:var(--green);font-size:13px;padding-top:7px;flex-shrink:0;}
+.step-cmd-input{flex:1;background:transparent;border:none;border-bottom:1px solid var(--border);color:var(--green-t);font-family:var(--mono);font-size:13px;outline:none;padding:4px 0;resize:none;line-height:1.5;user-select:text;}
+.step-cmd-input:focus{border-bottom-color:var(--green);}
+.step-cmd-input::placeholder{color:var(--green-dim);}
+.step-out-wrap{padding:0 12px 8px;}
+.step-out-input{width:100%;background:var(--bg);border:1px solid var(--border);color:var(--dim);font-family:var(--mono);font-size:12px;outline:none;padding:8px 10px;border-radius:4px;resize:vertical;line-height:1.6;min-height:48px;user-select:text;}
+.step-out-input::placeholder{color:#444;}
+.step-img-zone{padding:0 12px 10px;}
+.step-img-toggle{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--dim);cursor:pointer;padding:4px 0;border:none;background:transparent;font-family:var(--mono);transition:color .12s;}
+.step-img-toggle:hover{color:var(--green-t);}
+.step-img-toggle .arr{font-size:9px;transition:transform .15s;}
+.step-img-toggle.open .arr{transform:rotate(90deg);}
+.step-img-body{display:none;margin-top:6px;}
+.step-img-body.open{display:block;}
+.step-drop{border:1px dashed var(--border);border-radius:5px;padding:10px;text-align:center;color:var(--dim);font-size:11px;cursor:pointer;transition:all .15s;}
+.step-drop:hover,.step-drop.drag-over{border-color:var(--green);color:var(--green-t);}
+.step-img-grid{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;}
+.step-img-item{position:relative;width:80px;height:54px;}
+.step-img-item img{width:100%;height:100%;object-fit:cover;border-radius:4px;border:1px solid var(--border);}
+.step-img-del{position:absolute;top:-5px;right:-5px;width:16px;height:16px;border-radius:50%;background:var(--red);color:#fff;border:none;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;}
+.insert-between{display:flex;align-items:center;gap:8px;height:24px;margin:2px 0;opacity:0;transition:opacity .15s;}
+.insert-between:hover{opacity:1;}
+.insert-between .ib-line{flex:1;height:1px;background:var(--green-dim);}
+.insert-between .ib-btn{padding:2px 10px;background:var(--green-dim);border:1px solid var(--green);color:var(--green-t);border-radius:10px;font-size:10px;cursor:pointer;font-family:var(--mono);white-space:nowrap;}
+.insert-between .ib-btn:hover{background:#1e5c28;}
+#add-step-btn{display:flex;align-items:center;gap:6px;padding:7px 14px;margin-top:6px;margin-bottom:18px;background:transparent;border:1px dashed var(--border);color:var(--dim);border-radius:5px;font-family:var(--mono);font-size:12px;cursor:pointer;transition:all .15s;width:100%;}
+#add-step-btn:hover{border-color:var(--green);color:var(--green-t);}
+#draft-banner{display:none;align-items:center;gap:10px;padding:8px 16px;background:#1a2a0e;border-bottom:2px solid var(--green);font-size:12px;color:var(--green-t);flex-shrink:0;}
+#draft-banner .draft-time{color:var(--dim);font-size:11px;}
+.draft-btn{padding:4px 12px;border-radius:4px;font-family:var(--mono);font-size:11px;cursor:pointer;border:1px solid;}
+.draft-btn.restore{background:var(--green-dim);border-color:var(--green);color:var(--green-t);}
+.draft-btn.discard{background:transparent;border-color:var(--border);color:var(--dim);}
+.draft-btn.restore:hover{background:#1e5c28;}
+.draft-btn.discard:hover{border-color:var(--red);color:var(--red);}
+#draft-indicator{display:none;font-size:10px;color:var(--amber);margin-bottom:8px;padding:4px 8px;background:var(--amber-dim);border:1px solid var(--amber);border-radius:4px;}
+.save-btn{padding:8px 20px;background:var(--green-dim);border:1px solid var(--green);color:var(--green-t);border-radius:5px;font-family:var(--mono);font-size:12px;cursor:pointer;}
+.save-btn:hover{background:#1e5c28;}
+.cancel-btn{padding:8px 16px;background:var(--bg3);border:1px solid var(--border);color:var(--dim);border-radius:5px;font-family:var(--mono);font-size:12px;cursor:pointer;margin-left:8px;}
+#empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:var(--dim);gap:10px;}
+#empty .big{font-size:36px;}
+#toast{position:fixed;bottom:24px;right:24px;background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:10px 18px;border-radius:6px;font-size:12px;font-family:var(--mono);opacity:0;transform:translateY(6px);transition:all .2s;pointer-events:none;z-index:200;}
+#toast.show{opacity:1;transform:translateY(0);}
+.spin{display:inline-block;animation:spin .8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+/* ════════════════════════════════════════
+   账本模块样式
+   ════════════════════════════════════════ */
+#mod-ledger{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;}
+
+/* 账本底部子导航 */
+.ldg-subnav{display:flex;background:var(--bg2);border-bottom:1px solid var(--border);flex-shrink:0;}
+.ldg-subnav-btn{flex:1;padding:10px 0;font-size:12px;color:var(--dim);cursor:pointer;text-align:center;border-bottom:2px solid transparent;transition:all .15s;}
+.ldg-subnav-btn.active{color:var(--teal-t);border-bottom-color:var(--teal);}
+.ldg-subnav-btn:hover:not(.active){color:var(--text);}
+
+/* 账本页面容器 */
+.ldg-page{display:none;flex:1;flex-direction:column;overflow:hidden;}
+.ldg-page.active{display:flex;}
+
+/* 首页 - 概览卡片 */
+.ldg-overview{background:linear-gradient(135deg,#0d3328 0%,#1a4a35 50%,#0d2a20 100%);padding:20px 24px 16px;flex-shrink:0;position:relative;overflow:hidden;}
+.ldg-overview::before{content:'';position:absolute;right:-20px;top:-20px;width:140px;height:140px;background:radial-gradient(circle,rgba(62,207,176,.15) 0%,transparent 70%);pointer-events:none;}
+.ldg-ov-row{display:flex;gap:24px;margin-bottom:8px;}
+.ldg-ov-item{flex:1;}
+.ldg-ov-label{font-size:11px;color:rgba(255,255,255,.5);margin-bottom:4px;}
+.ldg-ov-val{font-size:20px;font-weight:600;color:#fff;letter-spacing:.02em;}
+.ldg-ov-val.income{color:#3ecfb0;}
+.ldg-ov-val.expense{color:#e06c6c;}
+.ldg-ov-val.balance{color:#fff;}
+.ldg-ov-currency{font-size:11px;color:rgba(255,255,255,.4);margin-top:6px;}
+
+/* 月份切换 */
+.ldg-month-bar{display:flex;align-items:center;justify-content:center;gap:16px;padding:8px 16px;background:var(--bg2);border-bottom:1px solid var(--border);flex-shrink:0;}
+.ldg-month-btn{background:none;border:none;color:var(--dim);font-size:16px;cursor:pointer;padding:4px 8px;border-radius:4px;}
+.ldg-month-btn:hover{color:var(--text);background:var(--bg3);}
+.ldg-month-label{font-size:13px;color:var(--text);font-weight:500;min-width:80px;text-align:center;}
+
+/* 添加按钮 */
+.ldg-add-bar{padding:10px 16px;flex-shrink:0;}
+.ldg-add-btn{width:100%;padding:11px;background:var(--teal);border:none;border-radius:8px;color:#fff;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:opacity .15s;}
+.ldg-add-btn:hover{opacity:.85;}
+
+/* 流水列表 */
+.ldg-list{flex:1;overflow-y:auto;padding:0 0 16px;}
+.ldg-list::-webkit-scrollbar{width:3px;}
+.ldg-list::-webkit-scrollbar-thumb{background:var(--border);}
+.ldg-day-group{margin-bottom:2px;}
+.ldg-day-header{display:flex;align-items:center;justify-content:space-between;padding:8px 16px 4px;font-size:12px;}
+.ldg-day-title{color:var(--text);font-weight:500;}
+.ldg-day-summary{display:flex;gap:12px;font-size:11px;}
+.ldg-day-inc{color:var(--teal-t);}
+.ldg-day-exp{color:#e06c6c;}
+.ldg-records{background:var(--bg2);border-top:1px solid var(--border);border-bottom:1px solid var(--border);}
+.ldg-record{display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .1s;}
+.ldg-record:last-child{border-bottom:none;}
+.ldg-record:hover{background:var(--bg3);}
+.ldg-rec-icon{width:36px;height:36px;border-radius:50%;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;}
+.ldg-rec-info{flex:1;min-width:0;}
+.ldg-rec-cat{font-size:13px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.ldg-rec-note{font-size:11px;color:var(--dim);margin-top:2px;}
+.ldg-rec-time{font-size:10px;color:var(--dim);}
+.ldg-rec-amount{font-size:15px;font-weight:600;white-space:nowrap;}
+.ldg-rec-amount.expense{color:#e06c6c;}
+.ldg-rec-amount.income{color:var(--teal-t);}
+.ldg-empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 20px;color:var(--dim);gap:8px;}
+.ldg-empty-state .ei{font-size:40px;opacity:.3;}
+
+/* 记账弹窗 */
+.ldg-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:500;display:none;align-items:flex-end;justify-content:center;}
+.ldg-modal-overlay.open{display:flex;}
+.ldg-modal{background:var(--bg2);border-radius:16px 16px 0 0;width:100%;max-width:600px;max-height:90vh;display:flex;flex-direction:column;overflow:hidden;}
+.ldg-modal-type-bar{display:flex;border-bottom:1px solid var(--border);flex-shrink:0;}
+.ldg-type-btn{flex:1;padding:12px 0;font-size:13px;color:var(--dim);cursor:pointer;text-align:center;border-bottom:2px solid transparent;transition:all .15s;background:none;border-left:none;border-right:none;border-top:none;font-family:inherit;}
+.ldg-type-btn.active.expense{color:#e06c6c;border-bottom-color:#e06c6c;}
+.ldg-type-btn.active.income{color:var(--teal-t);border-bottom-color:var(--teal);}
+.ldg-type-btn.active.transfer{color:var(--amber);border-bottom-color:var(--amber);}
+
+/* 分类选择 */
+.ldg-cats{padding:12px 16px;flex-shrink:0;}
+.ldg-cat-main{display:flex;gap:8px;overflow-x:auto;padding-bottom:8px;scrollbar-width:none;}
+.ldg-cat-main::-webkit-scrollbar{display:none;}
+.ldg-cat-item{display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;min-width:56px;}
+.ldg-cat-circle{width:44px;height:44px;border-radius:50%;background:var(--bg3);border:2px solid transparent;display:flex;align-items:center;justify-content:center;font-size:18px;transition:all .15s;}
+.ldg-cat-item.active .ldg-cat-circle{background:var(--teal-dim);border-color:var(--teal);}
+.ldg-cat-item.active .ldg-cat-name{color:var(--teal-t);}
+.ldg-cat-name{font-size:10px;color:var(--dim);white-space:nowrap;}
+.ldg-subcat{display:flex;flex-wrap:wrap;gap:6px;padding:8px 12px;background:var(--bg3);border-radius:8px;margin-top:4px;}
+.ldg-subcat-item{padding:5px 12px;border-radius:16px;background:var(--bg2);border:1px solid var(--border);font-size:11px;color:var(--dim);cursor:pointer;transition:all .15s;}
+.ldg-subcat-item.active,.ldg-subcat-item:hover{background:var(--teal-dim);border-color:var(--teal);color:var(--teal-t);}
+
+/* 备注栏 */
+.ldg-note-bar{display:flex;align-items:center;gap:8px;padding:8px 16px;border-top:1px solid var(--border);border-bottom:1px solid var(--border);flex-shrink:0;}
+.ldg-note-input{flex:1;background:none;border:none;outline:none;font-size:13px;color:var(--text);font-family:inherit;user-select:text;}
+.ldg-note-input::placeholder{color:var(--dim);}
+.ldg-amount-display{font-size:18px;font-weight:700;white-space:nowrap;}
+.ldg-amount-display.expense{color:#e06c6c;}
+.ldg-amount-display.income{color:var(--teal-t);}
+
+/* 日期/货币栏 */
+.ldg-meta-bar{display:flex;align-items:center;gap:0;border-bottom:1px solid var(--border);flex-shrink:0;overflow-x:auto;}
+.ldg-meta-item{display:flex;align-items:center;gap:4px;padding:8px 12px;font-size:11px;color:var(--dim);cursor:pointer;white-space:nowrap;border-right:1px solid var(--border);}
+.ldg-meta-item:hover{color:var(--text);}
+.ldg-meta-item select{background:none;border:none;outline:none;font-size:11px;color:var(--dim);cursor:pointer;font-family:inherit;}
+
+/* 数字键盘 */
+.ldg-keypad{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--border);flex-shrink:0;}
+.ldg-key{padding:14px 0;font-size:16px;color:var(--text);background:var(--bg2);cursor:pointer;text-align:center;border:none;font-family:inherit;transition:background .1s;}
+.ldg-key:hover{background:var(--bg3);}
+.ldg-key.action{color:var(--dim);font-size:13px;}
+.ldg-key.confirm{background:var(--teal);color:#fff;font-size:13px;font-weight:600;}
+.ldg-key.confirm:hover{background:#259e82;}
+.ldg-key.del{color:var(--red);}
+
+/* 详情弹窗 */
+.ldg-detail-modal{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:600;display:none;align-items:center;justify-content:center;}
+.ldg-detail-modal.open{display:flex;}
+.ldg-detail-box{background:var(--bg2);border-radius:12px;width:360px;overflow:hidden;}
+.ldg-detail-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;}
+.ldg-detail-icon{width:40px;height:40px;border-radius:50%;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:20px;}
+.ldg-detail-cat{font-size:14px;color:var(--text);font-weight:500;}
+.ldg-detail-amount{margin-left:auto;font-size:18px;font-weight:700;}
+.ldg-detail-rows{padding:8px 0;}
+.ldg-detail-row{display:flex;justify-content:space-between;align-items:center;padding:10px 20px;font-size:13px;}
+.ldg-detail-row-label{color:var(--dim);}
+.ldg-detail-row-val{color:var(--text);}
+.ldg-detail-actions{display:flex;gap:1px;background:var(--border);}
+.ldg-detail-action-btn{flex:1;padding:13px;font-size:13px;font-weight:500;cursor:pointer;border:none;font-family:inherit;text-align:center;}
+.ldg-detail-action-btn.del-btn{background:rgba(248,81,73,.1);color:var(--red);}
+.ldg-detail-action-btn.del-btn:hover{background:rgba(248,81,73,.2);}
+.ldg-detail-action-btn.close-btn{background:var(--bg2);color:var(--dim);}
+.ldg-detail-action-btn.close-btn:hover{background:var(--bg3);}
+
+/* 统计页 */
+.ldg-stats-scroll{flex:1;overflow-y:auto;padding:16px;}
+.ldg-stats-scroll::-webkit-scrollbar{width:3px;}
+.ldg-stats-scroll::-webkit-scrollbar-thumb{background:var(--border);}
+.ldg-stat-card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:12px;}
+.ldg-stat-card-title{font-size:11px;color:var(--dim);letter-spacing:.06em;text-transform:uppercase;margin-bottom:12px;}
+.ldg-stat-summary{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:16px;}
+.ldg-stat-sum-item{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:12px;}
+.ldg-stat-sum-label{font-size:10px;color:var(--dim);margin-bottom:4px;}
+.ldg-stat-sum-val{font-size:15px;font-weight:600;}
+.ldg-stat-sum-val.exp{color:#e06c6c;}
+.ldg-stat-sum-val.inc{color:var(--teal-t);}
+.ldg-stat-sum-val.bal{color:var(--text);}
+canvas.ldg-chart{width:100%!important;max-height:200px;}
+.ldg-cat-breakdown{margin-top:8px;}
+.ldg-cat-row{display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--border);}
+.ldg-cat-row:last-child{border-bottom:none;}
+.ldg-cat-row-icon{font-size:16px;width:24px;text-align:center;}
+.ldg-cat-row-name{flex:1;font-size:12px;color:var(--text);}
+.ldg-cat-row-bar-wrap{width:100px;height:4px;background:var(--bg3);border-radius:2px;overflow:hidden;}
+.ldg-cat-row-bar{height:100%;background:var(--teal);border-radius:2px;}
+.ldg-cat-row-pct{font-size:11px;color:var(--dim);width:36px;text-align:right;}
+.ldg-cat-row-amt{font-size:12px;color:#e06c6c;white-space:nowrap;}
+.ldg-report-table{width:100%;border-collapse:collapse;font-size:12px;}
+.ldg-report-table th{color:var(--dim);font-weight:normal;padding:4px 8px;text-align:left;border-bottom:1px solid var(--border);}
+.ldg-report-table td{padding:8px 8px;border-bottom:1px solid var(--border);color:var(--text);}
+.ldg-report-table td.inc{color:var(--teal-t);}
+.ldg-report-table td.exp{color:#e06c6c;}
+.ldg-report-table td.neg{color:#e06c6c;}
+
+/* 语言切换 */
+.lang-switcher{display:flex;gap:2px;margin-right:8px;}
+.lang-btn{padding:3px 8px;border-radius:4px;background:var(--bg3);border:1px solid var(--border);color:var(--dim);font-size:10px;cursor:pointer;font-family:var(--mono);transition:all .15s;}
+.lang-btn:hover{color:var(--text);}
+.lang-btn.active{background:var(--green-dim);border-color:var(--green);color:var(--green-t);}
+
+/* 自定义确认弹窗 */
+.app-confirm-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:900;display:none;align-items:center;justify-content:center;}
+.app-confirm-overlay.open{display:flex;}
+.app-confirm-box{background:var(--bg2);border:1px solid var(--border);border-radius:10px;width:300px;overflow:hidden;}
+.app-confirm-msg{padding:24px 20px;font-size:13px;color:var(--text);line-height:1.6;}
+.app-confirm-actions{display:flex;border-top:1px solid var(--border);}
+.app-confirm-cancel{flex:1;padding:12px;font-size:13px;color:var(--dim);cursor:pointer;border:none;background:var(--bg2);font-family:var(--mono);border-right:1px solid var(--border);}
+.app-confirm-cancel:hover{background:var(--bg3);}
+.app-confirm-ok{flex:1;padding:12px;font-size:13px;color:var(--red);cursor:pointer;border:none;background:var(--bg2);font-family:var(--mono);font-weight:600;}
+.app-confirm-ok:hover{background:rgba(248,81,73,.1);}
+
+.ldg-detail-action-btn.edit-btn{background:var(--teal-dim);color:var(--teal-t);}
+.ldg-detail-action-btn.edit-btn:hover{background:rgba(46,165,140,.2);}
+.ldg-detail-actions{display:flex;gap:1px;background:var(--border);}
+
+/* 日期选择器 */
+.ldg-date-picker-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:800;display:none;align-items:center;justify-content:center;}
+.ldg-date-picker-overlay.open{display:flex;}
+.ldg-date-picker{background:var(--bg2);border:1px solid var(--border);border-radius:12px;width:300px;overflow:hidden;}
+.ldg-dp-header{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--border);}
+.ldg-dp-title{font-size:13px;color:var(--text);font-weight:500;}
+.ldg-dp-nav{background:none;border:none;color:var(--dim);font-size:18px;cursor:pointer;padding:4px 8px;border-radius:4px;}
+.ldg-dp-nav:hover{background:var(--bg3);color:var(--text);}
+.ldg-dp-grid{padding:8px 12px 12px;}
+.ldg-dp-weekdays{display:grid;grid-template-columns:repeat(7,1fr);margin-bottom:4px;}
+.ldg-dp-wd{text-align:center;font-size:10px;color:var(--dim);padding:4px 0;}
+.ldg-dp-days{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;}
+.ldg-dp-day{text-align:center;font-size:12px;padding:7px 0;border-radius:6px;cursor:pointer;color:var(--text);}
+.ldg-dp-day:hover{background:var(--bg3);}
+.ldg-dp-day.today{color:var(--teal-t);font-weight:600;}
+.ldg-dp-day.selected{background:var(--teal);color:#fff;font-weight:600;}
+.ldg-dp-day.other-month{color:var(--border);}
+.ldg-dp-day.empty{cursor:default;}
+.ldg-dp-day.empty:hover{background:none;}
+.ldg-dp-actions{display:flex;border-top:1px solid var(--border);}
+.ldg-dp-cancel{flex:1;padding:11px;font-size:12px;color:var(--dim);cursor:pointer;border:none;background:var(--bg2);font-family:var(--mono);border-right:1px solid var(--border);}
+.ldg-dp-cancel:hover{background:var(--bg3);}
+.ldg-dp-confirm{flex:1;padding:11px;font-size:12px;color:var(--teal-t);cursor:pointer;border:none;background:var(--bg2);font-family:var(--mono);font-weight:600;}
+.ldg-dp-confirm:hover{background:var(--teal-dim);}
+
+/* 保存状态指示器 */
+#save-status-bar{display:none;align-items:center;gap:8px;padding:6px 16px;font-size:11px;flex-shrink:0;border-bottom:1px solid var(--border);}
+#save-status-bar.saving{display:flex;background:#1a2a0e;color:var(--green-t);}
+#save-status-bar.success{display:flex;background:#0d2a1a;color:var(--teal-t);}
+#save-status-bar.error{display:flex;background:#2a0d0d;color:var(--red);}
+.save-status-dot{width:7px;height:7px;border-radius:50%;background:currentColor;flex-shrink:0;}
+.save-status-dot.spin-dot{animation:pulse 1s ease-in-out infinite;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.3;}}
+#save-status-time{margin-left:auto;color:var(--dim);font-size:10px;}
+
+/* 允许选择复制的区域 */
+.term-cmd,.term-output,.scenario,.view-title,.tag-badge,.e-title,.e-cmd-preview,
+#view-mode,.ldg-rec-cat,.ldg-rec-note,.ldg-detail-row-val{
+  user-select:text;
+  cursor:text;
+}
+</style>
+</head>
+<body>
+
+<div id="auth-overlay">
+  <h1 id="auth-title">⬛ dashboard</h1>
+  <p><span id="auth-desc1">个人效率工作台</span><br><span id="auth-desc2">登录 Google 账号，数据安全存储在你的 Google Drive</span></p>
+  <button id="sign-in-btn" onclick="signIn()">
+    <svg viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+    <span id="auth-btn-text">使用 Google 账号登录</span>
+  </button>
+  <p id="auth-error" style="color:var(--red);font-size:12px;display:none"></p>
+</div>
+
+<div id="app">
+  <div id="tabnav">
+    <div class="tab active" onclick="switchTab('cmdbook')"><div class="dot"></div> cmd.book</div>
+    <div class="tab" onclick="switchTab('ledger')"><div class="dot"></div> 账本</div>
+    <div class="tab" onclick="switchTab('calendar')"><div class="dot"></div> 日历</div>
+    <div class="tab" onclick="switchTab('stock')"><div class="dot"></div> 股票</div>
+    <div class="tab" onclick="switchTab('news')"><div class="dot"></div> 今日看点</div>
+    <div id="tabnav-right">
+      <div class="lang-switcher">
+        <button class="lang-btn active" data-lang="zh-CN" onclick="setLang('zh-CN')">简</button>
+        <button class="lang-btn" data-lang="zh-TW" onclick="setLang('zh-TW')">繁</button>
+        <button class="lang-btn" data-lang="en" onclick="setLang('en')">EN</button>
+      </div>
+      <div id="user-info">
+        <img id="avatar" src="" alt=""/>
+        <span id="user-name"></span>
+        <span id="sign-out" onclick="signOut()">退出</span>
+      </div>
+    </div>
+  </div>
+
+  <div id="modules">
+
+    <!-- CMD.BOOK -->
+    <div class="module active" id="mod-cmdbook">
+      <div id="cmdbook-topbar">
+        <button class="t-btn" id="cb-btn-edit" onclick="enterEdit()">✏ 编辑</button>
+        <button class="t-btn danger" id="cb-btn-delete" onclick="deleteEntry()">✕ 删除</button>
+        <button class="t-btn" id="cb-btn-sync" onclick="forceSync()">↻ 同步</button>
+        <button class="t-btn" id="cb-btn-export" onclick="exportJSON()">↓ 导出</button>
+        <button class="t-btn" id="cb-btn-import" onclick="document.getElementById('import-file').click()">↑ 导入</button>
+        <input type="file" id="import-file" accept=".json" style="display:none" onchange="importJSON(event)"/>
+        <span id="sync-status">就绪</span>
+      </div>
+      <div id="save-status-bar">
+        <div class="save-status-dot" id="save-status-dot"></div>
+        <span id="save-status-text"></span>
+        <span id="save-status-time"></span>
+      </div>
+      <div id="draft-banner">
+        <span>📝 发现未保存的草稿</span>
+        <span class="draft-time" id="draft-time"></span>
+        <button class="draft-btn restore" id="cb-draft-restore" onclick="restoreDraft()">恢复草稿</button>
+        <button class="draft-btn discard" id="cb-draft-discard" onclick="discardDraft()">丢弃</button>
+      </div>
+      <div id="body">
+        <div id="sidebar">
+          <div id="search-wrap"><input id="search" type="text" placeholder="搜索标题或命令..."/></div>
+          <div id="tags-wrap"></div>
+          <div id="count-line"></div>
+          <div id="list"></div>
+          <div id="add-btn" onclick="newEntry()">＋ 新建条目</div>
+        </div>
+        <div id="main">
+          <div id="content">
+            <div id="empty"><div class="big">$_</div><div>点击左下角「新建条目」开始记录</div></div>
+            <div id="view-mode" style="display:none"></div>
+            <div id="edit-mode">
+              <div id="draft-indicator"></div>
+              <div class="f-wrap"><div class="f-label" id="f-title-label">▸ 标题</div><input class="f-input" id="f-title" placeholder="e.g. 替换 LVM 旧盘"/></div>
+              <div class="f-wrap"><div class="f-label" id="f-steps-label">▸ 命令步骤</div><div id="steps-container"></div><button id="add-step-btn" onclick="addStep(-1)">＋ 在末尾添加步骤</button></div>
+              <div class="f-wrap"><div class="f-label" id="f-desc-label">▸ 场景说明 / 备注</div><textarea class="f-input" id="f-desc" rows="3" placeholder="什么情况下用？"></textarea></div>
+              <div class="f-wrap"><div class="f-label" id="f-tags-label">▸ 标签（逗号分隔）</div><input class="f-input" id="f-tags" placeholder="网络, 日志, 调试"/></div>
+              <div><button class="save-btn" id="f-save-btn" onclick="saveEntry()">保存</button><button class="cancel-btn" id="f-cancel-btn" onclick="cancelEdit()">取消</button></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 账本模块 -->
+    <div class="module" id="mod-ledger">
+      <!-- 子导航 -->
+      <div class="ldg-subnav">
+        <div class="ldg-subnav-btn active" onclick="ldgSwitchPage('home')">首页</div>
+        <div class="ldg-subnav-btn" onclick="ldgSwitchPage('stats')">统计</div>
+      </div>
+
+      <!-- 首页 -->
+      <div class="ldg-page active" id="ldg-home">
+        <div class="ldg-overview" id="ldg-overview">
+          <div class="ldg-ov-row">
+            <div class="ldg-ov-item"><div class="ldg-ov-label" id="ldg-ov-label-exp">本月支出</div><div class="ldg-ov-val expense" id="ldg-ov-exp">0.00</div></div>
+            <div class="ldg-ov-item"><div class="ldg-ov-label" id="ldg-ov-label-total">总结余</div><div class="ldg-ov-val balance" id="ldg-ov-total">0.00</div></div>
+            <div class="ldg-ov-item"><div class="ldg-ov-label" id="ldg-ov-label-bal">本月结余</div><div class="ldg-ov-val balance" id="ldg-ov-bal">0.00</div></div>
+          </div>
+          <div class="ldg-ov-row">
+            <div class="ldg-ov-item"><div class="ldg-ov-label" id="ldg-ov-label-inc">本月收入</div><div class="ldg-ov-val income" id="ldg-ov-inc">0.00</div></div>
+          </div>
+          <div class="ldg-ov-currency" id="ldg-ov-currency">HK$</div>
+        </div>
+        <div class="ldg-month-bar">
+          <button class="ldg-month-btn" onclick="ldgChangeMonth(-1)">‹</button>
+          <span class="ldg-month-label" id="ldg-month-label"></span>
+          <button class="ldg-month-btn" onclick="ldgChangeMonth(1)">›</button>
+        </div>
+        <div class="ldg-add-bar">
+          <button class="ldg-add-btn" onclick="ldgOpenModal()"><span id="ldg-add-btn-text">＋ 添加一条新记账</span></button>
+        </div>
+        <div class="ldg-list" id="ldg-list"></div>
+      </div>
+
+      <!-- 统计页 -->
+      <div class="ldg-page" id="ldg-stats">
+        <div class="ldg-month-bar">
+          <button class="ldg-month-btn" onclick="ldgChangeMonth(-1);ldgRenderStats()">‹</button>
+          <span class="ldg-month-label" id="ldg-stats-month-label"></span>
+          <button class="ldg-month-btn" onclick="ldgChangeMonth(1);ldgRenderStats()">›</button>
+        </div>
+        <div class="ldg-stats-scroll" id="ldg-stats-scroll"></div>
+      </div>
+    </div>
+
+    <!-- 日历占位 -->
+    <div class="module" id="mod-calendar">
+      <div class="placeholder"><div class="ph-icon">📅</div><div class="ph-title">日历</div><div class="ph-desc">日程安排、事件提醒</div><div class="ph-badge">即将上线</div></div>
+    </div>
+    <!-- 股票占位 -->
+    <div class="module" id="mod-stock">
+      <div class="placeholder"><div class="ph-icon">📈</div><div class="ph-title">股票行情</div><div class="ph-desc">自选股实时报价</div><div class="ph-badge">即将上线</div></div>
+    </div>
+    <!-- 今日看点占位 -->
+    <div class="module" id="mod-news">
+      <div class="placeholder"><div class="ph-icon">📰</div><div class="ph-title">今日看点</div><div class="ph-desc">科技资讯、RSS 订阅</div><div class="ph-badge">即将上线</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- Lightbox -->
+<div id="lightbox" onclick="lbBgClick(event)">
+  <button id="lb-close" onclick="closeLightbox()">✕</button>
+  <img id="lb-img" src="" onclick="toggleZoom()"/>
+  <div id="lb-controls">
+    <button class="lb-btn" id="lb-prev" onclick="lbNav(-1)">← 上一张</button>
+    <span id="lb-counter"></span>
+    <button class="lb-btn" id="lb-next" onclick="lbNav(1)">下一张 →</button>
+  </div>
+</div>
+
+<!-- 记账弹窗 -->
+<div class="ldg-modal-overlay" id="ldg-modal-overlay" onclick="ldgModalBgClick(event)">
+  <div class="ldg-modal" id="ldg-modal">
+    <div class="ldg-modal-type-bar">
+      <button class="ldg-type-btn active expense" onclick="ldgSetType('expense')">支出</button>
+      <button class="ldg-type-btn income" onclick="ldgSetType('income')">收入</button>
+      <button class="ldg-type-btn transfer" onclick="ldgSetType('transfer')">转账</button>
+    </div>
+    <div class="ldg-cats" id="ldg-cats-area"></div>
+    <div class="ldg-note-bar">
+      <span style="font-size:13px;color:var(--dim)">🏷</span>
+      <input class="ldg-note-input" id="ldg-note" placeholder="添加备注"/>
+      <div class="ldg-amount-display expense" id="ldg-amount-display">HK$ 0.00</div>
+    </div>
+    <div class="ldg-meta-bar">
+      <div class="ldg-meta-item" onclick="ldgDpOpen()" style="cursor:pointer;">📅 <span id="ldg-date-label">今天</span></div>
+      <div class="ldg-meta-item">💱
+        <select id="ldg-currency-sel" onchange="ldgUpdateCurrency()">
+          <option value="HKD">HK$</option>
+          <option value="CNY">CN¥</option>
+          <option value="USD">US$</option>
+        </select>
+      </div>
+    </div>
+    <div class="ldg-keypad" id="ldg-keypad"></div>
+  </div>
+</div>
+
+<!-- 详情弹窗 -->
+<div class="ldg-detail-modal" id="ldg-detail-modal">
+  <div class="ldg-detail-box" id="ldg-detail-box"></div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════════
+// GLOBAL
+// ═══════════════════════════════════════════════
+const CLIENT_ID  = '121154591261-38dov5afo9e1boks76l8aia1roqj5kg0.apps.googleusercontent.com';
+const DRIVE_FILE = 'cmdbook_data.json';
+const LEDGER_FILE= 'ledger_data.json';
+const SCOPES     = 'https://www.googleapis.com/auth/drive.appdata';
+const DRAFT_KEY  = 'cmdbook_draft_v2';
+
+let token=null,driveFileId=null,ledgerFileId=null;
+let entries=[],current=null,filterTag=null;
+let syncTimer=null,draftTimer=null,isEditingNew=false;
+let editSteps=[],lbImgs=[],lbIdx=0;
+let isSaving=false; // 防止保存和同步冲突
+
+function switchTab(id){
+  const ids=['cmdbook','ledger','calendar','stock','news'];
+  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',ids[i]===id));
+  document.querySelectorAll('.module').forEach(m=>m.classList.toggle('active',m.id==='mod-'+id));
+  if(id==='ledger'){ldgRenderList();ldgRenderOverview();}
+}
+
+// ═══════════════════════════════════════════════
+// AUTH
+// ═══════════════════════════════════════════════
+function signIn(){
+  const REDIRECT='http://localhost:3000/callback';
+  const SCOPE=encodeURIComponent(SCOPES+' https://www.googleapis.com/auth/userinfo.profile');
+  window.__electronToken=async function(accessToken){
+    window.__electronToken=null;token=accessToken;
+    try{
+      await fetchUserInfo();
+      document.getElementById('auth-overlay').style.display='none';
+      document.getElementById('app').style.display='flex';
+      await loadFromDrive();
+      await ldgLoadFromDrive();
+      checkDraftOnLoad();
+    }catch(e){showAuthError('登录失败：'+e.message);}
+  };
+  const authUrl='https://accounts.google.com/o/oauth2/v2/auth?client_id='+CLIENT_ID+'&redirect_uri='+encodeURIComponent(REDIRECT)+'&response_type=token&scope='+SCOPE;
+  window.open(authUrl,'_blank');
+}
+function signOut(){
+  token=null;driveFileId=null;ledgerFileId=null;entries=[];current=null;
+  stopDraftTimer();
+  document.getElementById('app').style.display='none';
+  document.getElementById('auth-overlay').style.display='flex';
+}
+async function fetchUserInfo(){
+  const r=await gfetch('https://www.googleapis.com/oauth2/v3/userinfo');
+  if(!r)return;
+  document.getElementById('user-name').textContent=r.name||r.email;
+  if(r.picture)document.getElementById('avatar').src=r.picture;
+}
+async function gfetch(url,opts={}){
+  if(!token)return null;
+  const res=await fetch(url,{...opts,headers:{Authorization:'Bearer '+token,...(opts.headers||{})}});
+  if(!res.ok)return null;
+  return res.headers.get('content-type')?.includes('json')?res.json():res.text();
+}
+
+// ═══════════════════════════════════════════════
+// CMD.BOOK DRIVE
+// ═══════════════════════════════════════════════
+async function findDriveFile(){
+  const res=await gfetch(`https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=name='${DRIVE_FILE}'&fields=files(id,name)`);
+  if(res?.files?.length){driveFileId=res.files[0].id;return true;}return false;
+}
+async function loadFromDrive(){
+  setSyncStatus('同步中 ↺');
+  showSaveStatus('saving','正在从 Google Drive 同步...');
+  try{
+    const found=await findDriveFile();
+    if(found){const raw=await gfetch(`https://www.googleapis.com/drive/v3/files/${driveFileId}?alt=media`);try{const p=typeof raw==='string'?JSON.parse(raw):raw;entries=Array.isArray(p)?p:[];}catch{entries=[];}}else entries=[];
+    entries.sort((a,b)=>b.ts-a.ts);renderList();updateTagFilters();
+    if(entries.length)showEntry(entries[0].id);else showEmpty();
+    setSyncStatus('已同步 ✓');
+    showSaveStatus('success','同步完成 ✓');
+    setTimeout(hideSaveStatus, 2500);
+  }catch(err){
+    setSyncStatus('⚠ 同步失败');
+    showSaveStatus('error',`同步失败：${err.message}`);
+  }
+}
+async function saveToDrive(){
+  isSaving=true;
+  setSyncStatus('<span class="spin">↺</span> 保存中...');
+  showSaveStatus('saving','正在保存到 Google Drive...');
+  try{
+    const body=JSON.stringify(entries);
+    if(driveFileId){
+      const res=await fetch(`https://www.googleapis.com/upload/drive/v3/files/${driveFileId}?uploadType=media`,{method:'PATCH',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},body});
+      if(!res.ok)throw new Error(`HTTP ${res.status}`);
+    }else{
+      const meta=await fetch('https://www.googleapis.com/drive/v3/files?fields=id',{method:'POST',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify({name:DRIVE_FILE,parents:['appDataFolder']})}).then(r=>r.json());
+      driveFileId=meta.id;
+      const res=await fetch(`https://www.googleapis.com/upload/drive/v3/files/${driveFileId}?uploadType=media`,{method:'PATCH',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},body});
+      if(!res.ok)throw new Error(`HTTP ${res.status}`);
+    }
+    setSyncStatus('已同步 ✓');
+    showSaveStatus('success','已保存到 Google Drive ✓');
+    setTimeout(hideSaveStatus, 3000);
+  }catch(err){
+    setSyncStatus('⚠ 保存失败');
+    showSaveStatus('error',`保存失败：${err.message} — 请检查网络后重试`);
+  }finally{
+    isSaving=false;
+  }
+}
+
+function showSaveStatus(type, msg){
+  const bar=document.getElementById('save-status-bar');
+  const dot=document.getElementById('save-status-dot');
+  const text=document.getElementById('save-status-text');
+  const time=document.getElementById('save-status-time');
+  bar.className='';
+  bar.classList.add(type);
+  dot.className='save-status-dot'+(type==='saving'?' spin-dot':'');
+  text.textContent=msg;
+  const now=new Date();
+  time.textContent=type!=='saving'?now.toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit',second:'2-digit'}):'';
+}
+
+function hideSaveStatus(){
+  const bar=document.getElementById('save-status-bar');
+  if(bar)bar.style.display='none';
+  // reset class so next time it shows properly
+  bar.className='';
+}
+function scheduleSave(){clearTimeout(syncTimer);syncTimer=setTimeout(()=>{if(!isSaving)saveToDrive();},1200);}
+async function forceSync(){
+  if(isSaving){toast('⏳ 正在保存，请稍候...');return;}
+  // 先把本地未上传的变更推上去，再拉取
+  clearTimeout(syncTimer);
+  await saveToDrive();
+  await loadFromDrive();
+  toast(t().cbSyncPulled);
+}
+
+// ═══════════════════════════════════════════════
+// DRAFT
+// ═══════════════════════════════════════════════
+function collectEditState(){const steps=[];document.querySelectorAll('.step-block').forEach((el,i)=>{steps.push({cmd:el.querySelector('.step-cmd-input')?.value||'',output:el.querySelector('.step-out-input')?.value||'',imgs:editSteps[i]?.imgs||[],imgOpen:editSteps[i]?.imgOpen||false});});return{entryId:current?.id||null,isNew:isEditingNew,title:document.getElementById('f-title')?.value||'',steps,desc:document.getElementById('f-desc')?.value||'',tags:document.getElementById('f-tags')?.value||'',savedAt:Date.now()};}
+function saveDraft(){const d=collectEditState();const hasContent=d.title||d.desc||d.tags||d.steps.some(s=>s.cmd||s.output||s.imgs?.length);if(hasContent){localStorage.setItem(DRAFT_KEY,JSON.stringify(d));setDraftIndicator(`⏳ 草稿已自动保存 ${new Date().toLocaleTimeString('zh-CN')}`)}}
+function clearDraft(){localStorage.removeItem(DRAFT_KEY);document.getElementById('draft-indicator').style.display='none';document.getElementById('draft-banner').style.display='none';}
+function setDraftIndicator(msg){const el=document.getElementById('draft-indicator');el.style.display='block';el.textContent=msg;}
+function startDraftTimer(){clearInterval(draftTimer);draftTimer=setInterval(saveDraft,30000);}
+function stopDraftTimer(){clearInterval(draftTimer);draftTimer=null;}
+function checkDraftOnLoad(){const raw=localStorage.getItem(DRAFT_KEY);if(!raw)return;try{const d=JSON.parse(raw);const hasContent=d.title||d.desc||d.steps?.some(s=>s.cmd||s.imgs?.length);if(!hasContent){clearDraft();return;}const elapsed=Math.round((Date.now()-d.savedAt)/60000);const ts=elapsed<1?'刚刚':elapsed<60?`${elapsed}分钟前`:`${Math.round(elapsed/60)}小时前`;document.getElementById('draft-time').textContent=`（${ts}保存）`;document.getElementById('draft-banner').style.display='flex';}catch{clearDraft();}}
+function restoreDraft(){const raw=localStorage.getItem(DRAFT_KEY);if(!raw)return;try{const d=JSON.parse(raw);current=d.isNew||!d.entryId?{id:uid(),title:'',steps:[],desc:'',tags:[],ts:Date.now()}:(entries.find(e=>e.id===d.entryId)||{id:d.entryId,title:'',steps:[],desc:'',tags:[],ts:Date.now()});isEditingNew=d.isNew||false;editSteps=d.steps?.length?d.steps:[{cmd:'',output:'',imgs:[],imgOpen:false}];_openEditMode();document.getElementById('f-title').value=d.title||'';document.getElementById('f-desc').value=d.desc||'';document.getElementById('f-tags').value=d.tags||'';document.getElementById('draft-banner').style.display='none';setDraftIndicator('✅ 草稿已恢复');startDraftTimer();renderList();toast(t().cbDraftRestored);}catch{clearDraft();toast('草稿恢复失败');}}
+function discardDraft(){clearDraft();toast(t().cbDraftDiscarded);}
+
+// ═══════════════════════════════════════════════
+// CMD.BOOK LIST/VIEW/EDIT
+// ═══════════════════════════════════════════════
+function renderList(){const q=document.getElementById('search').value.toLowerCase();const filtered=entries.filter(e=>{const mt=!filterTag||(e.tags||[]).includes(filterTag);const allCmds=(e.steps||[]).map(s=>s.cmd).join(' ');const mq=!q||(e.title||'').toLowerCase().includes(q)||allCmds.toLowerCase().includes(q)||(e.desc||'').toLowerCase().includes(q);return mt&&mq;});document.getElementById('count-line').textContent=`${filtered.length} / ${entries.length} 条`;document.getElementById('list').innerHTML=filtered.map(e=>{const firstCmd=(e.steps||[])[0]?.cmd||'';return`<div class="e-item ${current?.id===e.id?'active':''}" onclick="showEntry('${e.id}')"><div class="e-title">${esc(e.title||'无标题')}</div>${firstCmd?`<div class="e-cmd-preview">$ ${esc(firstCmd)}</div>`:''}<div class="e-date">${fmtDate(e.ts)}</div></div>`;}).join('');}
+function updateTagFilters(){const all=[...new Set(entries.flatMap(e=>e.tags||[]))];document.getElementById('tags-wrap').innerHTML=all.map(t=>`<span class="tag-filter ${filterTag===t?'active':''}" onclick="setFilter('${esc(t)}')">${esc(t)}</span>`).join('');}
+function setFilter(t){filterTag=filterTag===t?null:t;updateTagFilters();renderList();}
+function showEmpty(){document.getElementById('empty').style.display='flex';document.getElementById('view-mode').style.display='none';document.getElementById('edit-mode').style.display='none';}
+function showEntry(id){current=entries.find(e=>e.id===id);if(!current)return;document.getElementById('edit-mode').style.display='none';document.getElementById('empty').style.display='none';document.getElementById('view-mode').style.display='block';const steps=current.steps||[];if(current.imgs?.length&&!steps[0]?.imgs?.length){if(steps[0])steps[0].imgs=current.imgs;}lbImgs=steps.flatMap(s=>s.imgs||[]);let lbOffset=0;const stepsHTML=steps.map((s,si)=>{const sImgs=s.imgs||[];const thumbs=sImgs.map((src,ii)=>{const globalIdx=lbOffset+ii;return`<img class="term-img-thumb" src="${src}" onclick="openLightboxAt(${globalIdx})"/>`;}).join('');lbOffset+=sImgs.length;return`<div class="term-block"><div class="term-cmd-row"><span class="term-prompt">$</span><span class="term-cmd">${esc(s.cmd)}</span><button class="term-copy" onclick="copyStep(${si})">复制</button></div>${s.output?`<div class="term-output">${esc(s.output)}</div>`:''}${sImgs.length?`<div class="term-imgs">${thumbs}</div>`:''}</div>`;}).join('');document.getElementById('view-mode').innerHTML=`${current.title?`<div class="view-title">${esc(current.title)}</div>`:''}<div style="margin-bottom:16px">${stepsHTML}</div>${current.desc?`<div style="margin-bottom:16px"><div class="sec-label">场景说明</div><div class="scenario">${esc(current.desc)}</div></div>`:''}${(current.tags||[]).length?`<div class="tags-row">${(current.tags||[]).map(t=>`<span class="tag-badge">${esc(t)}</span>`).join('')}</div>`:''}<div class="meta-line">记录于 ${fmtDate(current.ts)}</div>`;renderList();}
+function copyStep(i){const s=(current?.steps||[])[i];if(!s)return;navigator.clipboard.writeText(s.cmd);toast(t().cbCopied);}
+function openLightboxAt(idx){lbIdx=idx;document.getElementById('lightbox').classList.add('open');lbShow();document.addEventListener('keydown',lbKeydown);}
+function closeLightbox(){document.getElementById('lightbox').classList.remove('open');document.getElementById('lb-img').classList.remove('zoomed');document.removeEventListener('keydown',lbKeydown);}
+function lbBgClick(e){if(e.target===document.getElementById('lightbox'))closeLightbox();}
+function lbShow(){document.getElementById('lb-img').src=lbImgs[lbIdx];document.getElementById('lb-img').classList.remove('zoomed');document.getElementById('lb-counter').textContent=`${lbIdx+1} / ${lbImgs.length}`;document.getElementById('lb-prev').disabled=lbIdx===0;document.getElementById('lb-next').disabled=lbIdx===lbImgs.length-1;}
+function lbNav(dir){lbIdx=Math.max(0,Math.min(lbImgs.length-1,lbIdx+dir));lbShow();}
+function toggleZoom(){document.getElementById('lb-img').classList.toggle('zoomed');}
+function lbKeydown(e){if(e.key==='ArrowLeft')lbNav(-1);else if(e.key==='ArrowRight')lbNav(1);else if(e.key==='Escape')closeLightbox();}
+function renderSteps(){const c=document.getElementById('steps-container');let html='';editSteps.forEach((s,i)=>{const isOpen=s.imgOpen||false;const imgCount=s.imgs?.length||0;html+=`<div class="step-block" id="step-${i}"><div class="step-header"><span class="step-num">步骤 ${i+1}</span><div class="step-actions"><button class="step-act-btn up" onclick="moveStep(${i},-1)" ${i===0?'disabled':''}>↑</button><button class="step-act-btn dn" onclick="moveStep(${i},1)" ${i===editSteps.length-1?'disabled':''}>↓</button><button class="step-act-btn del" onclick="removeStep(${i})">✕ 删除</button></div></div><div class="step-cmd-wrap"><span class="step-dollar">$</span><textarea class="step-cmd-input" rows="1" placeholder="输入命令..." oninput="syncStep(${i},'cmd',this.value);autoResize(this);markDirty()">${esc(s.cmd)}</textarea></div><div class="step-out-wrap"><textarea class="step-out-input" rows="2" placeholder="输出结果（可选）..." oninput="syncStep(${i},'output',this.value);markDirty()">${esc(s.output)}</textarea></div><div class="step-img-zone"><button class="step-img-toggle ${isOpen?'open':''}" onclick="toggleStepImgs(${i})"><span class="arr">▶</span> 📷 步骤截图${imgCount?` (${imgCount}张)`:''}</button><div class="step-img-body ${isOpen?'open':''}" id="step-imgs-${i}"><div class="step-drop" onclick="triggerStepImgPick(${i})" ondragover="event.preventDefault();this.classList.add('drag-over')" ondragleave="this.classList.remove('drag-over')" ondrop="handleStepDrop(event,${i})">点击或拖拽截图到这里</div><input type="file" id="step-img-input-${i}" accept="image/*" multiple style="display:none" onchange="handleStepImg(event,${i})"/><div class="step-img-grid" id="step-img-grid-${i}">${(s.imgs||[]).map((src,ii)=>`<div class="step-img-item"><img src="${src}"/><button class="step-img-del" onclick="removeStepImg(${i},${ii})">✕</button></div>`).join('')}</div></div></div></div>`;if(i<editSteps.length-1){html+=`<div class="insert-between"><div class="ib-line"></div><button class="ib-btn" onclick="addStep(${i})">＋ 在此处插入步骤</button><div class="ib-line"></div></div>`;}});c.innerHTML=html;document.querySelectorAll('.step-cmd-input').forEach(autoResize);}
+function toggleStepImgs(i){editSteps[i].imgOpen=!editSteps[i].imgOpen;const toggle=document.querySelector(`#step-${i} .step-img-toggle`);const body=document.getElementById(`step-imgs-${i}`);if(toggle)toggle.classList.toggle('open',editSteps[i].imgOpen);if(body)body.classList.toggle('open',editSteps[i].imgOpen);}
+function addStep(insertAfter){const newStep={cmd:'',output:'',imgs:[],imgOpen:false};if(insertAfter===-1||insertAfter===undefined)editSteps.push(newStep);else editSteps.splice(insertAfter+1,0,newStep);renderSteps();const newIdx=insertAfter===-1?editSteps.length-1:insertAfter+1;setTimeout(()=>{const el=document.querySelector(`#step-${newIdx} .step-cmd-input`);if(el)el.focus();},50);}
+function removeStep(i){if(editSteps.length<=1){editSteps[0]={cmd:'',output:'',imgs:[],imgOpen:false};renderSteps();return;}editSteps.splice(i,1);renderSteps();}
+function moveStep(i,dir){const j=i+dir;if(j<0||j>=editSteps.length)return;_syncAllStepsFromDOM();[editSteps[i],editSteps[j]]=[editSteps[j],editSteps[i]];renderSteps();}
+function syncStep(i,field,val){if(editSteps[i])editSteps[i][field]=val;}
+function _syncAllStepsFromDOM(){document.querySelectorAll('.step-block').forEach((el,i)=>{if(!editSteps[i])return;editSteps[i].cmd=el.querySelector('.step-cmd-input')?.value||'';editSteps[i].output=el.querySelector('.step-out-input')?.value||'';});}
+function autoResize(el){el.style.height='auto';el.style.height=el.scrollHeight+'px';}
+function markDirty(){setDraftIndicator('⏳ 有未保存的更改...');}
+function triggerStepImgPick(i){document.getElementById(`step-img-input-${i}`)?.click();}
+function handleStepImg(e,i){[...e.target.files].forEach(f=>readStepImg(f,i));e.target.value='';}
+function handleStepDrop(e,i){e.preventDefault();e.target.classList.remove('drag-over');[...e.dataTransfer.files].filter(f=>f.type.startsWith('image/')).forEach(f=>readStepImg(f,i));}
+function readStepImg(file,i){const r=new FileReader();r.onload=ev=>{if(!editSteps[i].imgs)editSteps[i].imgs=[];editSteps[i].imgs.push(ev.target.result);editSteps[i].imgOpen=true;_refreshStepImgGrid(i);markDirty();};r.readAsDataURL(file);}
+function removeStepImg(i,ii){editSteps[i].imgs.splice(ii,1);_refreshStepImgGrid(i);markDirty();}
+function _refreshStepImgGrid(i){const grid=document.getElementById(`step-img-grid-${i}`);const toggle=document.querySelector(`#step-${i} .step-img-toggle`);if(!grid)return;const imgs=editSteps[i].imgs||[];grid.innerHTML=imgs.map((src,ii)=>`<div class="step-img-item"><img src="${src}"/><button class="step-img-del" onclick="removeStepImg(${i},${ii})">✕</button></div>`).join('');if(toggle){const cnt=imgs.length;toggle.innerHTML=`<span class="arr">▶</span> 📷 步骤截图${cnt?` (${cnt}张)`:''}`;}const body=document.getElementById(`step-imgs-${i}`);if(body)body.classList.toggle('open',editSteps[i].imgOpen||false);}
+function _openEditMode(){document.getElementById('empty').style.display='none';document.getElementById('view-mode').style.display='none';document.getElementById('edit-mode').style.display='block';renderSteps();}
+function enterEdit(){if(!current)return;isEditingNew=false;const steps=current.steps||[{cmd:'',output:''}];if(current.imgs?.length&&!steps[0]?.imgs?.length)steps[0]={...steps[0],imgs:current.imgs};editSteps=steps.map(s=>({cmd:s.cmd||'',output:s.output||'',imgs:s.imgs||[],imgOpen:s.imgOpen||false}));if(!editSteps.length)editSteps=[{cmd:'',output:'',imgs:[],imgOpen:false}];document.getElementById('f-title').value=current.title||'';document.getElementById('f-desc').value=current.desc||'';document.getElementById('f-tags').value=(current.tags||[]).join(', ');document.getElementById('draft-indicator').style.display='none';_openEditMode();startDraftTimer();}
+function newEntry(){isEditingNew=true;current={id:uid(),title:'',steps:[],desc:'',tags:[],ts:Date.now()};editSteps=[{cmd:'',output:'',imgs:[],imgOpen:false}];document.getElementById('f-title').value='';document.getElementById('f-desc').value='';document.getElementById('f-tags').value='';document.getElementById('draft-indicator').style.display='none';_openEditMode();document.getElementById('f-title').focus();startDraftTimer();renderList();}
+function cancelEdit(){stopDraftTimer();_syncAllStepsFromDOM();saveDraft();document.getElementById('edit-mode').style.display='none';document.getElementById('draft-indicator').style.display='none';if(entries.length&&current&&!isEditingNew)showEntry(current.id);else showEmpty();toast(t().cbDraftSavedAs);}
+async function saveEntry(){_syncAllStepsFromDOM();const steps=editSteps.filter(s=>s.cmd.trim()).map(s=>({cmd:s.cmd.trim(),output:s.output,imgs:s.imgs||[],imgOpen:false}));if(!steps.length){toast(t().cbNeedCmd);return;}current.title=document.getElementById('f-title').value.trim();current.steps=steps;current.desc=document.getElementById('f-desc').value.trim();current.tags=document.getElementById('f-tags').value.split(',').map(t=>t.trim()).filter(Boolean);delete current.imgs;current.ts=current.ts||Date.now();const idx=entries.findIndex(e=>e.id===current.id);if(idx>=0)entries[idx]=current;else entries.unshift(current);entries.sort((a,b)=>b.ts-a.ts);clearDraft();stopDraftTimer();isEditingNew=false;document.getElementById('edit-mode').style.display='none';showEntry(current.id);renderList();updateTagFilters();scheduleSave();toast(t().cbSaved);}
+async function deleteEntry(){if(!current)return;if(!confirm(`删除「${current.title||current.steps?.[0]?.cmd||'此条目'}」？`))return;entries=entries.filter(e=>e.id!==current.id);current=null;renderList();updateTagFilters();if(entries.length)showEntry(entries[0].id);else showEmpty();scheduleSave();toast(t().cbDeleted);}
+function exportJSON(){const blob=new Blob([JSON.stringify(entries,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`cmdbook_${fmtDate(Date.now())}.json`;a.click();toast(t().cbExported);}
+async function importJSON(e){const file=e.target.files[0];if(!file)return;const text=await file.text();try{const data=JSON.parse(text);if(!Array.isArray(data))throw new Error('格式不正确');const ids=new Set(entries.map(e=>e.id));let added=0;for(const item of data){if(!ids.has(item.id)){entries.push(item);added++;}}entries.sort((a,b)=>b.ts-a.ts);renderList();updateTagFilters();scheduleSave();toast(t().cbImported(added));}catch(err){toast(t().cbImportFail+err.message);}e.target.value='';}
+
+// ═══════════════════════════════════════════════
+// 账本数据
+// ═══════════════════════════════════════════════
+let ldgRecords=[];
+let ldgCurrentMonth=new Date();
+let ldgEditType='expense';
+let ldgSelectedCat='';
+let ldgSelectedSubcat='';
+let ldgAmountStr='0';
+let ldgEditId=null;
+let ldgCurrency='HKD';
+
+const CURRENCIES={HKD:'HK$',CNY:'CN¥',USD:'US$'};
+
+const LDG_CATS={
+  expense:[
+    {id:'food',name:'食品餐饮',icon:'🍜',subs:['早餐','午餐','晚餐','零食','外卖','聚餐']},
+    {id:'transport',name:'出行交通',icon:'🚇',subs:['公共交通','打车','加油','停车','高铁','机票']},
+    {id:'shopping',name:'购物消费',icon:'🛍',subs:['服装鞋帽','数码电器','日用品','化妆护肤','网购']},
+    {id:'entertainment',name:'休闲娱乐',icon:'🎮',subs:['游戏','电影','旅游','运动健身','KTV']},
+    {id:'home',name:'居家生活',icon:'🏠',subs:['家用','话费宽带','电费','水费','燃气费','物业费','房租还贷','车位费','家政清洁']},
+    {id:'education',name:'文化教育',icon:'📚',subs:['学费','书报杂志','培训考试']},
+    {id:'gift',name:'送礼人情',icon:'🎁',subs:['孝敬长辈','礼物','借出','红包','打赏']},
+    {id:'health',name:'健康医疗',icon:'🏥',subs:['滋补保健','医院','买药']},
+    {id:'other',name:'其他',icon:'📦',subs:['其他支出']},
+  ],
+  income:[
+    {id:'salary',name:'工资',icon:'💼',subs:['基本工资','加班费']},
+    {id:'bonus',name:'奖金',icon:'🏆',subs:['年终奖','绩效奖金']},
+    {id:'parttime',name:'兼职外快',icon:'⚡',subs:['兼职','外快','接单']},
+    {id:'invest',name:'理财盈利',icon:'📈',subs:['股票','基金','利息','分红']},
+    {id:'redpacket',name:'红包',icon:'🧧',subs:['微信红包','收礼']},
+    {id:'borrow',name:'借入',icon:'💰',subs:['借款']},
+    {id:'prize',name:'中奖',icon:'🎯',subs:['彩票','抽奖']},
+    {id:'gift_in',name:'礼金人情',icon:'🎀',subs:['亲友转账','礼金']},
+    {id:'subsidy',name:'补贴',icon:'☀',subs:['政府补贴','报销']},
+    {id:'secondhand',name:'二手闲置',icon:'♻',subs:['二手出售']},
+    {id:'other_in',name:'其他',icon:'📦',subs:['其他收入']},
+  ],
+  transfer:[
+    {id:'transfer',name:'转账',icon:'↔',subs:['银行转账','钱包转账']},
+  ]
+};
+
+// 账本 Drive
+async function ldgFindFile(){
+  const res=await gfetch(`https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=name='${LEDGER_FILE}'&fields=files(id,name)`);
+  if(res?.files?.length){ledgerFileId=res.files[0].id;return true;}return false;
+}
+async function ldgLoadFromDrive(){
+  const found=await ldgFindFile();
+  if(found){const raw=await gfetch(`https://www.googleapis.com/drive/v3/files/${ledgerFileId}?alt=media`);try{const p=typeof raw==='string'?JSON.parse(raw):raw;ldgRecords=Array.isArray(p)?p:[];}catch{ldgRecords=[];}}else ldgRecords=[];
+  ldgRenderList();ldgRenderOverview();
+}
+async function ldgSaveToDrive(){
+  const body=JSON.stringify(ldgRecords);
+  if(ledgerFileId){await fetch(`https://www.googleapis.com/upload/drive/v3/files/${ledgerFileId}?uploadType=media`,{method:'PATCH',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},body});}
+  else{const meta=await fetch('https://www.googleapis.com/drive/v3/files?fields=id',{method:'POST',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify({name:LEDGER_FILE,parents:['appDataFolder']})}).then(r=>r.json());ledgerFileId=meta.id;await fetch(`https://www.googleapis.com/upload/drive/v3/files/${ledgerFileId}?uploadType=media`,{method:'PATCH',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},body});}
+}
+
+// 账本页面切换
+function ldgSwitchPage(page){
+  document.querySelectorAll('.ldg-subnav-btn').forEach((b,i)=>b.classList.toggle('active',['home','stats'][i]===page));
+  document.querySelectorAll('.ldg-page').forEach(p=>p.classList.toggle('active',p.id==='ldg-'+page));
+  document.getElementById('ldg-stats-month-label').textContent=document.getElementById('ldg-month-label').textContent;
+  if(page==='stats')ldgRenderStats();
+}
+
+// 月份
+function ldgChangeMonth(dir){
+  ldgCurrentMonth=new Date(ldgCurrentMonth.getFullYear(),ldgCurrentMonth.getMonth()+dir,1);
+  ldgRenderMonthLabel();ldgRenderList();ldgRenderOverview();
+  document.getElementById('ldg-stats-month-label').textContent=document.getElementById('ldg-month-label').textContent;
+}
+function ldgRenderMonthLabel(){
+  const y=ldgCurrentMonth.getFullYear(),m=ldgCurrentMonth.getMonth()+1;
+  const label=t().ldgMonthFmt(y,m);
+  document.getElementById('ldg-month-label').textContent=label;
+  document.getElementById('ldg-stats-month-label').textContent=label;
+}
+
+// 获取当月记录
+function ldgGetMonthRecords(){
+  const y=ldgCurrentMonth.getFullYear(),m=ldgCurrentMonth.getMonth();
+  return ldgRecords.filter(r=>{const d=new Date(r.ts);return d.getFullYear()===y&&d.getMonth()===m;});
+}
+
+// 概览
+function ldgRenderOverview(){
+  const recs=ldgGetMonthRecords();
+  const inc=recs.filter(r=>r.type==='income').reduce((s,r)=>s+r.amount,0);
+  const exp=recs.filter(r=>r.type==='expense').reduce((s,r)=>s+r.amount,0);
+  const allInc=ldgRecords.filter(r=>r.type==='income').reduce((s,r)=>s+r.amount,0);
+  const allExp=ldgRecords.filter(r=>r.type==='expense').reduce((s,r)=>s+r.amount,0);
+  const cur=CURRENCIES[ldgCurrency]||'HK$';
+  document.getElementById('ldg-ov-inc').textContent=inc.toFixed(2);
+  document.getElementById('ldg-ov-exp').textContent=exp.toFixed(2);
+  document.getElementById('ldg-ov-bal').textContent=(inc-exp).toFixed(2);
+  document.getElementById('ldg-ov-total').textContent=(allInc-allExp).toFixed(2);
+  document.getElementById('ldg-ov-currency').textContent=cur;
+}
+
+// 流水列表
+function ldgRenderList(){
+  ldgRenderMonthLabel();
+  const recs=ldgGetMonthRecords().sort((a,b)=>b.ts-a.ts);
+  const el=document.getElementById('ldg-list');
+  if(!recs.length){el.innerHTML=`<div class="ldg-empty-state"><div class="ei">💸</div><div>${t().ldgEmptyMonth}</div><div style="font-size:11px;color:var(--dim)">${t().ldgEmptyHint}</div></div>`;return;}
+  // 按日分组
+  const groups={};
+  recs.forEach(r=>{const d=new Date(r.ts);const key=`${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}`;if(!groups[key])groups[key]=[];groups[key].push(r);});
+  const cur=CURRENCIES[ldgCurrency]||'HK$';
+  el.innerHTML=Object.entries(groups).map(([key,dayRecs])=>{
+    const [y,m,d]=key.split('-');
+    const dateObj=new Date(+y,+m-1,+d);
+    const days=t().ldgDays;
+    const dayInc=dayRecs.filter(r=>r.type==='income').reduce((s,r)=>s+r.amount,0);
+    const dayExp=dayRecs.filter(r=>r.type==='expense').reduce((s,r)=>s+r.amount,0);
+    const recHTML=dayRecs.map(r=>{
+      const cats=(t().cats||LDG_CATS)[r.type]||(t().cats||LDG_CATS).expense;
+      const cat=cats.find(c=>c.id===r.catId)||{icon:'📦',name:r.catId};
+      const isExp=r.type==='expense';
+      return`<div class="ldg-record" onclick="ldgShowDetail('${r.id}')">
+        <div class="ldg-rec-icon">${cat.icon}</div>
+        <div class="ldg-rec-info">
+          <div class="ldg-rec-cat">${cat.name}${r.subcat?` · ${r.subcat}`:''}</div>
+          ${r.note?`<div class="ldg-rec-note">${esc(r.note)}</div>`:''}
+          <div class="ldg-rec-time">${new Date(r.ts).toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'})}</div>
+        </div>
+        <div class="ldg-rec-amount ${r.type}">${isExp?'-':'+'} ${cur} ${r.amount.toFixed(2)}</div>
+      </div>`;
+    }).join('');
+    return`<div class="ldg-day-group">
+      <div class="ldg-day-header">
+        <div class="ldg-day-title">${m}月${d}日 周${days[dateObj.getDay()]}</div>
+        <div class="ldg-day-summary">
+          ${dayInc>0?`<span class="ldg-day-inc">收 ${dayInc.toFixed(2)}</span>`:''}
+          ${dayExp>0?`<span class="ldg-day-exp">支 ${dayExp.toFixed(2)}</span>`:''}
+        </div>
+      </div>
+      <div class="ldg-records">${recHTML}</div>
+    </div>`;
+  }).join('');
+}
+
+// 记账弹窗
+function ldgOpenModal(editId){
+  ldgEditId=editId||null;
+  if(editId){
+    const r=ldgRecords.find(x=>x.id===editId);
+    if(r){ldgEditType=r.type;ldgSelectedCat=r.catId;ldgSelectedSubcat=r.subcat||'';ldgAmountStr=r.amount.toString();ldgCurrency=r.currency||'HKD';ldgRecordTs=r.ts||null;document.getElementById('ldg-note').value=r.note||'';}
+  }else{
+    ldgEditType='expense';ldgSelectedCat='food';ldgSelectedSubcat='';ldgAmountStr='0';
+    ldgRecordTs=null;
+    document.getElementById('ldg-note').value='';
+  }
+  document.getElementById('ldg-currency-sel').value=ldgCurrency;
+  ldgUpdateDateLabel();
+  document.getElementById('ldg-modal-overlay').classList.add('open');
+  ldgRenderTypeBar();ldgRenderCats();ldgRenderKeypad();ldgUpdateAmountDisplay();
+}
+function ldgCloseModal(){document.getElementById('ldg-modal-overlay').classList.remove('open');}
+function ldgModalBgClick(e){if(e.target===document.getElementById('ldg-modal-overlay'))ldgCloseModal();}
+
+function ldgSetType(t){ldgEditType=t;ldgSelectedCat=LDG_CATS[t]?.[0]?.id||'';ldgSelectedSubcat='';ldgRenderTypeBar();ldgRenderCats();}
+function ldgRenderTypeBar(){
+  document.querySelectorAll('.ldg-type-btn').forEach(b=>{b.classList.remove('active');if(b.textContent.trim()==={expense:'支出',income:'收入',transfer:'转账'}[ldgEditType])b.classList.add('active');});}
+
+function ldgRenderCats(){
+  const cats=(t().cats||LDG_CATS)[ldgEditType]||[];
+  if(!ldgSelectedCat&&cats.length)ldgSelectedCat=cats[0].id;
+  const selCat=cats.find(c=>c.id===ldgSelectedCat)||cats[0];
+  const mainHTML=cats.map(c=>`
+    <div class="ldg-cat-item ${c.id===ldgSelectedCat?'active':''}" onclick="ldgSelectCat('${c.id}')">
+      <div class="ldg-cat-circle">${c.icon}</div>
+      <div class="ldg-cat-name">${c.name}</div>
+    </div>`).join('');
+  const subHTML=selCat?.subs?.map(s=>`<div class="ldg-subcat-item ${s===ldgSelectedSubcat?'active':''}" onclick="ldgSelectSubcat('${s}')">${s}</div>`).join('')||'';
+  document.getElementById('ldg-cats-area').innerHTML=`
+    <div class="ldg-cat-main">${mainHTML}</div>
+    ${subHTML?`<div class="ldg-subcat">${subHTML}</div>`:''}`;
+}
+function ldgSelectCat(id){ldgSelectedCat=id;ldgSelectedSubcat='';ldgRenderCats();}
+function ldgSelectSubcat(s){ldgSelectedSubcat=s===ldgSelectedSubcat?'':s;ldgRenderCats();}
+
+function ldgRenderKeypad(){
+  const L2=t();const keys=['1','2','3','del','4','5','6','+','7','8','9','-',L2.ldgKeyAgain,'0','.',L2.ldgKeyConfirm];
+  document.getElementById('ldg-keypad').innerHTML=keys.map(k=>{
+    let cls='ldg-key';
+    if(k==='del')cls+=' del action';
+    else if(k==='再记'||k==='确定')cls+=k==='确定'?' confirm':' action';
+    else if(['+','-'].includes(k))cls+=' action';
+    return`<button class="${cls}" onclick="ldgKeyPress('${k}')">${k}</button>`;
+  }).join('');
+}
+
+function ldgKeyPress(k){
+  if(k==='del'){ldgAmountStr=ldgAmountStr.slice(0,-1)||'0';}
+  else if(k===t().ldgKeyConfirm||k==='确定'||k==='確定'||k==='Done'){ldgSaveRecord(false);}
+  else if(k===t().ldgKeyAgain||k==='再记'||k==='再記'||k==='Add more'){ldgSaveRecord(true);}
+  else if(k==='.'){if(!ldgAmountStr.includes('.'))ldgAmountStr+='.'}
+  else if(['+','-'].includes(k)){/* 可扩展计算 */}
+  else{if(ldgAmountStr==='0')ldgAmountStr=k;else ldgAmountStr+=k;}
+  ldgUpdateAmountDisplay();
+}
+
+function ldgUpdateAmountDisplay(){
+  const cur=CURRENCIES[ldgCurrency]||'HK$';
+  const el=document.getElementById('ldg-amount-display');
+  el.textContent=`${cur} ${parseFloat(ldgAmountStr||0).toFixed(2)}`;
+  el.className='ldg-amount-display '+(ldgEditType==='income'?'income':'expense');
+}
+function ldgUpdateCurrency(){ldgCurrency=document.getElementById('ldg-currency-sel').value;ldgUpdateAmountDisplay();}
+
+function ldgSaveRecord(again){
+  const amount=parseFloat(ldgAmountStr)||0;
+  if(amount<=0){toast(t().ldgNoAmount);return;}
+  if(!ldgSelectedCat){toast(t().ldgNoCat);return;}
+  const note=document.getElementById('ldg-note').value.trim();
+  if(ldgEditId){
+    const idx=ldgRecords.findIndex(r=>r.id===ldgEditId);
+    if(idx>=0)ldgRecords[idx]={...ldgRecords[idx],type:ldgEditType,catId:ldgSelectedCat,subcat:ldgSelectedSubcat,amount,note,currency:ldgCurrency,ts:ldgRecordTs||ldgRecords[idx].ts||Date.now()};
+  }else{
+    ldgRecords.push({id:uid(),type:ldgEditType,catId:ldgSelectedCat,subcat:ldgSelectedSubcat,amount,note,currency:ldgCurrency,ts:ldgRecordTs||Date.now()});
+  }
+  ldgSaveToDrive();ldgRenderList();ldgRenderOverview();
+  toast(t().ldgSaved);
+  if(again){ldgAmountStr='0';ldgRecordTs=null;document.getElementById('ldg-note').value='';ldgUpdateAmountDisplay();ldgUpdateDateLabel();}
+  else{ldgCloseModal();}
+}
+
+// 详情弹窗
+function ldgShowDetail(id){
+  const r=ldgRecords.find(x=>x.id===id);if(!r)return;
+  const cats=(t().cats||LDG_CATS)[r.type]||(t().cats||LDG_CATS).expense;
+  const cat=cats.find(c=>c.id===r.catId)||{icon:'📦',name:r.catId};
+  const cur=CURRENCIES[r.currency||'HKD']||'HK$';
+  const isExp=r.type==='expense';
+  const d=new Date(r.ts);
+  document.getElementById('ldg-detail-box').innerHTML=`
+    <div class="ldg-detail-header">
+      <div class="ldg-detail-icon">${cat.icon}</div>
+      <div><div class="ldg-detail-cat">${cat.name}${r.subcat?` · ${r.subcat}`:''}</div></div>
+      <div class="ldg-detail-amount ${r.type}">${isExp?'-':'+'} ${cur} ${r.amount.toFixed(2)}</div>
+    </div>
+    <div class="ldg-detail-rows">
+      <div class="ldg-detail-row"><span class="ldg-detail-row-label">${t().ldgDetailDate}</span><span class="ldg-detail-row-val">${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日 ${d.toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'})}</span></div>
+      <div class="ldg-detail-row"><span class="ldg-detail-row-label">${t().ldgDetailCurrency}</span><span class="ldg-detail-row-val">${cur}</span></div>
+      <div class="ldg-detail-row"><span class="ldg-detail-row-label">${t().ldgDetailNote}</span><span class="ldg-detail-row-val">${r.note||t().ldgDetailNone}</span></div>
+      <div class="ldg-detail-row"><span class="ldg-detail-row-label">${t().ldgDetailType}</span><span class="ldg-detail-row-val">${t().typeNames[r.type]}</span></div>
+    </div>
+    <div class="ldg-detail-actions">
+      <button class="ldg-detail-action-btn del-btn" onclick="ldgConfirmDelete('${r.id}')">${t().ldgDetailDel}</button>
+      <button class="ldg-detail-action-btn edit-btn" onclick="ldgCloseDetail();ldgOpenModal('${r.id}')">✏ ${t().ldgDetailEdit||'编辑'}</button>
+      <button class="ldg-detail-action-btn close-btn" onclick="ldgCloseDetail()">${t().ldgDetailClose}</button>
+    </div>`;
+  document.getElementById('ldg-detail-modal').classList.add('open');
+}
+function ldgCloseDetail(){document.getElementById('ldg-detail-modal').classList.remove('open');}
+function ldgConfirmDelete(id){
+  appConfirm(t().ldgDeleteConfirm, ()=>ldgDeleteRecord(id), t().ldgDetailClose||'取消', t().ldgDetailDel||'删除');
+}
+function ldgDeleteRecord(id){
+  ldgRecords=ldgRecords.filter(r=>r.id!==id);
+  ldgSaveToDrive();ldgRenderList();ldgRenderOverview();ldgCloseDetail();toast(t().ldgDeleted);
+}
+
+// 统计页
+let ldgChartInst=null;
+function ldgRenderStats(){
+  const recs=ldgGetMonthRecords();
+  const inc=recs.filter(r=>r.type==='income').reduce((s,r)=>s+r.amount,0);
+  const exp=recs.filter(r=>r.type==='expense').reduce((s,r)=>s+r.amount,0);
+  const bal=inc-exp;
+  const cur=CURRENCIES[ldgCurrency]||'HK$';
+
+  // 支出按分类汇总
+  const expByCat={};
+  recs.filter(r=>r.type==='expense').forEach(r=>{
+    const cats=(t().cats||LDG_CATS).expense;const cat=cats.find(c=>c.id===r.catId)||{id:r.catId,name:r.catId,icon:'📦'};
+    if(!expByCat[r.catId])expByCat[r.catId]={name:cat.name,icon:cat.icon,amount:0};
+    expByCat[r.catId].amount+=r.amount;
+  });
+  const catList=Object.values(expByCat).sort((a,b)=>b.amount-a.amount);
+  const maxAmt=catList[0]?.amount||1;
+
+  // 按日汇总收支折线图数据
+  const daysInMonth=new Date(ldgCurrentMonth.getFullYear(),ldgCurrentMonth.getMonth()+1,0).getDate();
+  const dailyExp=Array(daysInMonth).fill(0);
+  const dailyInc=Array(daysInMonth).fill(0);
+  recs.forEach(r=>{const day=new Date(r.ts).getDate()-1;if(r.type==='expense')dailyExp[day]+=r.amount;else if(r.type==='income')dailyInc[day]+=r.amount;});
+  const labels=Array.from({length:daysInMonth},(_,i)=>i+1);
+
+  // 报表明细
+  const reportDays={};
+  recs.forEach(r=>{const d=new Date(r.ts);const key=`${d.getMonth()+1}-${String(d.getDate()).padStart(2,'0')}`;if(!reportDays[key])reportDays[key]={inc:0,exp:0};if(r.type==='income')reportDays[key].inc+=r.amount;else if(r.type==='expense')reportDays[key].exp+=r.amount;});
+  const reportHTML=Object.entries(reportDays).sort((a,b)=>b[0].localeCompare(a[0])).map(([d,v])=>`<tr><td>${d}</td><td class="inc">${v.inc>0?v.inc.toFixed(2):'0.00'}</td><td class="exp">${v.exp>0?v.exp.toFixed(2):'0.00'}</td><td class="${(v.inc-v.exp)<0?'neg':''}">${(v.inc-v.exp).toFixed(2)}</td></tr>`).join('');
+
+  const catBreakdownHTML=catList.map(c=>`
+    <div class="ldg-cat-row">
+      <div class="ldg-cat-row-icon">${c.icon}</div>
+      <div class="ldg-cat-row-name">${c.name}</div>
+      <div class="ldg-cat-row-bar-wrap"><div class="ldg-cat-row-bar" style="width:${(c.amount/maxAmt*100).toFixed(0)}%"></div></div>
+      <div class="ldg-cat-row-pct">${exp>0?(c.amount/exp*100).toFixed(0):0}%</div>
+      <div class="ldg-cat-row-amt">-${c.amount.toFixed(2)}</div>
+    </div>`).join('');
+
+  document.getElementById('ldg-stats-scroll').innerHTML=`
+    <div class="ldg-stat-summary">
+      <div class="ldg-stat-sum-item"><div class="ldg-stat-sum-label">月支出</div><div class="ldg-stat-sum-val exp">${exp.toFixed(2)}</div></div>
+      <div class="ldg-stat-sum-item"><div class="ldg-stat-sum-label">月收入</div><div class="ldg-stat-sum-val inc">${inc.toFixed(2)}</div></div>
+      <div class="ldg-stat-sum-item"><div class="ldg-stat-sum-label">月结余</div><div class="ldg-stat-sum-val bal ${bal<0?'exp':''}">${bal.toFixed(2)}</div></div>
+    </div>
+    <div class="ldg-stat-card">
+      <div class="ldg-stat-card-title">收支统计</div>
+      <canvas id="ldg-bar-chart" class="ldg-chart"></canvas>
+    </div>
+    ${catList.length?`<div class="ldg-stat-card"><div class="ldg-stat-card-title">支出占比</div><div style="display:flex;gap:16px;align-items:center"><canvas id="ldg-pie-chart" style="max-width:180px;max-height:180px"></canvas><div class="ldg-cat-breakdown" style="flex:1">${catBreakdownHTML}</div></div></div>`:''}
+    <div class="ldg-stat-card">
+      <div class="ldg-stat-card-title">报表统计</div>
+      <table class="ldg-report-table"><thead><tr><th>${t().ldgReportDate}</th><th>${t().ldgReportInc}</th><th>${t().ldgReportExp}</th><th>${t().ldgReportBal}</th></tr></thead><tbody>${reportHTML||'<tr><td colspan="4" style="text-align:center;color:var(--dim);padding:16px">暂无数据</td></tr>'}</tbody></table>
+    </div>`;
+
+  // 渲染图表
+  requestAnimationFrame(()=>{
+    const barCtx=document.getElementById('ldg-bar-chart')?.getContext('2d');
+    if(barCtx){
+      if(ldgChartInst)ldgChartInst.destroy();
+      ldgChartInst=new Chart(barCtx,{type:'bar',data:{labels,datasets:[{label:'支出',data:dailyExp,backgroundColor:'rgba(224,108,108,.7)',borderRadius:2},{label:'收入',data:dailyInc,backgroundColor:'rgba(62,207,176,.5)',borderRadius:2}]},options:{responsive:true,plugins:{legend:{labels:{color:'#8b949e',font:{size:11}}}},scales:{x:{ticks:{color:'#8b949e',font:{size:10}},grid:{color:'#30363d'}},y:{ticks:{color:'#8b949e',font:{size:10}},grid:{color:'#30363d'}}}}});
+    }
+    const pieCtx=document.getElementById('ldg-pie-chart')?.getContext('2d');
+    if(pieCtx&&catList.length){
+      new Chart(pieCtx,{type:'doughnut',data:{labels:catList.map(c=>c.name),datasets:[{data:catList.map(c=>c.amount),backgroundColor:['#e06c6c','#3ecfb0','#d29922','#7ee787','#61afef','#c678dd','#e5c07b','#56b6c2','#abb2bf'],borderWidth:0}]},options:{responsive:true,plugins:{legend:{display:false}},cutout:'60%'}});
+    }
+  });
+}
+
+// ═══════════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════════
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2);}
+function fmtDate(ts){return new Date(ts).toLocaleDateString('zh-CN',{year:'numeric',month:'short',day:'numeric'});}
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function setSyncStatus(html){document.getElementById('sync-status').innerHTML=html;}
+function showAuthError(msg){const el=document.getElementById('auth-error');el.textContent='登录失败：'+msg;el.style.display='block';}
+let toastTimer;
+function toast(msg){const el=document.getElementById('toast');el.textContent=msg;el.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove('show'),2500);}
+
+// 自定义确认弹窗
+function appConfirm(msg, onOk, cancelText, okText) {
+  const overlay = document.getElementById('app-confirm-overlay');
+  const msgEl = document.getElementById('app-confirm-msg');
+  const okBtn = document.getElementById('app-confirm-ok');
+  const cancelBtn = document.getElementById('app-confirm-cancel');
+  msgEl.textContent = msg;
+  okBtn.textContent = okText || '确定';
+  cancelBtn.textContent = cancelText || '取消';
+  overlay.classList.add('open');
+  const close = () => overlay.classList.remove('open');
+  okBtn.onclick = () => { close(); onOk(); };
+  cancelBtn.onclick = close;
+}
+
+document.getElementById('search').addEventListener('input',renderList);
+window.addEventListener('beforeunload',()=>{if(document.getElementById('edit-mode')?.style.display!=='none'){_syncAllStepsFromDOM();saveDraft();}});
+
+// 初始化月份
+ldgRenderMonthLabel();
+
+// ═══════════════════════════════════════════════
+// 多语言系统 (i18n)
+// ═══════════════════════════════════════════════
+const I18N = {
+  'zh-CN': {
+    appTitle: 'dashboard',
+    signInTitle: '⬛ dashboard',
+    signInDesc: '个人效率工作台',
+    signInDesc2: '登录 Google 账号，数据安全存储在你的 Google Drive',
+    signInBtn: '使用 Google 账号登录',
+    tabCmdbook: 'cmd.book',
+    tabLedger: '账本',
+    tabCalendar: '日历',
+    tabStock: '股票',
+    tabNews: '今日看点',
+    signOut: '退出',
+    // cmdbook
+    cbEdit: '✏ 编辑', cbDelete: '✕ 删除', cbSync: '↻ 同步', cbExport: '↓ 导出', cbImport: '↑ 导入',
+    cbReady: '就绪', cbSyncing: '同步中 ↺', cbSynced: '已同步 ✓',
+    cbDraftFound: '📝 发现未保存的草稿', cbRestoreDraft: '恢复草稿', cbDiscardDraft: '丢弃',
+    cbSearch: '搜索标题或命令...',
+    cbNewEntry: '＋ 新建条目',
+    cbEmptyBig: '$_', cbEmptyDesc: '点击左下角「新建条目」开始记录',
+    cbTitleLabel: '▸ 标题', cbTitlePH: 'e.g. 替换 LVM 旧盘并更新 fstab',
+    cbStepsLabel: '▸ 命令步骤', cbAddStep: '＋ 在末尾添加步骤',
+    cbDescLabel: '▸ 场景说明 / 备注', cbDescPH: '什么情况下用？有哪些注意事项？',
+    cbTagsLabel: '▸ 标签（逗号分隔）', cbTagsPH: '网络, 日志, 调试',
+    cbSave: '保存', cbCancel: '取消',
+    cbNoTitle: '无标题', cbCopied: '命令已复制 ✓', cbScenario: '场景说明', cbRecordedAt: '记录于',
+    cbStepN: (n) => `步骤 ${n}`,
+    cbCmdPH: '输入命令...',
+    cbOutputPH: '输出结果（可选，粘贴 terminal output）...',
+    cbScreenshot: (n) => `📷 步骤截图${n ? ` (${n}张)` : ''}`,
+    cbDropImg: '点击或拖拽截图到这里',
+    cbInsertStep: '＋ 在此处插入步骤',
+    cbDraftSaved: (t) => `⏳ 草稿已自动保存 ${t}`,
+    cbDraftRestored: '✅ 草稿已恢复，检查内容后点保存',
+    cbDraftSavedAs: '📝 内容已保存为草稿',
+    cbDraftDiscarded: '草稿已丢弃',
+    cbSaved: '✅ 已保存，同步中...',
+    cbDeleted: '已删除',
+    cbDeleteConfirm: (t) => `删除「${t}」？`,
+    cbNeedCmd: '至少需要一条命令',
+    cbExported: '导出完成 ✓',
+    cbImported: (n) => `导入 ${n} 条新记录 ✓`,
+    cbImportFail: '导入失败：',
+    cbSyncPulled: '已从 Drive 拉取最新数据',
+    // ledger
+    ldgSubHome: '首页', ldgSubStats: '统计',
+    ldgOvExp: '本月支出', ldgOvTotal: '总结余', ldgOvBal: '本月结余', ldgOvInc: '本月收入',
+    ldgAddBtn: '＋ 添加一条新记账',
+    ldgExpense: '支出', ldgIncome: '收入', ldgTransfer: '转账',
+    ldgNotePH: '添加备注',
+    ldgToday: '今天',
+    ldgKeyConfirm: '确定', ldgKeyAgain: '再记',
+    ldgDetailTitle: '账单详情',
+    ldgDetailDate: '账单日期', ldgDetailCurrency: '货币', ldgDetailNote: '备注', ldgDetailType: '类型',
+    ldgDetailNone: '无', ldgDetailDel: '删除', ldgDetailClose: '关闭',
+    ldgDetailEdit: '编辑',
+    ldgDeleteConfirm: '确定删除这条记录？',
+    ldgDeleted: '已删除', ldgSaved: '✅ 已记录', ldgNoAmount: '请输入金额', ldgNoCat: '请选择分类',
+    ldgEmptyMonth: '本月暂无记录', ldgEmptyHint: '点击上方按钮开始记账',
+    ldgStatExp: t().ldgStatExp, ldgStatInc: t().ldgStatInc, ldgStatBal: t().ldgStatBal,
+    ldgStatBar: t().ldgStatBar, ldgStatPie: t().ldgStatPie, ldgStatReport: t().ldgStatReport,
+    ldgReportDate: '日期', ldgReportInc: '收入', ldgReportExp: '支出', ldgReportBal: '结余',
+    ldgReportEmpty: t().ldgReportEmpty,
+    ldgDays: ['日','一','二','三','四','五','六'],
+    ldgMonthFmt: (y,m) => `${y}年 ${m}月`,
+    ldgDayFmt: (m,d,w) => `${m}月${d}日 周${w}`,
+    // cats
+    cats: {
+      expense: [
+        {id:'food',name:'食品餐饮',icon:'🍜',subs:['早餐','午餐','晚餐','零食','外卖','聚餐']},
+        {id:'transport',name:'出行交通',icon:'🚇',subs:['公共交通','打车','加油','停车','高铁','机票']},
+        {id:'shopping',name:'购物消费',icon:'🛍',subs:['服装鞋帽','数码电器','日用品','化妆护肤','网购']},
+        {id:'entertainment',name:'休闲娱乐',icon:'🎮',subs:['游戏','电影','旅游','运动健身','KTV']},
+        {id:'home',name:'居家生活',icon:'🏠',subs:['家用','话费宽带','电费','水费','燃气费','物业费','房租还贷','车位费','家政清洁']},
+        {id:'education',name:'文化教育',icon:'📚',subs:['学费','书报杂志','培训考试']},
+        {id:'gift',name:'送礼人情',icon:'🎁',subs:['孝敬长辈','礼物','借出','红包','打赏']},
+        {id:'health',name:'健康医疗',icon:'🏥',subs:['滋补保健','医院','买药']},
+        {id:'other',name:'其他',icon:'📦',subs:['其他支出']},
+      ],
+      income: [
+        {id:'salary',name:'工资',icon:'💼',subs:['基本工资','加班费']},
+        {id:'bonus',name:'奖金',icon:'🏆',subs:['年终奖','绩效奖金']},
+        {id:'parttime',name:'兼职外快',icon:'⚡',subs:['兼职','外快','接单']},
+        {id:'invest',name:'理财盈利',icon:'📈',subs:['股票','基金','利息','分红']},
+        {id:'redpacket',name:'红包',icon:'🧧',subs:['微信红包','收礼']},
+        {id:'borrow',name:'借入',icon:'💰',subs:['借款']},
+        {id:'prize',name:'中奖',icon:'🎯',subs:['彩票','抽奖']},
+        {id:'gift_in',name:'礼金人情',icon:'🎀',subs:['亲友转账','礼金']},
+        {id:'subsidy',name:'补贴',icon:'☀',subs:['政府补贴','报销']},
+        {id:'secondhand',name:'二手闲置',icon:'♻',subs:['二手出售']},
+        {id:'other_in',name:'其他',icon:'📦',subs:['其他收入']},
+      ],
+      transfer: [{id:'transfer',name:'转账',icon:'↔',subs:['银行转账','钱包转账']}],
+    },
+    typeNames: {expense:'支出',income:'收入',transfer:'转账'},
+    // placeholder
+    phCalTitle:'日历', phCalDesc:'日程安排、事件提醒', phStockTitle:'股票行情', phStockDesc:'自选股实时报价', phNewsTitle:'今日看点', phNewsDesc:'科技资讯、RSS 订阅', phSoon:'即将上线',
+    loginFail: '登录失败：',
+  },
+  'zh-TW': {
+    appTitle: 'dashboard',
+    signInTitle: '⬛ dashboard',
+    signInDesc: '個人效率工作台',
+    signInDesc2: '登入 Google 帳號，資料安全儲存在你的 Google Drive',
+    signInBtn: '使用 Google 帳號登入',
+    tabCmdbook: 'cmd.book',
+    tabLedger: '帳本',
+    tabCalendar: '日曆',
+    tabStock: '股票',
+    tabNews: '今日看點',
+    signOut: '登出',
+    cbEdit: '✏ 編輯', cbDelete: '✕ 刪除', cbSync: '↻ 同步', cbExport: '↓ 匯出', cbImport: '↑ 匯入',
+    cbReady: '就緒', cbSyncing: '同步中 ↺', cbSynced: '已同步 ✓',
+    cbDraftFound: '📝 發現未儲存的草稿', cbRestoreDraft: '恢復草稿', cbDiscardDraft: '丟棄',
+    cbSearch: '搜尋標題或指令...',
+    cbNewEntry: '＋ 新建條目',
+    cbEmptyBig: '$_', cbEmptyDesc: '點擊左下角「新建條目」開始記錄',
+    cbTitleLabel: '▸ 標題', cbTitlePH: 'e.g. 替換 LVM 舊碟並更新 fstab',
+    cbStepsLabel: '▸ 指令步驟', cbAddStep: '＋ 在末尾新增步驟',
+    cbDescLabel: '▸ 情境說明 / 備註', cbDescPH: '什麼情況下用？有哪些注意事項？',
+    cbTagsLabel: '▸ 標籤（逗號分隔）', cbTagsPH: '網路, 日誌, 除錯',
+    cbSave: '儲存', cbCancel: '取消',
+    cbNoTitle: '無標題', cbCopied: '指令已複製 ✓', cbScenario: '情境說明', cbRecordedAt: '記錄於',
+    cbStepN: (n) => `步驟 ${n}`,
+    cbCmdPH: '輸入指令...',
+    cbOutputPH: '輸出結果（可選，貼上 terminal output）...',
+    cbScreenshot: (n) => `📷 步驟截圖${n ? ` (${n}張)` : ''}`,
+    cbDropImg: '點擊或拖曳截圖到這裡',
+    cbInsertStep: '＋ 在此處插入步驟',
+    cbDraftSaved: (t) => `⏳ 草稿已自動儲存 ${t}`,
+    cbDraftRestored: '✅ 草稿已恢復，檢查內容後點儲存',
+    cbDraftSavedAs: '📝 內容已儲存為草稿',
+    cbDraftDiscarded: '草稿已丟棄',
+    cbSaved: '✅ 已儲存，同步中...',
+    cbDeleted: '已刪除',
+    cbDeleteConfirm: (t) => `刪除「${t}」？`,
+    cbNeedCmd: '至少需要一條指令',
+    cbExported: '匯出完成 ✓',
+    cbImported: (n) => `匯入 ${n} 條新記錄 ✓`,
+    cbImportFail: '匯入失敗：',
+    cbSyncPulled: '已從 Drive 拉取最新資料',
+    ldgSubHome: '首頁', ldgSubStats: '統計',
+    ldgOvExp: '本月支出', ldgOvTotal: '總結餘', ldgOvBal: '本月結餘', ldgOvInc: '本月收入',
+    ldgAddBtn: '＋ 新增一筆記帳',
+    ldgExpense: '支出', ldgIncome: '收入', ldgTransfer: '轉帳',
+    ldgNotePH: '新增備註',
+    ldgToday: '今天',
+    ldgKeyConfirm: '確定', ldgKeyAgain: '再記',
+    ldgDetailTitle: '帳單詳情',
+    ldgDetailDate: '帳單日期', ldgDetailCurrency: '貨幣', ldgDetailNote: '備註', ldgDetailType: '類型',
+    ldgDetailNone: '無', ldgDetailDel: '刪除', ldgDetailClose: '關閉',
+    ldgDetailEdit: '編輯',
+    ldgDeleteConfirm: '確定刪除這筆記錄？',
+    ldgDeleted: '已刪除', ldgSaved: '✅ 已記錄', ldgNoAmount: '請輸入金額', ldgNoCat: '請選擇分類',
+    ldgEmptyMonth: '本月暫無記錄', ldgEmptyHint: '點擊上方按鈕開始記帳',
+    ldgStatExp: t().ldgStatExp, ldgStatInc: t().ldgStatInc, ldgStatBal: '月結餘',
+    ldgStatBar: '收支統計', ldgStatPie: '支出佔比', ldgStatReport: '報表統計',
+    ldgReportDate: '日期', ldgReportInc: '收入', ldgReportExp: '支出', ldgReportBal: '結餘',
+    ldgReportEmpty: '暫無資料',
+    ldgDays: ['日','一','二','三','四','五','六'],
+    ldgMonthFmt: (y,m) => `${y}年 ${m}月`,
+    ldgDayFmt: (m,d,w) => `${m}月${d}日 週${w}`,
+    cats: {
+      expense: [
+        {id:'food',name:'餐飲食品',icon:'🍜',subs:['早餐','午餐','晚餐','零食','外送','聚餐']},
+        {id:'transport',name:'交通出行',icon:'🚇',subs:['大眾運輸','計程車','加油','停車','高鐵','機票']},
+        {id:'shopping',name:'購物消費',icon:'🛍',subs:['服裝鞋帽','數位電器','日用品','美妝保養','網購']},
+        {id:'entertainment',name:'休閒娛樂',icon:'🎮',subs:['遊戲','電影','旅遊','運動健身','KTV']},
+        {id:'home',name:'居家生活',icon:'🏠',subs:['家用','電話網路','電費','水費','瓦斯費','管理費','房租貸款','停車費','清潔費']},
+        {id:'education',name:'文化教育',icon:'📚',subs:['學費','書報雜誌','培訓考試']},
+        {id:'gift',name:'送禮人情',icon:'🎁',subs:['孝敬長輩','禮物','借出','紅包','打賞']},
+        {id:'health',name:'健康醫療',icon:'🏥',subs:['保健品','醫院','買藥']},
+        {id:'other',name:'其他',icon:'📦',subs:['其他支出']},
+      ],
+      income: [
+        {id:'salary',name:'薪資',icon:'💼',subs:['基本薪資','加班費']},
+        {id:'bonus',name:'獎金',icon:'🏆',subs:['年終獎','績效獎金']},
+        {id:'parttime',name:'兼職外快',icon:'⚡',subs:['兼職','外快','接案']},
+        {id:'invest',name:'理財獲利',icon:'📈',subs:['股票','基金','利息','股息']},
+        {id:'redpacket',name:'紅包',icon:'🧧',subs:['微信紅包','收禮']},
+        {id:'borrow',name:'借入',icon:'💰',subs:['借款']},
+        {id:'prize',name:'中獎',icon:'🎯',subs:['彩券','抽獎']},
+        {id:'gift_in',name:'禮金人情',icon:'🎀',subs:['親友轉帳','禮金']},
+        {id:'subsidy',name:'補貼',icon:'☀',subs:['政府補助','報銷']},
+        {id:'secondhand',name:'二手閒置',icon:'♻',subs:['二手出售']},
+        {id:'other_in',name:'其他',icon:'📦',subs:['其他收入']},
+      ],
+      transfer: [{id:'transfer',name:'轉帳',icon:'↔',subs:['銀行轉帳','電子錢包']}],
+    },
+    typeNames: {expense:'支出',income:'收入',transfer:'轉帳'},
+    phCalTitle:'日曆', phCalDesc:'行程安排、事件提醒', phStockTitle:'股票行情', phStockDesc:'自選股即時報價', phNewsTitle:'今日看點', phNewsDesc:'科技資訊、RSS 訂閱', phSoon:'即將上線',
+    loginFail: '登入失敗：',
+  },
+  'en': {
+    appTitle: 'dashboard',
+    signInTitle: '⬛ dashboard',
+    signInDesc: 'Personal Productivity Hub',
+    signInDesc2: 'Sign in with Google to sync data securely to your Google Drive',
+    signInBtn: 'Sign in with Google',
+    tabCmdbook: 'cmd.book',
+    tabLedger: 'Ledger',
+    tabCalendar: 'Calendar',
+    tabStock: 'Stocks',
+    tabNews: "Today's Feed",
+    signOut: 'Sign out',
+    cbEdit: '✏ Edit', cbDelete: '✕ Delete', cbSync: '↻ Sync', cbExport: '↓ Export', cbImport: '↑ Import',
+    cbReady: 'Ready', cbSyncing: 'Syncing ↺', cbSynced: 'Synced ✓',
+    cbDraftFound: '📝 Unsaved draft found', cbRestoreDraft: 'Restore', cbDiscardDraft: 'Discard',
+    cbSearch: 'Search title or command...',
+    cbNewEntry: '＋ New Entry',
+    cbEmptyBig: '$_', cbEmptyDesc: 'Click "New Entry" to start',
+    cbTitleLabel: '▸ Title', cbTitlePH: 'e.g. Extend LVM volume and update fstab',
+    cbStepsLabel: '▸ Command Steps', cbAddStep: '＋ Add step at end',
+    cbDescLabel: '▸ Notes / Description', cbDescPH: 'When to use? Any caveats?',
+    cbTagsLabel: '▸ Tags (comma separated)', cbTagsPH: 'network, logs, debug',
+    cbSave: 'Save', cbCancel: 'Cancel',
+    cbNoTitle: 'Untitled', cbCopied: 'Copied ✓', cbScenario: 'Notes', cbRecordedAt: 'Recorded on',
+    cbStepN: (n) => `Step ${n}`,
+    cbCmdPH: 'Enter command...',
+    cbOutputPH: 'Output (optional)...',
+    cbScreenshot: (n) => `📷 Screenshots${n ? ` (${n})` : ''}`,
+    cbDropImg: 'Click or drag image here',
+    cbInsertStep: '＋ Insert step here',
+    cbDraftSaved: (t) => `⏳ Draft autosaved at ${t}`,
+    cbDraftRestored: '✅ Draft restored — save when ready',
+    cbDraftSavedAs: '📝 Saved as draft',
+    cbDraftDiscarded: 'Draft discarded',
+    cbSaved: '✅ Saved, syncing...',
+    cbDeleted: 'Deleted',
+    cbDeleteConfirm: (t) => `Delete "${t}"?`,
+    cbNeedCmd: 'At least one command is required',
+    cbExported: 'Exported ✓',
+    cbImported: (n) => `Imported ${n} new records ✓`,
+    cbImportFail: 'Import failed: ',
+    cbSyncPulled: 'Pulled latest data from Drive',
+    ldgSubHome: 'Home', ldgSubStats: 'Stats',
+    ldgOvExp: 'Monthly Expense', ldgOvTotal: 'Total Balance', ldgOvBal: 'Monthly Balance', ldgOvInc: 'Monthly Income',
+    ldgAddBtn: '＋ Add New Record',
+    ldgExpense: 'Expense', ldgIncome: 'Income', ldgTransfer: 'Transfer',
+    ldgNotePH: 'Add note',
+    ldgToday: 'Today',
+    ldgKeyConfirm: 'Done', ldgKeyAgain: 'Add more',
+    ldgDetailTitle: 'Record Detail',
+    ldgDetailDate: 'Date', ldgDetailCurrency: 'Currency', ldgDetailNote: 'Note', ldgDetailType: 'Type',
+    ldgDetailNone: 'None', ldgDetailDel: 'Delete', ldgDetailClose: 'Close',
+    ldgDetailEdit: 'Edit',
+    ldgDeleteConfirm: 'Delete this record?',
+    ldgDeleted: 'Deleted', ldgSaved: '✅ Recorded', ldgNoAmount: 'Please enter amount', ldgNoCat: 'Please select category',
+    ldgEmptyMonth: 'No records this month', ldgEmptyHint: 'Tap the button above to add',
+    ldgStatExp: 'Expense', ldgStatInc: 'Income', ldgStatBal: 'Balance',
+    ldgStatBar: 'Income vs Expense', ldgStatPie: 'Expense Breakdown', ldgStatReport: 'Daily Report',
+    ldgReportDate: 'Date', ldgReportInc: 'Income', ldgReportExp: 'Expense', ldgReportBal: 'Balance',
+    ldgReportEmpty: 'No data',
+    ldgDays: ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'],
+    ldgMonthFmt: (y,m) => {const months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];return `${months[m-1]} ${y}`;},
+    ldgDayFmt: (m,d,w) => {const months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];const days=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];return `${months[m-1]} ${d}, ${days[w]}`;},
+    cats: {
+      expense: [
+        {id:'food',name:'Food & Drink',icon:'🍜',subs:['Breakfast','Lunch','Dinner','Snacks','Takeaway','Dining out']},
+        {id:'transport',name:'Transport',icon:'🚇',subs:['Public transit','Taxi','Fuel','Parking','Train','Flight']},
+        {id:'shopping',name:'Shopping',icon:'🛍',subs:['Clothing','Electronics','Daily goods','Cosmetics','Online shopping']},
+        {id:'entertainment',name:'Entertainment',icon:'🎮',subs:['Gaming','Movies','Travel','Fitness','KTV']},
+        {id:'home',name:'Home & Living',icon:'🏠',subs:['Household','Phone & Internet','Electricity','Water','Gas','Management fee','Rent','Parking','Cleaning']},
+        {id:'education',name:'Education',icon:'📚',subs:['Tuition','Books','Courses']},
+        {id:'gift',name:'Gifts',icon:'🎁',subs:['Family','Gift','Loan out','Red packet','Tips']},
+        {id:'health',name:'Health',icon:'🏥',subs:['Supplements','Hospital','Medicine']},
+        {id:'other',name:'Other',icon:'📦',subs:['Miscellaneous']},
+      ],
+      income: [
+        {id:'salary',name:'Salary',icon:'💼',subs:['Base pay','Overtime']},
+        {id:'bonus',name:'Bonus',icon:'🏆',subs:['Annual bonus','Performance bonus']},
+        {id:'parttime',name:'Freelance',icon:'⚡',subs:['Part-time','Side job','Gig work']},
+        {id:'invest',name:'Investment',icon:'📈',subs:['Stocks','Funds','Interest','Dividends']},
+        {id:'redpacket',name:'Red Packet',icon:'🧧',subs:['WeChat','Gift money']},
+        {id:'borrow',name:'Borrowed',icon:'💰',subs:['Loan received']},
+        {id:'prize',name:'Prize',icon:'🎯',subs:['Lottery','Lucky draw']},
+        {id:'gift_in',name:'Gift Income',icon:'🎀',subs:['Transfer from friends','Gift money']},
+        {id:'subsidy',name:'Subsidy',icon:'☀',subs:['Gov subsidy','Reimbursement']},
+        {id:'secondhand',name:'Secondhand',icon:'♻',subs:['Sold items']},
+        {id:'other_in',name:'Other',icon:'📦',subs:['Miscellaneous']},
+      ],
+      transfer: [{id:'transfer',name:'Transfer',icon:'↔',subs:['Bank transfer','E-wallet']}],
+    },
+    typeNames: {expense:'Expense',income:'Income',transfer:'Transfer'},
+    phCalTitle:'Calendar', phCalDesc:'Schedule & reminders', phStockTitle:'Stock Market', phStockDesc:'Real-time quotes', phNewsTitle:"Today's Feed", phNewsDesc:'Tech news & RSS', phSoon:'Coming soon',
+    loginFail: 'Login failed: ',
+  }
+};
+
+let currentLang = localStorage.getItem('app_lang') || 'zh-CN';
+function t() { return I18N[currentLang] || I18N['zh-CN']; }
+
+function setLang(lang) {
+  currentLang = lang;
+  localStorage.setItem('app_lang', lang);
+  applyLang();
+  // re-render ledger if active
+  ldgRenderList();
+  ldgRenderOverview();
+  ldgRenderMonthLabel();
+}
+
+function applyLang() {
+  const L = t();
+  document.title = L.appTitle;
+  // auth
+  const aTitle = document.getElementById('auth-title');
+  const aDesc1 = document.getElementById('auth-desc1');
+  const aDesc2 = document.getElementById('auth-desc2');
+  const aBtn = document.getElementById('auth-btn-text');
+  if(aTitle) aTitle.textContent = L.signInTitle;
+  if(aDesc1) aDesc1.textContent = L.signInDesc;
+  if(aDesc2) aDesc2.textContent = L.signInDesc2;
+  if(aBtn) aBtn.textContent = L.signInBtn;
+  // tabs
+  const tabEls = document.querySelectorAll('.tab');
+  const tabKeys = ['tabCmdbook','tabLedger','tabCalendar','tabStock','tabNews'];
+  tabEls.forEach((el,i) => { if(tabKeys[i]) { const dot=el.querySelector('.dot'); el.innerHTML=''; if(dot)el.appendChild(dot); el.appendChild(document.createTextNode(' '+L[tabKeys[i]])); if(dot)el.insertBefore(dot, el.firstChild); }});
+  // sign out
+  const so = document.getElementById('sign-out');
+  if(so) so.textContent = L.signOut;
+  // cmdbook toolbar
+  safeText('cb-btn-edit', L.cbEdit);
+  safeText('cb-btn-delete', L.cbDelete);
+  safeText('cb-btn-sync', L.cbSync);
+  safeText('cb-btn-export', L.cbExport);
+  safeText('cb-btn-import', L.cbImport);
+  // search
+  const searchEl = document.getElementById('search');
+  if(searchEl) searchEl.placeholder = L.cbSearch;
+  // add btn
+  safeText('add-btn', L.cbNewEntry);
+  // empty state
+  const emBig = document.querySelector('#empty .big');
+  const emDesc = document.querySelector('#empty div:last-child');
+  if(emBig) emBig.textContent = L.cbEmptyBig;
+  if(emDesc) emDesc.textContent = L.cbEmptyDesc;
+  // draft banner
+  safeText('cb-draft-restore', L.cbRestoreDraft);
+  safeText('cb-draft-discard', L.cbDiscardDraft);
+  // edit form labels
+  safeText('f-title-label', L.cbTitleLabel);
+  safeText('f-steps-label', L.cbStepsLabel);
+  safeText('f-desc-label', L.cbDescLabel);
+  safeText('f-tags-label', L.cbTagsLabel);
+  const ftitle = document.getElementById('f-title'); if(ftitle) ftitle.placeholder = L.cbTitlePH;
+  const fdesc = document.getElementById('f-desc'); if(fdesc) fdesc.placeholder = L.cbDescPH;
+  const ftags = document.getElementById('f-tags'); if(ftags) ftags.placeholder = L.cbTagsPH;
+  safeText('f-save-btn', L.cbSave);
+  safeText('f-cancel-btn', L.cbCancel);
+  safeText('add-step-btn', L.cbAddStep);
+  // ledger subnav
+  const ldgBtns = document.querySelectorAll('.ldg-subnav-btn');
+  if(ldgBtns[0]) ldgBtns[0].textContent = L.ldgSubHome;
+  if(ldgBtns[1]) ldgBtns[1].textContent = L.ldgSubStats;
+  // ledger overview labels
+  safeText('ldg-ov-label-exp', L.ldgOvExp);
+  safeText('ldg-ov-label-total', L.ldgOvTotal);
+  safeText('ldg-ov-label-bal', L.ldgOvBal);
+  safeText('ldg-ov-label-inc', L.ldgOvInc);
+  // add btn
+  safeText('ldg-add-btn-text', L.ldgAddBtn);
+  // modal type btns
+  const typeBtns = document.querySelectorAll('.ldg-type-btn');
+  const typeKeys = ['ldgExpense','ldgIncome','ldgTransfer'];
+  typeBtns.forEach((b,i) => { if(typeKeys[i]) b.textContent = L[typeKeys[i]]; });
+  // note placeholder
+  const noteEl = document.getElementById('ldg-note'); if(noteEl) noteEl.placeholder = L.ldgNotePH;
+  // placeholders
+  safeText('ph-cal-title', L.phCalTitle); safeText('ph-cal-desc', L.phCalDesc);
+  safeText('ph-stock-title', L.phStockTitle); safeText('ph-stock-desc', L.phStockDesc);
+  safeText('ph-news-title', L.phNewsTitle); safeText('ph-news-desc', L.phNewsDesc);
+  document.querySelectorAll('.ph-badge').forEach(el => el.textContent = L.phSoon);
+  // lang btn highlight
+  document.querySelectorAll('.lang-btn').forEach(b => b.classList.toggle('active', b.dataset.lang === currentLang));
+  // update confirm dialog button labels dynamically
+  const cancelBtnEl = document.getElementById('app-confirm-cancel');
+  if(cancelBtnEl) cancelBtnEl.textContent = L.ldgDetailClose || '取消';
+
+}
+
+function safeText(id, txt) { const el = document.getElementById(id); if(el) el.textContent = txt; }
+
+
+// Override functions to use i18n
+const _origToast = toast;
+function toast(msg) { _origToast(msg); }
+
+// Apply language on load
+applyLang();
+
+// ═══════════════════════════════════════════════
+// 日期选择器
+// ═══════════════════════════════════════════════
+let ldgDpYear = new Date().getFullYear();
+let ldgDpMonth = new Date().getMonth(); // 0-indexed
+let ldgDpSelectedDate = null; // Date object, null = today
+let ldgRecordTs = null; // actual timestamp to save
+
+function ldgDpOpen() {
+  const base = ldgRecordTs ? new Date(ldgRecordTs) : new Date();
+  ldgDpYear = base.getFullYear();
+  ldgDpMonth = base.getMonth();
+  ldgDpSelectedDate = ldgRecordTs ? new Date(ldgRecordTs) : null;
+  ldgDpRender();
+  document.getElementById('ldg-dp-overlay').classList.add('open');
+}
+
+function ldgDpClose() {
+  document.getElementById('ldg-dp-overlay').classList.remove('open');
+}
+
+function ldgDpConfirm() {
+  if (ldgDpSelectedDate) {
+    // preserve time if editing, else use noon
+    const d = ldgDpSelectedDate;
+    const existing = ldgRecordTs ? new Date(ldgRecordTs) : new Date();
+    d.setHours(existing.getHours() || 12, existing.getMinutes() || 0, 0, 0);
+    ldgRecordTs = d.getTime();
+    ldgUpdateDateLabel();
+  }
+  ldgDpClose();
+}
+
+function ldgUpdateDateLabel() {
+  const el = document.getElementById('ldg-date-label');
+  if (!el) return;
+  if (!ldgRecordTs) { el.textContent = t().ldgToday || '今天'; return; }
+  const d = new Date(ldgRecordTs);
+  const today = new Date();
+  if (d.toDateString() === today.toDateString()) {
+    el.textContent = t().ldgToday || '今天';
+  } else {
+    el.textContent = `${d.getMonth()+1}/${d.getDate()}/${d.getFullYear()}`;
+  }
+}
+
+function ldgDpNav(dir) {
+  ldgDpMonth += dir;
+  if (ldgDpMonth < 0) { ldgDpMonth = 11; ldgDpYear--; }
+  if (ldgDpMonth > 11) { ldgDpMonth = 0; ldgDpYear++; }
+  ldgDpRender();
+}
+
+function ldgDpSelectDay(y, m, d) {
+  ldgDpSelectedDate = new Date(y, m, d);
+  ldgDpRender();
+}
+
+function ldgDpRender() {
+  const L = t();
+  const weekdays = L.ldgDays || ['日','一','二','三','四','五','六'];
+  const months = L.ldgDpMonths || ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+
+  // Title
+  const titleEl = document.getElementById('ldg-dp-title');
+  if (titleEl) titleEl.textContent = L.ldgMonthFmt ? L.ldgMonthFmt(ldgDpYear, ldgDpMonth+1) : `${ldgDpYear}年 ${ldgDpMonth+1}月`;
+
+  // Weekday headers
+  const wdEl = document.getElementById('ldg-dp-weekdays');
+  if (wdEl) wdEl.innerHTML = weekdays.map(w => `<div class="ldg-dp-wd">${w}</div>`).join('');
+
+  // Days grid
+  const firstDay = new Date(ldgDpYear, ldgDpMonth, 1).getDay(); // 0=Sun
+  const daysInMonth = new Date(ldgDpYear, ldgDpMonth+1, 0).getDate();
+  const today = new Date();
+  const sel = ldgDpSelectedDate;
+
+  let html = '';
+  // Empty cells before first day
+  for (let i = 0; i < firstDay; i++) html += '<div class="ldg-dp-day empty"></div>';
+  // Day cells
+  for (let d = 1; d <= daysInMonth; d++) {
+    const isToday = today.getFullYear()===ldgDpYear && today.getMonth()===ldgDpMonth && today.getDate()===d;
+    const isSel = sel && sel.getFullYear()===ldgDpYear && sel.getMonth()===ldgDpMonth && sel.getDate()===d;
+    const cls = ['ldg-dp-day', isToday?'today':'', isSel?'selected':''].filter(Boolean).join(' ');
+    html += `<div class="${cls}" onclick="ldgDpSelectDay(${ldgDpYear},${ldgDpMonth},${d})">${d}</div>`;
+  }
+
+  const daysEl = document.getElementById('ldg-dp-days');
+  if (daysEl) daysEl.innerHTML = html;
+
+  // Update cancel/confirm button labels
+  const cancelBtn = document.querySelector('.ldg-dp-cancel');
+  const confirmBtn = document.querySelector('.ldg-dp-confirm');
+  if (cancelBtn) cancelBtn.textContent = L.ldgDetailClose || '取消';
+  if (confirmBtn) confirmBtn.textContent = L.ldgKeyConfirm || '确定';
+}
+
+
+</script>
+
+<!-- 自定义确认弹窗 -->
+<div class="app-confirm-overlay" id="app-confirm-overlay">
+  <div class="app-confirm-box">
+    <div class="app-confirm-msg" id="app-confirm-msg"></div>
+    <div class="app-confirm-actions">
+      <button class="app-confirm-cancel" id="app-confirm-cancel">取消</button>
+      <button class="app-confirm-ok" id="app-confirm-ok">确定</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- 日期选择器 -->
+<div class="ldg-date-picker-overlay" id="ldg-dp-overlay">
+  <div class="ldg-date-picker">
+    <div class="ldg-dp-header">
+      <button class="ldg-dp-nav" onclick="ldgDpNav(-1)">‹</button>
+      <div class="ldg-dp-title" id="ldg-dp-title"></div>
+      <button class="ldg-dp-nav" onclick="ldgDpNav(1)">›</button>
+    </div>
+    <div class="ldg-dp-grid">
+      <div class="ldg-dp-weekdays" id="ldg-dp-weekdays"></div>
+      <div class="ldg-dp-days" id="ldg-dp-days"></div>
+    </div>
+    <div class="ldg-dp-actions">
+      <button class="ldg-dp-cancel" onclick="ldgDpClose()">取消</button>
+      <button class="ldg-dp-confirm" onclick="ldgDpConfirm()">确定</button>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
+<!-- LANG PATCH - append before 
+<!-- 自定义确认弹窗 -->
+<div class="app-confirm-overlay" id="app-confirm-overlay">
+  <div class="app-confirm-box">
+    <div class="app-confirm-msg" id="app-confirm-msg"></div>
+    <div class="app-confirm-actions">
+      <button class="app-confirm-cancel" id="app-confirm-cancel">取消</button>
+      <button class="app-confirm-ok" id="app-confirm-ok">确定</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- 日期选择器 -->
+<div class="ldg-date-picker-overlay" id="ldg-dp-overlay">
+  <div class="ldg-date-picker">
+    <div class="ldg-dp-header">
+      <button class="ldg-dp-nav" onclick="ldgDpNav(-1)">‹</button>
+      <div class="ldg-dp-title" id="ldg-dp-title"></div>
+      <button class="ldg-dp-nav" onclick="ldgDpNav(1)">›</button>
+    </div>
+    <div class="ldg-dp-grid">
+      <div class="ldg-dp-weekdays" id="ldg-dp-weekdays"></div>
+      <div class="ldg-dp-days" id="ldg-dp-days"></div>
+    </div>
+    <div class="ldg-dp-actions">
+      <button class="ldg-dp-cancel" onclick="ldgDpClose()">取消</button>
+      <button class="ldg-dp-confirm" onclick="ldgDpConfirm()">确定</button>
+    </div>
+  </div>
+</div>
+
+</body> -->

@@ -1,0 +1,789 @@
+/* ═══════════════════════════════════════
+   game.css — Omnia 统一设计体系
+   scoped under #mod-game
+═══════════════════════════════════════ */
+
+#mod-game {
+  /* ── Omnia 色板 ── */
+  --bg:         #0d1117;
+  --bg2:        #161b22;
+  --bg3:        #1c2128;
+  --bg-card:    #1a1f2e;
+  --green:      #39d353;
+  --green-dim:  #1a4a23;
+  --green-t:    #7ee787;
+  --border:     #30363d;
+  --text:       #e6edf3;
+  --dim:        #8b949e;
+  --amber:      #d29922;
+  --amber-dim:  #3d2b00;
+  --red:        #f85149;
+  --red-dim:    #621c1c;
+  --teal:       #2ea58c;
+  --teal-dim:   #0d3328;
+  --teal-t:     #3ecfb0;
+  --blue:       #29b6f6;
+  --purple:     #ab47bc;
+  --poison:     #8bc34a;
+  --fire:       #ff7043;
+  --ice:        #80deea;
+  --shield:     #90caf9;
+  --heal:       #66bb6a;
+  --mono:       'JetBrains Mono','Fira Code','Courier New',monospace;
+  --radius:     5px;
+  --cell:       52px;
+  --cell-gap:   4px;
+  --gap-xs:     4px;
+  --gap-sm:     8px;
+  --gap-md:     14px;
+  --gap-lg:     20px;
+  --gap-xl:     32px;
+}
+
+/* ── 容器 ── */
+#mod-game {
+  width: 100%; height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 13px;
+  line-height: 1.5;
+  overflow: hidden;
+  user-select: none;
+}
+#mod-game ::-webkit-scrollbar { width: 4px; }
+#mod-game ::-webkit-scrollbar-track { background: transparent; }
+#mod-game ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+/* ── 工具类 ── */
+#mod-game .hidden   { display: none !important; }
+#mod-game .dim      { color: var(--dim); }
+#mod-game .bright   { color: var(--text); }
+#mod-game .amber    { color: var(--amber); }
+#mod-game .red      { color: var(--red); }
+#mod-game .blue     { color: var(--blue); }
+#mod-game .poison-c { color: var(--poison); }
+#mod-game .fire-c   { color: var(--fire); }
+#mod-game .ice-c    { color: var(--ice); }
+#mod-game .shield-c { color: var(--shield); }
+#mod-game .heal-c   { color: var(--heal); }
+#mod-game .purple-c { color: var(--purple); }
+#mod-game .blink { animation: omnia-blink 1.2s step-end infinite; }
+@keyframes omnia-blink { 50% { opacity: 0; } }
+
+/* ── 按钮 ── */
+#mod-game .btn {
+  font-family: var(--mono);
+  font-size: 11px;
+  padding: 4px 12px;
+  border-radius: 4px;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  color: var(--dim);
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+#mod-game .btn:hover { border-color: var(--green); color: var(--green-t); }
+#mod-game .btn:active { transform: scale(0.97); }
+#mod-game .btn.primary { border-color: var(--green); color: var(--green-t); }
+#mod-game .btn.primary:hover { background: var(--green-dim); }
+#mod-game .btn.danger { border-color: var(--red-dim); color: var(--red); }
+#mod-game .btn.danger:hover { border-color: var(--red); }
+#mod-game .btn.amber { border-color: var(--amber-dim); color: var(--amber); }
+#mod-game .btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+/* ── 面板 ── */
+#mod-game .panel {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: var(--gap-md);
+}
+#mod-game .panel-title {
+  font-size: 14px;
+  color: var(--text);
+  border-bottom: 1px solid var(--border);
+  padding-bottom: var(--gap-xs);
+  margin-bottom: var(--gap-sm);
+  font-weight: 500;
+}
+
+/* ── 屏幕系统 ── */
+#mod-game .screen {
+  display: none;
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  inset: 0;
+}
+#mod-game .screen.active { display: flex; }
+
+/* ── Title 画面 ── */
+#mod-game #screen-title {
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--gap-xl);
+}
+#mod-game #title-logo {
+  font-size: 48px;
+  color: var(--green-t);
+  text-align: center;
+  letter-spacing: 0.08em;
+  line-height: 1.1;
+  text-shadow: 0 0 16px var(--green-dim);
+}
+#mod-game #title-sub {
+  font-size: 11px;
+  color: var(--dim);
+  text-align: center;
+  letter-spacing: 0.15em;
+}
+#mod-game #title-cursor {
+  display: inline-block;
+  width: 8px;
+  height: 16px;
+  background: var(--green);
+  vertical-align: middle;
+  animation: omnia-blink 1s step-end infinite;
+}
+#mod-game .title-btn-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--gap-sm);
+}
+
+/* ── Map 画面 ── */
+#mod-game #screen-map {
+  flex-direction: row;
+  gap: var(--gap-md);
+  padding: var(--gap-md);
+}
+#mod-game #map-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-md);
+  overflow: hidden;
+}
+#mod-game #map-sidebar {
+  width: 260px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-md);
+  overflow-y: auto;
+}
+#mod-game #map-canvas-wrap {
+  flex: 1;
+  overflow: auto;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  position: relative;
+}
+#mod-game #map-canvas { display: block; }
+#mod-game .map-node { cursor: pointer; transition: filter 0.15s; }
+#mod-game .map-node:hover { filter: brightness(1.5); }
+#mod-game .map-node.visited { opacity: 0.45; }
+#mod-game .map-node.current { filter: drop-shadow(0 0 6px var(--green)); }
+#mod-game .map-node.locked { opacity: 0.2; cursor: default; }
+
+/* ── 事件 ── */
+#mod-game .event-choice-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-sm);
+}
+#mod-game .event-choice {
+  padding: var(--gap-sm) var(--gap-md);
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+#mod-game .event-choice:hover { border-color: var(--green); background: var(--bg2); }
+
+/* ── Shop 画面 ── */
+#mod-game #screen-shop {
+  flex-direction: row;
+  gap: var(--gap-md);
+  padding: var(--gap-md);
+}
+#mod-game #shop-inventory {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-md);
+}
+#mod-game #shop-sidebar {
+  width: 280px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-md);
+}
+
+/* ── Battle 画面 ── */
+#mod-game #screen-battle {
+  flex-direction: column;
+  padding: var(--gap-md);
+  gap: var(--gap-md);
+}
+#mod-game #battle-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: var(--gap-sm);
+  border-bottom: 1px solid var(--border);
+}
+#mod-game #battle-arena {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr 80px 1fr;
+  gap: var(--gap-md);
+  overflow: hidden;
+}
+#mod-game #battle-log-wrap {
+  height: 120px;
+  overflow-y: auto;
+  border-top: 1px solid var(--border);
+  padding-top: var(--gap-sm);
+}
+#mod-game .combatant-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-sm);
+  overflow-y: auto;
+}
+#mod-game .combatant-name {
+  font-size: 18px;
+  color: var(--green-t);
+  letter-spacing: 0.05em;
+  font-weight: 500;
+}
+#mod-game .combatant-name.enemy { color: var(--red); }
+#mod-game .combatant-hp-row {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-sm);
+  font-size: 12px;
+}
+#mod-game .combatant-hp-num {
+  font-size: 15px;
+  min-width: 70px;
+}
+#mod-game .combatant-hp-num.enemy { color: var(--red); }
+#mod-game .combatant-statuses {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  min-height: 22px;
+}
+#mod-game #battle-vs {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--gap-sm);
+}
+#mod-game #battle-vs-label {
+  font-size: 28px;
+  color: var(--red);
+  letter-spacing: 0.1em;
+}
+#mod-game #speed-ctrl {
+  display: flex;
+  gap: var(--gap-xs);
+  align-items: center;
+}
+#mod-game #speed-ctrl .btn { padding: 3px 8px; font-size: 10px; }
+#mod-game #speed-ctrl .btn.active {
+  background: var(--green-dim);
+  border-color: var(--green);
+  color: var(--green-t);
+}
+
+/* ── 战斗日志 ── */
+#mod-game #battle-log {
+  font-size: 11px;
+  color: var(--dim);
+  line-height: 1.7;
+}
+#mod-game #battle-log .log-entry { padding: 1px 0; border-bottom: 1px solid var(--border); }
+#mod-game #battle-log .log-entry:last-child { color: var(--text); }
+#mod-game #battle-log .log-entry.log-dmg    { color: var(--amber); }
+#mod-game #battle-log .log-entry.log-poison { color: var(--poison); }
+#mod-game #battle-log .log-entry.log-fire   { color: var(--fire); }
+#mod-game #battle-log .log-entry.log-heal   { color: var(--heal); }
+#mod-game #battle-log .log-entry.log-status { color: var(--blue); }
+#mod-game #battle-log .log-entry.log-win    { color: var(--green-t); font-size: 13px; }
+#mod-game #battle-log .log-entry.log-lose   { color: var(--red); font-size: 13px; }
+
+/* ── HP 条 ── */
+#mod-game .hp-bar-wrap {
+  width: 100%;
+  height: 6px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  overflow: hidden;
+}
+#mod-game .hp-bar-fill {
+  height: 100%;
+  background: var(--green);
+  transition: width 0.3s;
+}
+#mod-game .hp-bar-fill.low  { background: var(--amber); }
+#mod-game .hp-bar-fill.crit { background: var(--red); }
+
+/* ── 状态标记 ── */
+#mod-game .status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 10px;
+  padding: 1px 5px;
+  border-radius: 3px;
+  border: 1px solid currentColor;
+  opacity: 0.85;
+}
+
+/* ── 玩家状态栏 ── */
+#mod-game #player-statbar {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-lg);
+  padding: var(--gap-sm) var(--gap-md);
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 11px;
+}
+#mod-game #player-statbar .stat-item {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-xs);
+}
+#mod-game #player-statbar .stat-label {
+  color: var(--dim);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+#mod-game #player-statbar .stat-val {
+  color: var(--text);
+  font-size: 14px;
+}
+
+/* ── 背包网格 2×6 ── */
+#mod-game .bag-grid {
+  display: grid;
+  grid-template-columns: repeat(6, var(--cell));
+  grid-template-rows: repeat(2, var(--cell));
+  gap: var(--cell-gap);
+  padding: var(--gap-sm);
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  width: fit-content;
+}
+#mod-game .bag-cell {
+  width: var(--cell);
+  height: var(--cell);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  position: relative;
+  transition: border-color 0.15s;
+}
+#mod-game .bag-cell.occupied { border-color: transparent; }
+#mod-game .bag-cell.droptarget {
+  border-color: var(--green);
+  box-shadow: 0 0 6px var(--green-dim);
+  background: var(--green-dim);
+}
+#mod-game .bag-cell.invalid {
+  border-color: var(--red);
+  background: rgba(248,81,73,0.08);
+}
+
+/* ── 卡牌芯片 ── */
+#mod-game .card-chip {
+  position: absolute;
+  top: 0; left: 0;
+  height: var(--cell);
+  background: var(--bg-card);
+  border: 1px solid var(--green-dim);
+  border-radius: 4px;
+  cursor: grab;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 3px 5px;
+  transition: border-color 0.15s;
+  z-index: 2;
+}
+#mod-game .card-chip.size-1 { width: var(--cell); }
+#mod-game .card-chip.size-2 { width: calc(var(--cell)*2 + var(--cell-gap)); }
+#mod-game .card-chip.size-3 { width: calc(var(--cell)*3 + var(--cell-gap)*2); }
+#mod-game .card-chip:hover {
+  border-color: var(--green);
+  z-index: 10;
+}
+#mod-game .card-chip.dragging { opacity: 0.5; cursor: grabbing; }
+#mod-game .card-chip.selected {
+  border-color: var(--amber);
+  box-shadow: 0 0 6px var(--amber-dim);
+}
+#mod-game .card-chip::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 3px;
+  border-radius: 4px 0 0 4px;
+}
+#mod-game .card-chip.type-poison::before  { background: var(--poison); }
+#mod-game .card-chip.type-fire::before    { background: var(--fire); }
+#mod-game .card-chip.type-shield::before  { background: var(--shield); }
+#mod-game .card-chip.type-heal::before    { background: var(--heal); }
+#mod-game .card-chip.type-speed::before   { background: var(--green-t); }
+#mod-game .card-chip.type-damage::before  { background: var(--amber); }
+#mod-game .card-chip.type-ice::before     { background: var(--ice); }
+#mod-game .card-chip.type-buff::before    { background: var(--purple); }
+#mod-game .card-name {
+  font-size: 9px;
+  color: var(--dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  letter-spacing: 0.03em;
+  padding-left: 5px;
+}
+#mod-game .card-size-badge {
+  font-size: 8px;
+  color: var(--dim);
+  align-self: flex-end;
+}
+#mod-game .card-cd-bar {
+  position: absolute;
+  bottom: 2px; left: 5px; right: 3px;
+  height: 2px;
+  background: var(--bg);
+  border-radius: 1px;
+  overflow: hidden;
+}
+#mod-game .card-cd-fill {
+  height: 100%;
+  background: var(--green);
+  border-radius: 1px;
+  transition: width 0.1s linear;
+}
+#mod-game .card-cd-fill.ready {
+  background: var(--green-t);
+  box-shadow: 0 0 4px var(--green);
+}
+
+/* ── 商店卡牌 ── */
+#mod-game .shop-card-row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--gap-md);
+  padding: var(--gap-sm) var(--gap-md);
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+#mod-game .shop-card-row:hover { border-color: var(--green); background: var(--bg2); }
+#mod-game .shop-card-row.unaffordable { opacity: 0.4; cursor: not-allowed; }
+#mod-game .shop-card-preview {
+  width: 40px; height: 40px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  color: var(--dim);
+  flex-shrink: 0;
+}
+#mod-game .shop-card-info { flex: 1; }
+#mod-game .shop-card-name { font-size: 12px; color: var(--text); margin-bottom: 2px; }
+#mod-game .shop-card-desc { font-size: 11px; color: var(--dim); line-height: 1.4; }
+#mod-game .shop-card-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-sm);
+  margin-top: 4px;
+}
+#mod-game .shop-card-cost { color: var(--amber); font-size: 12px; }
+#mod-game .shop-card-size-tag {
+  font-size: 10px;
+  color: var(--dim);
+  border: 1px solid var(--border);
+  padding: 1px 5px;
+  border-radius: 3px;
+}
+
+/* ── 仓库 ── */
+#mod-game .warehouse-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--gap-sm);
+  padding: var(--gap-sm);
+  min-height: 60px;
+  background: var(--bg);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+}
+
+/* ── 卡牌提示 ── */
+#mod-game #card-tooltip {
+  position: fixed;
+  z-index: 1000;
+  width: 240px;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: var(--gap-sm) var(--gap-md);
+  pointer-events: none;
+  font-size: 12px;
+  line-height: 1.55;
+}
+#mod-game #card-tooltip .tt-name {
+  font-size: 15px;
+  color: var(--text);
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 4px;
+  margin-bottom: 6px;
+}
+#mod-game #card-tooltip .tt-size { font-size: 10px; color: var(--dim); float: right; }
+#mod-game #card-tooltip .tt-lore {
+  color: var(--dim);
+  font-style: italic;
+  margin-bottom: 6px;
+  font-size: 11px;
+}
+#mod-game #card-tooltip .tt-skill { margin-bottom: 4px; }
+#mod-game #card-tooltip .tt-skill-label {
+  color: var(--amber);
+  font-size: 10px;
+  letter-spacing: 0.05em;
+}
+#mod-game #card-tooltip .tt-keywords {
+  margin-top: 6px;
+  border-top: 1px solid var(--border);
+  padding-top: 6px;
+  font-size: 10px;
+  color: var(--dim);
+}
+#mod-game #card-tooltip .tt-keyword { margin-bottom: 2px; }
+
+/* ── 战斗卡牌 ── */
+#mod-game .battle-bag { margin-top: var(--gap-sm); }
+#mod-game .battle-bag-label {
+  font-size: 10px;
+  color: var(--dim);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 4px;
+}
+#mod-game .battle-card {
+  position: relative;
+  background: var(--bg-card);
+  border: 1px solid var(--green-dim);
+  border-radius: 4px;
+  padding: 4px 6px;
+  font-size: 11px;
+  overflow: hidden;
+  transition: border-color 0.1s;
+}
+#mod-game .battle-card.enemy-card { border-color: var(--red-dim); }
+#mod-game .battle-card-name {
+  color: var(--dim);
+  font-size: 10px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+#mod-game .battle-card-cd { font-size: 13px; color: var(--green); }
+#mod-game .battle-card-cd.ready { color: var(--green-t); }
+#mod-game .battle-card-cd.frozen { color: var(--ice); }
+#mod-game .battle-card-bar {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 2px;
+  background: var(--bg);
+}
+#mod-game .battle-card-bar-fill {
+  height: 100%;
+  background: var(--green);
+  transition: width 0.12s linear;
+}
+#mod-game .battle-card-bar-fill.enemy { background: var(--red); }
+#mod-game .battle-card.attacking {
+  border-color: var(--amber);
+  box-shadow: 0 0 8px var(--amber-dim);
+  animation: omnia-attack-flash 0.3s ease-out;
+}
+@keyframes omnia-attack-flash {
+  0%   { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+/* ── 伤害弹出 ── */
+#mod-game .dmg-popup {
+  position: absolute;
+  pointer-events: none;
+  font-size: 18px;
+  font-weight: bold;
+  animation: omnia-dmg-float 1.2s ease-out forwards;
+  z-index: 100;
+  white-space: nowrap;
+}
+#mod-game .dmg-popup.physical { color: var(--amber); }
+#mod-game .dmg-popup.poison   { color: var(--poison); }
+#mod-game .dmg-popup.fire     { color: var(--fire); }
+#mod-game .dmg-popup.heal     { color: var(--heal); }
+#mod-game .dmg-popup.shield   { color: var(--shield); }
+@keyframes omnia-dmg-float {
+  0%   { opacity: 1; transform: translateY(0); }
+  100% { opacity: 0; transform: translateY(-32px); }
+}
+
+/* ── 升级画面 ── */
+#mod-game #screen-upgrade {
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--gap-xl);
+}
+#mod-game .upgrade-options {
+  display: flex;
+  gap: var(--gap-lg);
+  justify-content: center;
+}
+#mod-game .upgrade-card {
+  width: 200px;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: var(--gap-md);
+  cursor: pointer;
+  text-align: center;
+  transition: border-color 0.15s;
+}
+#mod-game .upgrade-card:hover { border-color: var(--green); }
+#mod-game .upgrade-card-icon {
+  font-size: 32px;
+  color: var(--green-t);
+  margin-bottom: var(--gap-sm);
+}
+#mod-game .upgrade-card-title { font-size: 13px; color: var(--text); margin-bottom: 6px; }
+#mod-game .upgrade-card-desc { font-size: 11px; color: var(--dim); line-height: 1.4; }
+
+/* ── 游戏结束 ── */
+#mod-game #screen-gameover {
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--gap-xl);
+}
+#mod-game #gameover-title {
+  font-size: 56px;
+  color: var(--red);
+  letter-spacing: 0.1em;
+}
+#mod-game #gameover-title.win {
+  color: var(--green-t);
+}
+#mod-game #gameover-stats {
+  font-size: 12px;
+  color: var(--dim);
+  text-align: center;
+  line-height: 2;
+}
+
+/* ── 金币显示 ── */
+#mod-game .gold-display {
+  color: var(--amber);
+  font-size: 16px;
+}
+#mod-game .gold-display::before { content: '¥ '; font-size: 11px; }
+
+/* ── 游戏内 Toast（与 Omnia #toast 不冲突） ── */
+#mod-game #toast-container {
+  position: fixed;
+  top: var(--gap-md);
+  right: var(--gap-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-sm);
+  z-index: 5000;
+  pointer-events: none;
+}
+#mod-game .toast {
+  padding: var(--gap-sm) var(--gap-md);
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 12px;
+  color: var(--text);
+  animation: omnia-toast-in 0.2s ease-out, omnia-toast-out 0.3s ease-in 2.5s forwards;
+  max-width: 260px;
+}
+#mod-game .toast.warn  { border-color: var(--amber); color: var(--amber); }
+#mod-game .toast.error { border-color: var(--red); color: var(--red); }
+@keyframes omnia-toast-in  { from { opacity:0; transform: translateX(16px); } to { opacity:1; transform: translateX(0); } }
+@keyframes omnia-toast-out { from { opacity:1; } to { opacity:0; } }
+
+/* ── 模态层 ── */
+#mod-game #modal-overlay {
+  display: none;
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.6);
+  z-index: 900;
+  align-items: center;
+  justify-content: center;
+}
+#mod-game #modal-overlay.active { display: flex; }
+#mod-game #modal-box {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: var(--gap-lg);
+  max-width: 480px;
+  width: 90%;
+}
+
+/* ── 分隔线 ── */
+#mod-game .divider {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: var(--gap-sm) 0;
+}
+
+/* ── 段位徽章 ── */
+#mod-game .rank-badge {
+  font-size: 12px;
+  padding: 1px 8px;
+  border-radius: 3px;
+  border: 1px solid currentColor;
+  letter-spacing: 0.05em;
+}
+#mod-game .rank-wood     { color: #8d6e63; }
+#mod-game .rank-iron     { color: #78909c; }
+#mod-game .rank-bronze   { color: #cd7f32; }
+#mod-game .rank-silver   { color: #b0bec5; }
+#mod-game .rank-gold     { color: var(--amber); }
+#mod-game .rank-legend   { color: var(--purple); }
+#mod-game .rank-supreme  { color: var(--fire); }
+#mod-game .rank-master   { color: var(--green-t); text-shadow: 0 0 6px var(--green); }
+
+/* ── 卡包选择 ── */
+#mod-game #screen-cardpack { flex-direction: column; align-items: center; justify-content: center; }

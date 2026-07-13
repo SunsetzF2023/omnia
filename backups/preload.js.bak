@@ -1,0 +1,11 @@
+// preload.js
+// 安全隔离层：渲染进程（index.html）无法直接访问 Node.js
+// 如果以后需要暴露原生能力（如读写本地文件），在这里用 contextBridge 安全暴露
+const { contextBridge } = require('electron')
+
+// 目前 cmd.book 所有数据存在 Google Drive，不需要本地文件 API
+// 只暴露应用版本号给页面使用（无害信息）
+contextBridge.exposeInMainWorld('electronAPI', {
+  version: process.versions.electron,
+  platform: process.platform,
+})
