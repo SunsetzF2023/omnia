@@ -27,6 +27,11 @@ async function findDriveFile() {
 // ═══════════════════════════════════════════════
 // ★ 安全策略: API 失败时绝不覆盖本地 entries 数据
 async function loadFromDrive() {
+  // 离线模式：跳过 Drive 同步
+  if (token === '__offline__') {
+    setSyncStatus('📴 离线模式');
+    return;
+  }
   setSyncStatus('同步中 ↺');
   showSaveStatus('saving', '正在从 Google Drive 同步...');
   try {
@@ -112,6 +117,18 @@ let _saveGen = 0; // 用于跟踪"保存世代"，防止 setTimeout 误隐藏新
  * 新机制用 _cbSavePending 标记后续需要再保存一次。
  */
 function scheduleSave() {
+  // 离线模式：写 localStorage + 自动备份 JSON 到磁盘
+  if (token === '__offline__') {
+    const data = JSON.stringify(entries);
+    localStorage.setItem('omnia_offline_entries', data);
+    // 桌面端：自动写备份文件到 %APPDATA%/Omnia/backups/
+    if (window.electronAPI && window.electronAPI.saveOfflineBackup) {
+      window.electronAPI.saveOfflineBackup(data);
+    }
+    setSyncStatus('💾 已本地保存 + 备份');
+    if (typeof inboxAdd === 'function') inboxAdd('backup', '💾 数据已备份', '离线模式下自动保存并备份 JSON 到本地磁盘');
+    return;
+  }
   _cbSavePending = true;
   clearTimeout(_cbSaveTimer);
   setSyncStatus('⏳ 待保存');
@@ -281,6 +298,7 @@ async function ldgFindFile() {
 
 // ★ 安全策略: API 失败时不覆盖本地 ldgRecords
 async function ldgLoadFromDrive() {
+  if (token === '__offline__') return;
   const found = await ldgFindFile();
   if (found) {
     const raw = await gfetch(
@@ -321,6 +339,10 @@ let _ldgSaveGen = 0;
  * 账本保存：带防抖和队列，防止快速操作导致数据丢失或重复请求
  */
 function ldgScheduleSave() {
+  if (token === '__offline__') {
+    localStorage.setItem('omnia_offline_ledger', JSON.stringify(ldgRecords));
+    return;
+  }
   _ldgSavePending = true;
   clearTimeout(_ldgSaveTimer);
   _ldgSaveTimer = setTimeout(() => _executeLedgerSave(), 500);

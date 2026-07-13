@@ -238,6 +238,30 @@ function createWindow() {
   })
 }
 
+// ★ IPC: 离线模式自动备份
+ipcMain.on('save-offline-backup', (event, data) => {
+  try {
+    const backupDir = path.join(app.getPath('userData'), 'backups');
+    if (!fs.existsSync(backupDir)) fs.mkdirSync(backupDir, { recursive: true });
+    const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+    const filePath = path.join(backupDir, `omnia_${ts}.json`);
+    fs.writeFileSync(filePath, data, 'utf-8');
+    // 保留最近 10 份备份
+    const files = fs.readdirSync(backupDir).filter(f => f.endsWith('.json')).sort().reverse();
+    const deleted = files.slice(10);
+    deleted.forEach(f => {
+      try { fs.unlinkSync(path.join(backupDir, f)); } catch (_) {}
+    });
+    if (deleted.length > 0 && mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('inbox-msg', {
+        type: 'backup',
+        title: '🗑 自动清理旧备份',
+        body: '已删除 ' + deleted.length + ' 份旧备份文件，保留最近 10 份。备份目录：' + backupDir,
+      });
+    }
+  } catch (_) { /* 备份失败不影响主流程 */ }
+});
+
 // ★ IPC: 收到渲染进程"保存完成"信号后真正退出
 ipcMain.on('quit-ready', () => {
   forceQuit = true

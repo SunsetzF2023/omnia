@@ -207,6 +207,7 @@ if (window.electronAPI && typeof window.electronAPI.onUpdateStatus === 'function
         el.textContent = '↓ ' + data.version;
         el.title = '正在下载 v' + data.version + '...';
         el.classList.add('has-update');
+        if (typeof inboxAdd === 'function') inboxAdd('update', '⬆️ 发现新版本 v' + data.version, '正在自动下载更新，完成后重启即可。');
         break;
       case 'progress':
         el.textContent = '↓ ' + data.percent + '%';
@@ -220,6 +221,7 @@ if (window.electronAPI && typeof window.electronAPI.onUpdateStatus === 'function
         el.onclick = function() {
           if (window.electronAPI.installUpdate) window.electronAPI.installUpdate();
         };
+        if (typeof inboxAdd === 'function') inboxAdd('update', '✅ 更新已就绪', '新版本已下载完成，点击右上角 ↻重启 即可安装。');
         break;
       case 'up-to-date':
         el.textContent = '✓';

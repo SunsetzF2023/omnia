@@ -95,10 +95,44 @@ async function handleWebCallback() {
   return true;
 }
 
+// ── 离线模式 ─────────────────────────────────
+function enterOfflineMode() {
+  token = '__offline__';
+  localStorage.setItem('omnia_token', '__offline__');
+  localStorage.setItem('omnia_user', JSON.stringify({
+    name: '离线用户',
+    picture: ''
+  }));
+  document.getElementById('user-name').textContent = '离线';
+  const fb = document.getElementById('avatar-fallback');
+  if (fb) { fb.style.display = 'flex'; fb.textContent = '◉'; }
+  showApp();
+  // 从 localStorage 恢复离线数据
+  const saved = localStorage.getItem('omnia_offline_entries');
+  if (saved) { try { entries = JSON.parse(saved); } catch(_) { entries = []; } }
+  else entries = [];
+  if (typeof renderList === 'function') renderList();
+  if (typeof updateTagFilters === 'function') updateTagFilters();
+}
+
 // ★ 启动时尝试恢复会话
 async function tryRestoreSession() {
   const savedToken = localStorage.getItem('omnia_token');
   if (!savedToken) return false;
+
+  // 离线模式恢复
+  if (savedToken === '__offline__') {
+    token = '__offline__';
+    document.getElementById('user-name').textContent = '离线';
+    const fb = document.getElementById('avatar-fallback');
+    if (fb) { fb.style.display = 'flex'; fb.textContent = '◉'; }
+    showApp();
+    const saved = localStorage.getItem('omnia_offline_entries');
+    entries = saved ? JSON.parse(saved) : [];
+    if (typeof renderList === 'function') renderList();
+    if (typeof updateTagFilters === 'function') updateTagFilters();
+    return true;
+  }
 
   token = savedToken;
   // 先尝试用缓存的用户信息渲染 UI
@@ -207,7 +241,7 @@ async function fetchUserInfo() {
 // 认证过的 Google API fetch
 // ═══════════════════════════════════════════════
 async function gfetch(url, opts = {}) {
-  if (!token) return null;
+  if (!token || token === '__offline__') return null;
   const res = await fetch(url, {
     ...opts,
     headers: {

@@ -26,4 +26,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
   checkForUpdates: () => ipcRenderer.send('check-for-updates'),
   installUpdate: () => ipcRenderer.send('install-update'),
+
+  // ★ 离线备份
+  saveOfflineBackup: (data) => ipcRenderer.send('save-offline-backup', data),
+
+  // ★ 收件箱消息（主进程 → 渲染进程）
+  onInboxMsg: (callback) => {
+    ipcRenderer.on('inbox-msg', (event, data) => callback(data))
+  },
 })
