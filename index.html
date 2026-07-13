@@ -395,6 +395,23 @@ canvas.ldg-chart{width:100%!important;max-height:200px;}
 .g2048-msg{position:absolute;inset:0;background:rgba(13,17,23,.78);display:flex;align-items:center;justify-content:center;border-radius:8px;z-index:10;}
 .g2048-win{font-size:22px;font-weight:700;color:var(--amber);text-align:center;line-height:1.6;}
 .g2048-over{font-size:26px;font-weight:700;color:var(--red);}
+/* 2048 merge particles */
+#g24-particles{position:absolute;inset:0;pointer-events:none;z-index:5;overflow:hidden;}
+.g2048-particle{position:absolute;font-weight:700;color:var(--amber);font-family:var(--mono);pointer-events:none;z-index:100;animation:particle-up .7s ease-out forwards;}
+@keyframes particle-up{0%{opacity:1;transform:translate(-50%,-50%) translateY(0);}100%{opacity:0;transform:translate(-50%,-50%) translateY(-50px);}}
+/* 2048 leaderboard */
+.g2048-lb{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:14px 16px;}
+.g2048-lb-title{font-size:13px;color:var(--amber);font-weight:700;margin-bottom:10px;letter-spacing:.04em;}
+.g2048-lb-row{display:flex;align-items:center;padding:3px 0;font-size:12px;border-bottom:1px solid rgba(48,54,61,.5);}
+.g2048-lb-row:last-child{border-bottom:none;}
+.g2048-lb-rank{width:28px;color:var(--dim);text-align:center;flex-shrink:0;}
+.g2048-lb-rank.r1{color:var(--amber);font-size:14px;}
+.g2048-lb-rank.r2{color:#c0c0c0;font-size:14px;}
+.g2048-lb-rank.r3{color:#cd7f32;font-size:14px;}
+.g2048-lb-name{flex:1;color:var(--text);}
+.g2048-lb-name.is-me{color:var(--green-t);}
+.g2048-lb-score{color:var(--dim);font-weight:600;}
+.g2048-lb-score.is-me{color:var(--green-t);}
 
 /* ── 扫雷 ── */
 .ms-topbar{display:flex;align-items:center;gap:16px;margin-bottom:4px;}

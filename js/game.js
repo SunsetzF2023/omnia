@@ -82,6 +82,7 @@ function _fitCell(maxCell, cols, rows, padW, padH) {
 const G24 = {
   tiles: [], score: 0, best: 0, over: false, won: false,
   nextId: 1, moving: false, elMap: {}, active: false,
+  leaderboard: [],
 
   get cfg() {
     const designs = [
@@ -103,6 +104,7 @@ const G24 = {
     G24.nextId = 1; G24.moving = false; G24.elMap = {};
     G24.best = parseInt(localStorage.getItem('2048_best') || '0');
     G24._render();
+    G24._initLeaderboard();
     G24._spawn(); G24._spawn();
     G24._syncDOM();
     G24._updateUI();
@@ -135,9 +137,10 @@ const G24 = {
       + '<div class="g2048-stat"><div class="g2048-stat-label">分数</div><div class="g2048-stat-val" id="g24-score">0</div></div>'
       + '<div class="g2048-stat"><div class="g2048-stat-label">最佳</div><div class="g2048-stat-val" id="g24-best">0</div></div>'
       + '<button class="g2048-new-btn" onclick="G24.init()">新游戏</button></div>'
-      + '<div class="g2048-wrap"><div class="g2048-grid" id="g24-grid" style="grid-template-columns:repeat('+cfg.n+','+cfg.cell+'px);grid-template-rows:repeat('+cfg.n+','+cfg.cell+'px);width:'+gw+'px;height:'+gw+'px;"></div>'
+      + '<div class="g2048-wrap"><div id="g24-particles"></div><div class="g2048-grid" id="g24-grid" style="grid-template-columns:repeat('+cfg.n+','+cfg.cell+'px);grid-template-rows:repeat('+cfg.n+','+cfg.cell+'px);width:'+gw+'px;height:'+gw+'px;"></div>'
       + '<div class="g2048-msg" id="g24-msg"></div></div>'
-      + '<div class="gm-hint">↑ ↓ ← → 方向键 | 合并到 2048 获胜</div>';
+      + '<div class="gm-hint">↑ ↓ ← → 方向键 | 合并到 2048 获胜</div>'
+      + '<div class="g2048-lb" id="g24-lb"></div>';
     // 背景格
     const grid = document.getElementById('g24-grid');
     for (let r=0; r<cfg.n; r++) for (let c=0; c<cfg.n; c++) {
@@ -201,10 +204,10 @@ const G24 = {
     else if (dir==='right') { for (let r=0;r<n;r++) { const a=[]; for (let c=n-1;c>=0;c--) { const t=G24._at(r,c); a.push(t?{val:t.val,id:t.id}:0); } rows.push({r,arr:G24._slide(a).reverse()}); } }
     else if (dir==='up') { for (let c=0;c<n;c++) { const a=[]; for (let r=0;r<n;r++) { const t=G24._at(r,c); a.push(t?{val:t.val,id:t.id}:0); } rows.push({c,arr:G24._slide(a)}); } }
     else if (dir==='down') { for (let c=0;c<n;c++) { const a=[]; for (let r=n-1;r>=0;r--) { const t=G24._at(r,c); a.push(t?{val:t.val,id:t.id}:0); } rows.push({c,arr:G24._slide(a).reverse()}); } }
-    const nt=[], mg=new Set();
+    const nt=[], mg=new Set(), mergeEvents=[];
     rows.forEach(row=>{
-      if (dir==='left'||dir==='right') { const r=row.r; row.arr.forEach((it,ci)=>{ if(it===0)return; const t={id:it.id,val:it.val,row:r,col:ci,isNew:false}; nt.push(t); if(it.mergedFrom)mg.add(it.mergedFrom); if(oldPos[it.id]&&oldPos[it.id].row===r&&oldPos[it.id].col===ci) t.unmoved=true; }); }
-      else { const c=row.c; row.arr.forEach((it,ri)=>{ if(it===0)return; const t={id:it.id,val:it.val,row:ri,col:c,isNew:false}; nt.push(t); if(it.mergedFrom)mg.add(it.mergedFrom); if(oldPos[it.id]&&oldPos[it.id].row===ri&&oldPos[it.id].col===c) t.unmoved=true; }); }
+      if (dir==='left'||dir==='right') { const r=row.r; row.arr.forEach((it,ci)=>{ if(it===0)return; const t={id:it.id,val:it.val,row:r,col:ci,isNew:false}; nt.push(t); if(it.mergedFrom){mg.add(it.mergedFrom);mergeEvents.push({val:it.val,row:r,col:ci});} if(oldPos[it.id]&&oldPos[it.id].row===r&&oldPos[it.id].col===ci) t.unmoved=true; }); }
+      else { const c=row.c; row.arr.forEach((it,ri)=>{ if(it===0)return; const t={id:it.id,val:it.val,row:ri,col:c,isNew:false}; nt.push(t); if(it.mergedFrom){mg.add(it.mergedFrom);mergeEvents.push({val:it.val,row:ri,col:c});} if(oldPos[it.id]&&oldPos[it.id].row===ri&&oldPos[it.id].col===c) t.unmoved=true; }); }
     });
     if (nt.every(t=>t.unmoved)&&mg.size===0) return;
     nt.forEach(t=>delete t.unmoved);
@@ -213,7 +216,7 @@ const G24 = {
     G24.tiles=staged; G24._syncDOM();
     void (document.getElementById('g24-grid')||{}).offsetHeight;
     G24.tiles=nt; G24.moving=true; G24._syncDOM();
-    setTimeout(()=>{ G24._spawn(true); G24._syncDOM(); G24.moving=false; G24._check(); G24._updateUI(); },170);
+    setTimeout(()=>{ G24._spawn(true); G24._syncDOM(); G24.moving=false; G24._check(); G24._updateUI(); mergeEvents.forEach(evt=>G24._spawnParticle(evt)); },170);
   },
 
   _check() {
@@ -225,11 +228,69 @@ const G24 = {
     G24.over=true;
   },
 
+  _spawnParticle(evt) {
+    const container = document.getElementById('g24-particles');
+    if (!container || !G24.active) return;
+    const cfg = G24.cfg;
+    const x = evt.col * (cfg.cell + cfg.gap) + cfg.cell / 2;
+    const y = evt.row * (cfg.cell + cfg.gap) + cfg.cell / 2;
+    const el = document.createElement('div');
+    el.className = 'g2048-particle';
+    el.textContent = '+' + evt.val;
+    el.style.left = x + 'px';
+    el.style.top = y + 'px';
+    el.style.fontSize = (evt.val >= 256 ? Math.max(12, cfg.font - 6) : cfg.font) + 'px';
+    container.appendChild(el);
+    setTimeout(() => el.remove(), 750);
+  },
+
   _updateUI() {
-    if (G24.score>G24.best){G24.best=G24.score;localStorage.setItem('2048_best',G24.best);}
+    if (G24.score>G24.best){G24.best=G24.score;localStorage.setItem('2048_best',G24.best);G24._generateAIScores();G24._renderLeaderboard();}
     const s=document.getElementById('g24-score'), b=document.getElementById('g24-best'), m=document.getElementById('g24-msg');
     if(s)s.textContent=G24.score; if(b)b.textContent=G24.best;
     if(m){ if(G24.won&&!G24.over){m.style.display='flex';m.innerHTML='<div class="g2048-win">🎉 2048！<br><span style="font-size:13px;color:var(--dim)">继续挑战更高分？</span></div>';}else if(G24.over){m.style.display='flex';m.innerHTML='<div class="g2048-over">Game Over</div>';}else{m.style.display='none';m.innerHTML='';} }
+    if (G24.over) G24._renderLeaderboard();
+  },
+
+  // ── 排行榜 ──────────────────────────────────────
+  _initLeaderboard() {
+    const saved = localStorage.getItem('2048_lb');
+    if (saved) { try { G24.leaderboard = JSON.parse(saved); } catch(_){} }
+    G24._generateAIScores();
+    G24._renderLeaderboard();
+  },
+
+  _generateAIScores() {
+    const AI_POOL = ['AlphaGo','DeepMind','Neural-4K','SiliconBot','Pixel-256','GridMaster','TileWhisperer','BinaryBrain','QuantumTile','VectorX','CodeWeaver','LogicPulse','MatrixMind','DataGhost'];
+    const entries = [];
+    if (G24.best > 0) entries.push({ name: '我', score: G24.best, isMe: true });
+    const shuffled = [...AI_POOL].sort(() => Math.random() - 0.5);
+    const base = Math.max(G24.best, 1000);
+    for (let i = 0; i < 9; i++) {
+      const factor = 0.35 + Math.random() * 1.6;
+      const score = Math.max(100, Math.round(base * factor / 50) * 50);
+      entries.push({ name: shuffled[i] || AI_POOL[i], score, isMe: false });
+    }
+    entries.sort((a, b) => b.score - a.score);
+    G24.leaderboard = entries.slice(0, 10);
+    localStorage.setItem('2048_lb', JSON.stringify(G24.leaderboard));
+  },
+
+  _renderLeaderboard() {
+    const lb = document.getElementById('g24-lb');
+    if (!lb) return;
+    if (!G24.leaderboard.length) { lb.innerHTML = ''; return; }
+    const medals = ['🥇','🥈','🥉'];
+    lb.innerHTML =
+      '<div class="g2048-lb-title">🏆 排行榜</div>'
+      + G24.leaderboard.map((e, i) => {
+        const rankClass = i < 3 ? ' r' + (i + 1) : '';
+        return '<div class="g2048-lb-row">'
+          + '<span class="g2048-lb-rank' + rankClass + '">' + (medals[i] || (i + 1)) + '</span>'
+          + '<span class="g2048-lb-name' + (e.isMe ? ' is-me' : '') + '">' + e.name + '</span>'
+          + '<span class="g2048-lb-score' + (e.isMe ? ' is-me' : '') + '">' + e.score.toLocaleString() + '</span>'
+          + '</div>';
+      }).join('');
   },
 
   _key(e) { const map={ArrowLeft:'left',ArrowRight:'right',ArrowUp:'up',ArrowDown:'down'}; if(map[e.key]){e.preventDefault();G24.move(map[e.key]);} },

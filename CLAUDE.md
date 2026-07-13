@@ -110,6 +110,10 @@ function _fitCell(maxCell, cols, rows, padW, padH) {
 ### 打包后安装不生效
 若 `package.json` 版本号未更新，electron-builder 生成的 `latest.yml` 版本不变，`electron-updater` 不会下载新版本。**每次发版必须 bump 版本号。**
 
+### 自动更新文件名不匹配
+`electron-builder` 生成的 `latest.yml` 中文件名为连字符格式（`Omnia-Setup-X.Y.Z.exe`），但磁盘上的 exe 文件名带空格（`Omnia Setup X.Y.Z.exe`）。`gh release create` 上传带空格文件名时会自动转成点号（`Omnia.Setup.X.Y.Z.exe`），导致与 `latest.yml` 不一致，更新失败。
+**解决：上传前先将 exe 复制为连字符命名，或打包时在 `package.json` 的 `build` 中指定 `artifactName`。**
+
 ### 文件被占用无法删除
 Omnia 进程可能仍在运行。先 `Stop-Process -Name Omnia -Force` 再操作文件。
 
