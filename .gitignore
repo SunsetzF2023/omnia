@@ -3,3 +3,11 @@ dist/
 *.exe
 *.blockmap
 builder-debug.yml
+
+# 安全：密钥和凭证文件
+.env
+.env.*
+*.pem
+*.key
+credentials.json
+.claude/settings.local.json
