@@ -109,9 +109,10 @@ const G24 = {
     G24._syncDOM();
     G24._updateUI();
     document.addEventListener('keydown', G24._key);
+    window.addEventListener('resize', G24._onResize);
   },
 
-  deactivate() { document.removeEventListener('keydown', G24._key); G24.active = false; },
+  deactivate() { document.removeEventListener('keydown', G24._key); window.removeEventListener('resize', G24._onResize); G24.active = false; },
 
   _at(r,c) { return G24.tiles.find(t => t.row===r && t.col===c); },
 
@@ -137,10 +138,11 @@ const G24 = {
       + '<div class="g2048-stat"><div class="g2048-stat-label">分数</div><div class="g2048-stat-val" id="g24-score">0</div></div>'
       + '<div class="g2048-stat"><div class="g2048-stat-label">最佳</div><div class="g2048-stat-val" id="g24-best">0</div></div>'
       + '<button class="g2048-new-btn" onclick="G24.init()">新游戏</button></div>'
-      + '<div class="g2048-wrap"><div id="g24-particles"></div><div class="g2048-grid" id="g24-grid" style="grid-template-columns:repeat('+cfg.n+','+cfg.cell+'px);grid-template-rows:repeat('+cfg.n+','+cfg.cell+'px);width:'+gw+'px;height:'+gw+'px;"></div>'
+      + '<div class="g2048-body">'
+      + '<div class="g2048-wrap"><div id="g24-particles"></div><div class="g2048-grid" id="g24-grid" style="grid-template-columns:repeat('+cfg.n+','+cfg.cell+'px);grid-template-rows:repeat('+cfg.n+','+cfg.cell+'px);gap:'+cfg.gap+'px;width:'+gw+'px;height:'+gw+'px;"></div>'
       + '<div class="g2048-msg" id="g24-msg"></div></div>'
-      + '<div class="gm-hint">↑ ↓ ← → 方向键 | 合并到 2048 获胜</div>'
-      + '<div class="g2048-lb" id="g24-lb"></div>';
+      + '<div class="g2048-lb" id="g24-lb"></div></div>'
+      + '<div class="gm-hint">↑↓←→ / WASD 方向键 | 合并到 2048 获胜</div>';
     // 背景格
     const grid = document.getElementById('g24-grid');
     for (let r=0; r<cfg.n; r++) for (let c=0; c<cfg.n; c++) {
@@ -244,6 +246,32 @@ const G24 = {
     setTimeout(() => el.remove(), 750);
   },
 
+  _resize() {
+    if (!G24.active) return;
+    const grid = document.getElementById('g24-grid');
+    if (!grid) return;
+    const cfg = G24.cfg;
+    const gw = cfg.n * cfg.cell + (cfg.n - 1) * cfg.gap + 14;
+    grid.style.gridTemplateColumns = 'repeat(' + cfg.n + ',' + cfg.cell + 'px)';
+    grid.style.gridTemplateRows = 'repeat(' + cfg.n + ',' + cfg.cell + 'px)';
+    grid.style.gap = cfg.gap + 'px';
+    grid.style.width = gw + 'px';
+    grid.style.height = gw + 'px';
+    G24.tiles.forEach(t => {
+      const el = G24.elMap[t.id];
+      if (!el) return;
+      el.style.width = el.style.height = cfg.cell + 'px';
+      el.style.fontSize = (t.val >= 1024 ? Math.max(14, cfg.font - 6) : cfg.font) + 'px';
+      el.className = 'g2048-tile t' + t.val;
+      const tx = t.col * (cfg.cell + cfg.gap);
+      const ty = t.row * (cfg.cell + cfg.gap);
+      el.style.transition = 'none';
+      el.style.transform = 'translate(' + tx + 'px, ' + ty + 'px) scale(1)';
+    });
+  },
+
+  _onResize() { clearTimeout(G24._rt); G24._rt = setTimeout(() => G24._resize(), 120); },
+
   _updateUI() {
     if (G24.score>G24.best){G24.best=G24.score;localStorage.setItem('2048_best',G24.best);G24._generateAIScores();G24._renderLeaderboard();}
     const s=document.getElementById('g24-score'), b=document.getElementById('g24-best'), m=document.getElementById('g24-msg');
@@ -293,7 +321,7 @@ const G24 = {
       }).join('');
   },
 
-  _key(e) { const map={ArrowLeft:'left',ArrowRight:'right',ArrowUp:'up',ArrowDown:'down'}; if(map[e.key]){e.preventDefault();G24.move(map[e.key]);} },
+  _key(e) { const map={ArrowLeft:'left',ArrowRight:'right',ArrowUp:'up',ArrowDown:'down',a:'left',A:'left',d:'right',D:'right',w:'up',W:'up',s:'down',S:'down'}; if(map[e.key]){e.preventDefault();G24.move(map[e.key]);} },
 };
 
 // ══════════════════════════════════════════════════
@@ -325,9 +353,10 @@ const MS = {
     MS._render();
     document.addEventListener('keydown', MS._key);
     document.addEventListener('contextmenu', MS._ctx);
+    window.addEventListener('resize', MS._onResize);
   },
 
-  deactivate() { document.removeEventListener('keydown',MS._key); document.removeEventListener('contextmenu',MS._ctx); MS.active=false; },
+  deactivate() { document.removeEventListener('keydown',MS._key); document.removeEventListener('contextmenu',MS._ctx); window.removeEventListener('resize',MS._onResize); MS.active=false; },
 
   _render() {
     const view = document.getElementById('game-view');
@@ -404,6 +433,18 @@ const MS = {
 
   _key(e) { if (e.key==='f'||e.key==='F') { e.preventDefault(); /* handled by context menu or direct */ } },
   _ctx(e) { e.preventDefault(); },
+
+  _resize() {
+    if (!MS.active) return;
+    const grid = document.getElementById('ms-grid');
+    if (!grid) return;
+    const c = MS.cfg; MS._cellS = c.cs;
+    grid.style.gridTemplateColumns = 'repeat(' + MS.cols + ',' + c.cs + 'px)';
+    grid.querySelectorAll('.ms-cell').forEach(cell => {
+      cell.style.width = c.cs + 'px'; cell.style.height = c.cs + 'px'; cell.style.fontSize = c.fs + 'px';
+    });
+  },
+  _onResize() { clearTimeout(MS._rt); MS._rt = setTimeout(() => MS._resize(), 120); },
 };
 
 // ══════════════════════════════════════════════════
@@ -427,9 +468,10 @@ const SD = {
     SD._generate();
     SD._render();
     document.addEventListener('keydown', SD._key);
+    window.addEventListener('resize', SD._onResize);
   },
 
-  deactivate() { document.removeEventListener('keydown',SD._key); SD.active=false; },
+  deactivate() { document.removeEventListener('keydown',SD._key); window.removeEventListener('resize',SD._onResize); SD.active=false; },
 
   _generate() {
     // 生成完整解
@@ -540,6 +582,17 @@ const SD = {
     else if (e.key==='ArrowLeft'&&SD.selC>0) { e.preventDefault(); SD.select(SD.selR,SD.selC-1); }
     else if (e.key==='ArrowRight'&&SD.selC<8) { e.preventDefault(); SD.select(SD.selR,SD.selC+1); }
   },
+
+  _resize() {
+    if (!SD.active) return;
+    const grid = document.getElementById('sd-grid');
+    if (!grid) return;
+    const c = SD.cfg;
+    grid.querySelectorAll('.sd-cell').forEach((cell, i) => {
+      cell.style.width = c.cell + 'px'; cell.style.height = c.cell + 'px'; cell.style.fontSize = c.fs + 'px';
+    });
+  },
+  _onResize() { clearTimeout(SD._rt); SD._rt = setTimeout(() => SD._resize(), 120); },
 };
 
 // ── init2048 兼容旧引用 ─────────────────────────

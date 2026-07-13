@@ -7,7 +7,7 @@
 
 // ── 环境检测 ──────────────────────────────────
 function isElectron() {
-  return !!(window.process && window.process.type);
+  return window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
 }
 
 // ── 登录成功后统一处理 ────────────────────────

@@ -365,7 +365,7 @@ canvas.ldg-chart{width:100%!important;max-height:200px;}
 .gm-diff-btn{padding:3px 10px;margin:2px;border-radius:3px;border:1px solid var(--border);background:var(--bg3);color:var(--dim);font-size:11px;cursor:pointer;font-family:var(--mono);transition:all .12s;display:inline-block;}
 .gm-diff-btn:hover{color:var(--text);border-color:var(--green-dim);}
 .gm-diff-btn.active{background:var(--green-dim);border-color:var(--green);color:var(--green-t);}
-#game-main{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:auto;padding:20px;}
+#game-main{flex:1;display:flex;flex-direction:column;align-items:center;overflow:auto;padding:20px;}
 #game-view{display:flex;flex-direction:column;align-items:center;gap:16px;}
 .gm-hint{font-size:11px;color:var(--dim);text-align:center;}
 
@@ -399,8 +399,10 @@ canvas.ldg-chart{width:100%!important;max-height:200px;}
 #g24-particles{position:absolute;inset:0;pointer-events:none;z-index:5;overflow:hidden;}
 .g2048-particle{position:absolute;font-weight:700;color:var(--amber);font-family:var(--mono);pointer-events:none;z-index:100;animation:particle-up .7s ease-out forwards;}
 @keyframes particle-up{0%{opacity:1;transform:translate(-50%,-50%) translateY(0);}100%{opacity:0;transform:translate(-50%,-50%) translateY(-50px);}}
-/* 2048 leaderboard */
-.g2048-lb{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:14px 16px;}
+/* 2048 layout — 游戏区域 + 排行榜并排 */
+.g2048-body{display:flex;align-items:flex-start;gap:20px;}
+/* 2048 leaderboard — 右侧面板 */
+.g2048-lb{width:190px;flex-shrink:0;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:12px 14px;align-self:stretch;}
 .g2048-lb-title{font-size:13px;color:var(--amber);font-weight:700;margin-bottom:10px;letter-spacing:.04em;}
 .g2048-lb-row{display:flex;align-items:center;padding:3px 0;font-size:12px;border-bottom:1px solid rgba(48,54,61,.5);}
 .g2048-lb-row:last-child{border-bottom:none;}
