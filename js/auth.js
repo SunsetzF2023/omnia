@@ -2,31 +2,50 @@
    auth.js — Google OAuth 认证
    依赖: app.js (CLIENT_ID, SCOPES, token 全局变量)
    提供: signIn, signOut, fetchUserInfo, gfetch
+   支持: Electron 桌面版 + GitHub Pages Web 版
    ═══════════════════════════════════════════════ */
+
+// ── 环境检测 ──────────────────────────────────
+function isElectron() {
+  return !!(window.process && window.process.type);
+}
+
+// ── 登录成功后统一处理 ────────────────────────
+async function onSignInSuccess(accessToken) {
+  token = accessToken;
+  await fetchUserInfo();
+  localStorage.setItem('omnia_token', accessToken);
+  localStorage.setItem('omnia_user', JSON.stringify({
+    name: document.getElementById('user-name').textContent,
+    picture: document.getElementById('avatar').src
+  }));
+  showApp();
+  if (typeof loadFromDrive === 'function') await loadFromDrive();
+  if (typeof ldgLoadFromDrive === 'function') await ldgLoadFromDrive();
+  if (typeof checkDraftOnLoad === 'function') checkDraftOnLoad();
+}
 
 // ═══════════════════════════════════════════════
 // 登录
 // ═══════════════════════════════════════════════
 function signIn() {
+  if (isElectron()) {
+    signInElectron();
+  } else {
+    signInWeb();
+  }
+}
+
+// ── Electron 桌面版登录 ───────────────────────
+function signInElectron() {
   const REDIRECT = 'http://localhost:3000/callback';
   const SCOPE = encodeURIComponent(SCOPES + ' https://www.googleapis.com/auth/userinfo.profile');
 
   // 授权回调 — Electron 主进程通过 executeJavaScript 调用此函数传递 token
   window.__electronToken = async function(accessToken) {
     window.__electronToken = null;
-    token = accessToken;
     try {
-      await fetchUserInfo();
-      // ★ 持久化 token 和用户信息
-      localStorage.setItem('omnia_token', accessToken);
-      localStorage.setItem('omnia_user', JSON.stringify({
-        name: document.getElementById('user-name').textContent,
-        picture: document.getElementById('avatar').src
-      }));
-      showApp();
-      if (typeof loadFromDrive === 'function') await loadFromDrive();
-      if (typeof ldgLoadFromDrive === 'function') await ldgLoadFromDrive();
-      if (typeof checkDraftOnLoad === 'function') checkDraftOnLoad();
+      await onSignInSuccess(accessToken);
     } catch (e) {
       showAuthError('登录失败：' + e.message);
     }
@@ -39,6 +58,41 @@ function signIn() {
     + '&scope=' + SCOPE;
 
   window.open(authUrl, '_blank');
+}
+
+// ── Web 版登录（GitHub Pages） ────────────────
+function signInWeb() {
+  const REDIRECT = window.location.origin + window.location.pathname;
+  const SCOPE = encodeURIComponent(SCOPES + ' https://www.googleapis.com/auth/userinfo.profile');
+
+  const authUrl = 'https://accounts.google.com/o/oauth2/v2/auth'
+    + '?client_id=' + CLIENT_ID
+    + '&redirect_uri=' + encodeURIComponent(REDIRECT)
+    + '&response_type=token'
+    + '&scope=' + SCOPE;
+
+  window.location.href = authUrl;
+}
+
+// ── Web 版回调：页面加载时检查 URL hash ────────
+async function handleWebCallback() {
+  if (isElectron()) return false;
+  const hash = window.location.hash;
+  if (!hash || !hash.includes('access_token')) return false;
+
+  const params = new URLSearchParams(hash.slice(1));
+  const accessToken = params.get('access_token');
+  if (!accessToken) return false;
+
+  // 清理 URL（去掉 hash，避免刷新时重复处理）
+  history.replaceState(null, '', window.location.pathname);
+
+  try {
+    await onSignInSuccess(accessToken);
+  } catch (e) {
+    showAuthError('登录失败：' + e.message);
+  }
+  return true;
 }
 
 // ★ 启动时尝试恢复会话
@@ -177,5 +231,8 @@ function showAuthError(msg) {
   el.style.display = 'block';
 }
 
-// ★ 启动时自动尝试恢复登录会话
-tryRestoreSession();
+// ★ 启动时：先检查 Web 回调 token，再尝试恢复会话
+(async function startup() {
+  const fromWeb = await handleWebCallback();
+  if (!fromWeb) await tryRestoreSession();
+})();

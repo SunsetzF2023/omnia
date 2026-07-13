@@ -173,13 +173,15 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 });
 
-// 页面关闭前尝试保存草稿
+// 页面关闭前尝试保存草稿 + 刷新 Drive 保存队列
 window.addEventListener('beforeunload', () => {
   const editMode = document.getElementById('edit-mode');
   if (editMode && editMode.style.display !== 'none') {
     if (typeof _syncAllStepsFromDOM === 'function') _syncAllStepsFromDOM();
     if (typeof saveDraft === 'function') saveDraft();
   }
+  // Web 版：尝试同步刷新待保存数据（navigator.sendBeacon 保证发送）
+  if (typeof _flushBeforeUnload === 'function') _flushBeforeUnload();
 });
 
 // 初始化月份显示
