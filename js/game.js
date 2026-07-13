@@ -66,6 +66,16 @@ function deactivateGame() {
   SD.deactivate();
 }
 
+// ── 自适应格子大小 ──────────────────────────────
+function _fitCell(maxCell, cols, rows, padW, padH) {
+  const main = document.getElementById('game-main');
+  const availW = (main ? main.clientWidth : 600) - padW;
+  const availH = (main ? main.clientHeight : 500) - padH;
+  const cw = Math.floor(availW / cols);
+  const ch = Math.floor(availH / rows);
+  return Math.max(18, Math.min(maxCell, cw, ch));
+}
+
 // ══════════════════════════════════════════════════
 //  2048
 // ══════════════════════════════════════════════════
@@ -74,12 +84,15 @@ const G24 = {
   nextId: 1, moving: false, elMap: {}, active: false,
 
   get cfg() {
-    const sizes = [
+    const designs = [
       { n:4, cell:80, gap:7, font:28 },
       { n:5, cell:64, gap:6, font:22 },
       { n:6, cell:52, gap:5, font:18 },
     ];
-    return sizes[gDiff] || sizes[0];
+    const d = designs[gDiff] || designs[0];
+    const cell = _fitCell(d.cell, d.n, d.n, 50, 130);
+    const ratio = cell / d.cell;
+    return { n: d.n, cell, gap: Math.max(3, Math.round(d.gap * ratio)), font: Math.round(d.font * ratio) };
   },
 
   init() {
@@ -235,7 +248,10 @@ const MS = {
       { rows:16, cols:16, mines:40, cs:32, fs:13 },
       { rows:30, cols:16, mines:99, cs:26, fs:11 },
     ];
-    return diffs[gDiff] || diffs[0];
+    const d = diffs[gDiff] || diffs[0];
+    const cell = _fitCell(d.cs, d.cols, d.rows, 30, 100);
+    const ratio = cell / d.cs;
+    return { rows: d.rows, cols: d.cols, mines: d.mines, cs: cell, fs: Math.max(9, Math.round(d.fs * ratio)) };
   },
 
   init() {
@@ -336,8 +352,10 @@ const SD = {
   board:[], solution:[], given:[], selR:-1, selC:-1, errs:0, active:false,
 
   get cfg() {
-    const diffs = [38, 30, 24]; // givens count
-    return { givens: diffs[gDiff]||38 };
+    const diffs = [38, 30, 24];
+    const cell = _fitCell(48, 9, 9, 30, 150);
+    const fs = Math.max(12, Math.round(20 * cell / 48));
+    return { givens: diffs[gDiff]||38, cell, fs };
   },
 
   init() {
@@ -404,7 +422,7 @@ const SD = {
     const grid=document.getElementById('sd-grid');
     for (let r=0;r<9;r++) for (let c=0;c<9;c++) {
       const cell=document.createElement('div');
-      cell.className='sd-cell'; cell.style.width='48px'; cell.style.height='48px';
+      cell.className='sd-cell'; cell.style.width=SD.cfg.cell+'px'; cell.style.height=SD.cfg.cell+'px'; cell.style.fontSize=SD.cfg.fs+'px';
       if (SD.given[r][c]) cell.classList.add('given');
       if (SD.board[r][c]!==0) cell.textContent=SD.board[r][c];
       if (SD.board[r][c]!==0&&!SD.given[r][c]&&SD.board[r][c]!==SD.solution[r][c]) cell.classList.add('error');

@@ -183,8 +183,8 @@ function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1280,
     height: 800,
-    minWidth: 900,
-    minHeight: 600,
+    minWidth: 640,
+    minHeight: 420,
     title: 'Omnia',
     webPreferences: {
       nodeIntegration: false,

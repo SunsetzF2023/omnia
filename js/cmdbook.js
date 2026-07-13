@@ -83,8 +83,7 @@ function showEntry(id) {
       + '<div class="term-cmd-row">'
       + '<span class="term-prompt">$</span>'
       + '<span class="term-cmd" title="双击编辑">' + esc(s.cmd) + '</span>'
-      + '<button class="term-copy" onclick="copyStep(' + si + ')">复制</button>'
-      + '<button class="term-edit" onclick="inlineEditStep(' + si + ')" title="编辑此步骤">✎</button>'
+      + '<button class="term-copy" onclick="inlineEditStep(' + si + ')" title="编辑此步骤">编辑</button>'
       + '</div>'
       + (s.output ? '<div class="term-output" title="双击编辑">' + esc(s.output) + '</div>' : '')
       + (sImgs.length ? '<div class="term-imgs">' + thumbs + '</div>' : '')
