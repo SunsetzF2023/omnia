@@ -99,32 +99,35 @@ function inboxShowFeedbackForm() {
   }, 100);
 }
 
-function inboxSendFeedback() {
+async function inboxSendFeedback() {
   const subject = document.getElementById('fb-subject')?.value?.trim() || 'Omnia 反馈';
   const body = document.getElementById('fb-body')?.value?.trim() || '';
+  if (!body) {
+    if (typeof toast === 'function') toast('请填写反馈内容');
+    return;
+  }
   const platform = navigator.userAgent.includes('Electron') ? '桌面版' : 'Web 版';
-  const fullBody = (body ? body + '\n\n' : '') + '---\n来自 Omnia ' + platform;
-  const devEmails = '2867440557ftt@gmail.com,2867440557@qq.com';
 
-  // 方案 A: mailto
-  const mailtoUrl = 'mailto:' + devEmails + '?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(fullBody);
-  const w = window.open(mailtoUrl, '_blank');
-
-  // 方案 B: 如果 mailto 失败（3 秒后窗口未打开），复制到剪贴板
-  setTimeout(() => {
-    if (w && !w.closed) return; // mailto 成功
-    const text = '收件人: ' + devEmails.replace(',', ', ') + '\n主题: ' + subject + '\n\n' + fullBody;
-    navigator.clipboard.writeText(text).then(() => {
-      inboxRender();
-      if (typeof toast === 'function') toast('📋 反馈已复制到剪贴板，请手动发送到 ' + devEmails);
-    }).catch(() => {
-      inboxRender();
-      alert('请手动发送邮件到:\n' + devEmails + '\n\n' + text);
+  // 通过 Google Apps Script 静默发送到你邮箱
+  try {
+    const res = await fetch('https://script.google.com/macros/s/AKfycbyDR6xKzyevIhi3e1zgWC8KvnWH2JaB7ni7Eo_Md7SKknRASUOtRt8Hj_02470Z-CmV3w/exec', {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({ subject, body, platform })
     });
-  }, 3000);
-
-  inboxAdd('system', '📤 反馈已发送', subject + (body ? ' — ' + body.slice(0, 50) + '...' : ''));
-  setTimeout(() => inboxRender(), 1500);
+    inboxRender();
+    if (typeof toast === 'function') toast('✅ 反馈已发送，感谢！');
+    inboxAdd('system', '📤 反馈已发送', subject + ' — ' + body.slice(0, 50) + '...');
+  } catch (_) {
+    // 降级到邮件客户端
+    const devEmails = '2867440557ftt@gmail.com,2867440557@qq.com';
+    const mailtoUrl = 'mailto:' + devEmails + '?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body + '\n\n---\n来自 Omnia ' + platform);
+    window.open(mailtoUrl, '_blank');
+    inboxRender();
+    if (typeof toast === 'function') toast('📋 请在邮件客户端中点击发送');
+    inboxAdd('system', '📤 反馈已打开邮件客户端', subject);
+  }
 }
 
 function inboxOpenGithub() {
