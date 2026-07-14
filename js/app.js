@@ -305,24 +305,16 @@ function markDirtyContent() {
 }
 
 // ═══════════════════════════════════════════════
-// Ctrl+滚轮缩放（桌面端）
+// Ctrl+滚轮缩放（桌面端，会话内有效，重启恢复100%）
 // ═══════════════════════════════════════════════
-let _zoomFactor = parseFloat(localStorage.getItem('omnia_zoom') || '1');
+let _zoomFactor = 1;
 
 function _applyZoom(factor) {
   _zoomFactor = Math.max(0.5, Math.min(2.0, Math.round(factor * 10) / 10));
-  localStorage.setItem('omnia_zoom', _zoomFactor);
   if (window.electronAPI && window.electronAPI.setZoom) {
     window.electronAPI.setZoom(_zoomFactor);
   }
 }
-
-// 启动时恢复缩放
-document.addEventListener('DOMContentLoaded', () => {
-  if (window.electronAPI && window.electronAPI.setZoom && _zoomFactor !== 1) {
-    window.electronAPI.setZoom(_zoomFactor);
-  }
-});
 
 // Ctrl+滚轮
 window.addEventListener('wheel', (e) => {
