@@ -102,6 +102,33 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--m
 .e-date{font-size:10px;color:var(--dim);margin-top:2px;}
 #add-btn{margin:10px 12px;padding:8px;background:var(--green-dim);border:1px solid var(--green);color:var(--green-t);border-radius:5px;font-family:var(--mono);font-size:12px;cursor:pointer;text-align:center;transition:all .15s;}
 #add-btn:hover{background:#1e5c28;}
+/* 笔记模式切换器 */
+.note-mode-tabs{display:flex;margin:8px 10px 0;background:var(--bg3);border-radius:6px;padding:2px;gap:2px;}
+.note-mode-tab{flex:1;padding:5px 0;text-align:center;font-size:11px;border-radius:5px;cursor:pointer;color:var(--dim);transition:all .15s;border:none;background:transparent;font-family:var(--mono);}
+.note-mode-tab.active{background:var(--bg2);color:var(--text);font-weight:500;box-shadow:0 1px 3px rgba(0,0,0,.3);}
+.note-mode-tab:hover:not(.active){color:var(--text);}
+/* 随笔编辑器 */
+#note-toolbar{display:flex;gap:4px;margin-bottom:6px;}
+.note-tb-btn{width:28px;height:24px;background:var(--bg3);border:1px solid var(--border);color:var(--dim);border-radius:4px;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:var(--mono);transition:all .12s;}
+.note-tb-btn:hover{color:var(--green-t);border-color:var(--green);background:var(--green-dim);}
+.note-tb-btn.bold{font-weight:700;}
+.note-tb-btn.under{text-decoration:underline;}
+.note-editor{min-height:260px;line-height:1.75;font-size:13px;padding:10px 12px;border-radius:5px;overflow-y:auto;word-break:break-word;outline:none;user-select:text;cursor:text;}
+.note-editor:focus{border-color:var(--green-dim);}
+.note-editor:empty::before{content:attr(data-placeholder);color:var(--dim);pointer-events:none;}
+.note-editor b,.note-editor strong{font-weight:700;color:#fff;}
+.note-editor u{text-decoration:underline;text-underline-offset:2px;}
+.note-editor ul,.note-editor ol{padding-left:20px;margin:4px 0;}
+.note-editor li{margin-bottom:2px;}
+/* 笔记列表预览 — 正文摘录 */
+.e-note-preview{font-size:11px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.5;}
+/* 随笔查看模式 */
+.note-body{color:var(--text);font-size:13px;line-height:1.85;white-space:pre-wrap;word-break:break-word;}
+.note-body b{color:#fff;font-weight:600;}
+.note-body u{text-decoration:underline;text-underline-offset:3px;}
+.note-body ul{padding-left:18px;margin:6px 0;}
+.note-body li{margin-bottom:3px;line-height:1.7;}
+.note-body li::marker{color:var(--green-dim);}
 #main{flex:1;display:flex;flex-direction:column;overflow:hidden;}
 #content{flex:1;overflow-y:auto;padding:22px 26px;}
 #content::-webkit-scrollbar{width:3px;}
@@ -555,6 +582,10 @@ canvas.ldg-chart{width:100%!important;max-height:200px;}
       </div>
       <div id="body">
         <div id="sidebar">
+          <div class="note-mode-tabs" id="note-mode-tabs">
+            <button class="note-mode-tab active" id="mode-tab-cmd" onclick="setNoteFilter('cmd')">⌘ 命令</button>
+            <button class="note-mode-tab" id="mode-tab-note" onclick="setNoteFilter('note')">📄 随笔</button>
+          </div>
           <div id="search-wrap"><input id="search" type="text" placeholder="搜索标题或命令..."/></div>
           <div id="tags-wrap"></div>
           <div id="count-line"></div>
@@ -568,8 +599,23 @@ canvas.ldg-chart{width:100%!important;max-height:200px;}
             <div id="edit-mode">
               <div id="draft-indicator"></div>
               <div class="f-wrap"><div class="f-label" id="f-title-label">▸ 标题</div><input class="f-input" id="f-title" placeholder="e.g. 替换 LVM 旧盘"/></div>
-              <div class="f-wrap"><div class="f-label" id="f-steps-label">▸ 命令步骤</div><div id="steps-container"></div><button id="add-step-btn" onclick="addStep(-1)">＋ 在末尾添加步骤</button></div>
-              <div class="f-wrap"><div class="f-label" id="f-desc-label">▸ 场景说明 / 备注</div><textarea class="f-input" id="f-desc" rows="3" placeholder="什么情况下用？"></textarea></div>
+              <!-- 命令笔记编辑器 -->
+              <div id="edit-cmd">
+                <div class="f-wrap"><div class="f-label" id="f-steps-label">▸ 命令步骤</div><div id="steps-container"></div><button id="add-step-btn" onclick="addStep(-1)">＋ 在末尾添加步骤</button></div>
+                <div class="f-wrap"><div class="f-label" id="f-desc-label">▸ 场景说明 / 备注</div><textarea class="f-input" id="f-desc" rows="3" placeholder="什么情况下用？"></textarea></div>
+              </div>
+              <!-- 随笔笔记编辑器 -->
+              <div id="edit-note" style="display:none">
+                <div class="f-wrap">
+                  <div class="f-label" id="f-content-label">▸ 正文</div>
+                  <div id="note-toolbar">
+                    <button class="note-tb-btn bold" id="tb-bold" onclick="execFmt('bold')" title="加粗"><b>B</b></button>
+                    <button class="note-tb-btn under" id="tb-underline" onclick="execFmt('underline')" title="下划线"><u>U</u></button>
+                    <button class="note-tb-btn" id="tb-bullet" onclick="execFmt('insertUnorderedList')" title="列表">•</button>
+                  </div>
+                  <div class="f-input note-editor" id="f-content" contenteditable="true" data-placeholder="开始写笔记..."></div>
+                </div>
+              </div>
               <div class="f-wrap"><div class="f-label" id="f-tags-label">▸ 标签（逗号分隔）</div><input class="f-input" id="f-tags" placeholder="网络, 日志, 调试"/></div>
               <div><button class="save-btn" id="f-save-btn" onclick="saveEntry()">保存</button><button class="cancel-btn" id="f-cancel-btn" onclick="cancelEdit()">取消</button></div>
             </div>

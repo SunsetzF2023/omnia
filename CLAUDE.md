@@ -58,6 +58,34 @@ gh release create vX.Y.Z "dist/Omnia Setup X.Y.Z.exe" dist/latest.yml --title "v
 
 此后用户端启动 App 后会自动检测到更新并下载安装。
 
+**发布时注意：** `gh release create` 上传 exe 文件名带空格会被转成点号，与 `latest.yml` 不一致导致更新失败。必须先复制 exe 为连字符命名：
+```bash
+Copy-Item "dist\Omnia Setup X.Y.Z.exe" "dist\Omnia-Setup-X.Y.Z.exe"
+gh release create vX.Y.Z "dist/Omnia-Setup-X.Y.Z.exe" dist/latest.yml ...
+```
+
+## 当前版本: v2.3.6
+
+## 反馈后端
+- Google Apps Script URL: `https://script.google.com/macros/s/AKfycbyDR6xKzyevIhi3e1zgWC8KvnWH2JaB7ni7Eo_Md7SKknRASUOtRt8Hj_02470Z-CmV3w/exec`
+- 开发者邮箱: `2867440557ftt@gmail.com` `2867440557@qq.com`
+- 反馈流程: 用户写反馈 → POST Apps Script → 开发者 Gmail 收到邮件（无需用户有邮箱）
+
+## 新增模块
+- `js/inbox.js` — 通知中心（备份通知 / 同步状态 / 更新提示 / 反馈 / GitHub 链接）
+- 离线模式: token=`__offline__`, 数据存 localStorage + 自动备份 JSON 到 `%APPDATA%/Omnia/backups/`
+- 桌面端自动备份: 每次离线保存时通过 IPC → main.js 写 JSON 文件，保留最近 10 份
+
+## 关键 URL
+| 用途 | 地址 |
+|------|------|
+| 桌面端更新 | https://github.com/SunsetzF2023/omnia/releases |
+| Web 版 | https://sunsetzf2023.github.io/omnia/ |
+| GitHub 仓库 | https://github.com/SunsetzF2023/omnia |
+| Google Cloud Console (OAuth) | https://console.cloud.google.com/apis/credentials |
+| Google Apps Script | https://script.google.com/ (项目名: Omnia反馈) |
+| GitHub Pages 设置 | https://github.com/SunsetzF2023/omnia/settings/pages |
+
 ## 架构决策（为什么这样做）
 
 - **不用框架** — 保持 vanilla JS，降低依赖复杂度。项目规模可控，DOM 操作直截了当。

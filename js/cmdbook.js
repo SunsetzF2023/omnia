@@ -7,27 +7,68 @@
    ═══════════════════════════════════════════════ */
 
 // ═══════════════════════════════════════════════
+// 笔记模式切换
+// ═══════════════════════════════════════════════
+function setNoteFilter(type) {
+  noteFilter = type;
+  const L = t();
+  // 更新 tab 高亮
+  document.getElementById('mode-tab-cmd').classList.toggle('active', type === 'cmd');
+  document.getElementById('mode-tab-note').classList.toggle('active', type === 'note');
+  // 更新新建按钮文字
+  const addBtn = document.getElementById('add-btn');
+  if (addBtn) addBtn.textContent = type === 'cmd' ? L.cbNewCmd : L.cbNewNote;
+  // 更新搜索框 placeholder
+  const search = document.getElementById('search');
+  if (search) search.placeholder = type === 'cmd' ? L.cbSearch : L.cbSearchNote;
+  // 关闭当前编辑器并重渲染
+  if (document.getElementById('edit-mode').style.display !== 'none') {
+    stopDraftTimer();
+  }
+  current = null;
+  renderList();
+  if (entries.length > 0) {
+    const firstOfType = entries.find(e => (e.type || 'cmd') === noteFilter);
+    if (firstOfType) showEntry(firstOfType.id);
+    else showEmpty();
+  } else {
+    showEmpty();
+  }
+  updateTagFilters();
+}
+
+// ═══════════════════════════════════════════════
 // 列表与过滤器
 // ═══════════════════════════════════════════════
 function renderList() {
   const q = document.getElementById('search').value.toLowerCase();
   const filtered = entries.filter(e => {
+    const eType = e.type || 'cmd';
+    const typeMatch = eType === noteFilter;
     const mt = !filterTag || (e.tags || []).includes(filterTag);
     const allCmds = (e.steps || []).map(s => s.cmd).join(' ');
+    const content = e.content || '';
     const mq = !q
       || (e.title || '').toLowerCase().includes(q)
       || allCmds.toLowerCase().includes(q)
-      || (e.desc || '').toLowerCase().includes(q);
-    return mt && mq;
+      || (e.desc || '').toLowerCase().includes(q)
+      || content.toLowerCase().includes(q);
+    return typeMatch && mt && mq;
   });
+  const L = t();
   document.getElementById('count-line').textContent =
     filtered.length + ' / ' + entries.length + ' 条';
   document.getElementById('list').innerHTML = filtered.map(e => {
+    const eType = e.type || 'cmd';
+    const isCmd = eType === 'cmd';
     const firstCmd = (e.steps || [])[0]?.cmd || '';
+    const preview = isCmd
+      ? (firstCmd ? '<div class="e-cmd-preview">$ ' + esc(firstCmd) + '</div>' : '')
+      : '<div class="e-note-preview">' + esc(stripHtml(e.content || '').split('\n')[0] || L.cbNoTitle) + '</div>';
     return '<div class="e-item ' + (current?.id === e.id ? 'active' : '')
       + '" onclick="showEntry(\'' + e.id + '\')">'
-      + '<div class="e-title">' + esc(e.title || '无标题') + '</div>'
-      + (firstCmd ? '<div class="e-cmd-preview">$ ' + esc(firstCmd) + '</div>' : '')
+      + '<div class="e-title">' + esc(e.title || L.cbNoTitle) + '</div>'
+      + preview
       + '<div class="e-date">' + fmtDate(e.ts) + '</div></div>';
   }).join('');
 }
@@ -63,50 +104,70 @@ function showEntry(id) {
   document.getElementById('empty').style.display = 'none';
   document.getElementById('view-mode').style.display = 'block';
 
-  const steps = current.steps || [];
-  // 兼容旧数据：imgs 在条目级别而非步骤级别
-  if (current.imgs?.length && !steps[0]?.imgs?.length) {
-    if (steps[0]) steps[0].imgs = current.imgs;
-  }
-  lbImgs = steps.flatMap(s => s.imgs || []);
+  const eType = current.type || 'cmd';
+  const L = t();
 
-  let lbOffset = 0;
-  const stepsHTML = steps.map((s, si) => {
-    const sImgs = s.imgs || [];
-    const thumbs = sImgs.map((src, ii) => {
-      const globalIdx = lbOffset + ii;
-      return '<img class="term-img-thumb" src="' + src
-        + '" onclick="openLightboxAt(' + globalIdx + ')"/>';
-    }).join('');
-    lbOffset += sImgs.length;
-    return '<div class="term-block" data-step-index="' + si + '">'
-      + '<div class="term-cmd-row">'
-      + '<span class="term-prompt">$</span>'
-      + '<span class="term-cmd" title="双击编辑">' + esc(s.cmd) + '</span>'
-      + '<button class="term-copy" onclick="inlineEditStep(' + si + ')" title="编辑此步骤">编辑</button>'
-      + '</div>'
-      + (s.output ? '<div class="term-output" title="双击编辑">' + esc(s.output) + '</div>' : '')
-      + (sImgs.length ? '<div class="term-imgs">' + thumbs + '</div>' : '')
-      + '</div>';
-  }).join('');
+  if (eType === 'note') {
+    // ── 随笔笔记视图 ──
+    document.getElementById('view-mode').innerHTML =
+      (current.title
+        ? '<div class="view-title">' + esc(current.title) + '</div>'
+        : '')
+      + '<div class="note-body">' + renderContent(current.content || '') + '</div>'
+      + ((current.tags || []).length
+        ? '<div class="tags-row">'
+          + (current.tags || []).map(t =>
+              '<span class="tag-badge">' + esc(t) + '</span>'
+            ).join('')
+          + '</div>'
+        : '')
+      + '<div class="meta-line">' + L.cbRecordedAt + ' ' + fmtDate(current.ts) + '</div>';
+  } else {
+    // ── 命令笔记视图 (现有逻辑) ──
+    const steps = current.steps || [];
+    if (current.imgs?.length && !steps[0]?.imgs?.length) {
+      if (steps[0]) steps[0].imgs = current.imgs;
+    }
+    lbImgs = steps.flatMap(s => s.imgs || []);
 
-  document.getElementById('view-mode').innerHTML =
-    (current.title
-      ? '<div class="view-title" title="双击编辑标题">' + esc(current.title) + '</div>'
-      : '')
-    + '<div style="margin-bottom:16px">' + stepsHTML + '</div>'
-    + (current.desc
-      ? '<div style="margin-bottom:16px"><div class="sec-label">场景说明</div>'
-        + '<div class="scenario" title="双击编辑">' + esc(current.desc) + '</div></div>'
-      : '')
-    + ((current.tags || []).length
-      ? '<div class="tags-row">'
-        + (current.tags || []).map(t =>
-            '<span class="tag-badge">' + esc(t) + '</span>'
-          ).join('')
+    let lbOffset = 0;
+    const stepsHTML = steps.map((s, si) => {
+      const sImgs = s.imgs || [];
+      const thumbs = sImgs.map((src, ii) => {
+        const globalIdx = lbOffset + ii;
+        return '<img class="term-img-thumb" src="' + src
+          + '" onclick="openLightboxAt(' + globalIdx + ')"/>';
+      }).join('');
+      lbOffset += sImgs.length;
+      return '<div class="term-block" data-step-index="' + si + '">'
+        + '<div class="term-cmd-row">'
+        + '<span class="term-prompt">$</span>'
+        + '<span class="term-cmd" title="双击编辑">' + esc(s.cmd) + '</span>'
+        + '<button class="term-copy" onclick="inlineEditStep(' + si + ')" title="编辑此步骤">编辑</button>'
         + '</div>'
-      : '')
-    + '<div class="meta-line">记录于 ' + fmtDate(current.ts) + '</div>';
+        + (s.output ? '<div class="term-output" title="双击编辑">' + esc(s.output) + '</div>' : '')
+        + (sImgs.length ? '<div class="term-imgs">' + thumbs + '</div>' : '')
+        + '</div>';
+    }).join('');
+
+    document.getElementById('view-mode').innerHTML =
+      (current.title
+        ? '<div class="view-title">' + esc(current.title) + '</div>'
+        : '')
+      + '<div style="margin-bottom:16px">' + stepsHTML + '</div>'
+      + (current.desc
+        ? '<div style="margin-bottom:16px"><div class="sec-label">' + L.cbScenario + '</div>'
+          + '<div class="scenario" title="双击编辑">' + esc(current.desc) + '</div></div>'
+        : '')
+      + ((current.tags || []).length
+        ? '<div class="tags-row">'
+          + (current.tags || []).map(t =>
+              '<span class="tag-badge">' + esc(t) + '</span>'
+            ).join('')
+          + '</div>'
+        : '')
+      + '<div class="meta-line">' + L.cbRecordedAt + ' ' + fmtDate(current.ts) + '</div>';
+  }
 
   renderList();
 }
@@ -429,38 +490,64 @@ function _openEditMode() {
   document.getElementById('empty').style.display = 'none';
   document.getElementById('view-mode').style.display = 'none';
   document.getElementById('edit-mode').style.display = 'block';
-  renderSteps();
+  const eType = (current && current.type) || noteFilter || 'cmd';
+  if (eType === 'note') {
+    document.getElementById('edit-cmd').style.display = 'none';
+    document.getElementById('edit-note').style.display = 'block';
+  } else {
+    document.getElementById('edit-cmd').style.display = 'block';
+    document.getElementById('edit-note').style.display = 'none';
+    renderSteps();
+  }
 }
 
 function enterEdit() {
   if (!current) return;
   isEditingNew = false;
-  const steps = current.steps || [{ cmd: '', output: '' }];
-  if (current.imgs?.length && !steps[0]?.imgs?.length) {
-    steps[0] = { ...steps[0], imgs: current.imgs };
+  const eType = current.type || 'cmd';
+  if (eType === 'note') {
+    document.getElementById('f-title').value = current.title || '';
+    document.getElementById('f-content').innerHTML = current.content || '';
+    document.getElementById('f-tags').value = (current.tags || []).join(', ');
+    document.getElementById('draft-indicator').style.display = 'none';
+    _openEditMode();
+    document.getElementById('f-title').focus();
+  } else {
+    const steps = current.steps || [{ cmd: '', output: '' }];
+    if (current.imgs?.length && !steps[0]?.imgs?.length) {
+      steps[0] = { ...steps[0], imgs: current.imgs };
+    }
+    editSteps = steps.map(s => ({
+      cmd: s.cmd || '',
+      output: s.output || '',
+      imgs: s.imgs || [],
+      imgOpen: s.imgOpen || false
+    }));
+    if (!editSteps.length) editSteps = [{ cmd: '', output: '', imgs: [], imgOpen: false }];
+    document.getElementById('f-title').value = current.title || '';
+    document.getElementById('f-desc').value = current.desc || '';
+    document.getElementById('f-tags').value = (current.tags || []).join(', ');
+    document.getElementById('draft-indicator').style.display = 'none';
+    _openEditMode();
+    document.getElementById('f-title').focus();
   }
-  editSteps = steps.map(s => ({
-    cmd: s.cmd || '',
-    output: s.output || '',
-    imgs: s.imgs || [],
-    imgOpen: s.imgOpen || false
-  }));
-  if (!editSteps.length) editSteps = [{ cmd: '', output: '', imgs: [], imgOpen: false }];
-  document.getElementById('f-title').value = current.title || '';
-  document.getElementById('f-desc').value = current.desc || '';
-  document.getElementById('f-tags').value = (current.tags || []).join(', ');
-  document.getElementById('draft-indicator').style.display = 'none';
-  _openEditMode();
   startDraftTimer();
 }
 
 function newEntry() {
   isEditingNew = true;
-  current = { id: uid(), title: '', steps: [], desc: '', tags: [], ts: Date.now() };
-  editSteps = [{ cmd: '', output: '', imgs: [], imgOpen: false }];
-  document.getElementById('f-title').value = '';
-  document.getElementById('f-desc').value = '';
-  document.getElementById('f-tags').value = '';
+  const eType = noteFilter || 'cmd';
+  current = { id: uid(), title: '', type: eType, steps: [], desc: '', content: '', tags: [], ts: Date.now() };
+  if (eType === 'note') {
+    document.getElementById('f-title').value = '';
+    document.getElementById('f-content').innerHTML = '';
+    document.getElementById('f-tags').value = '';
+  } else {
+    editSteps = [{ cmd: '', output: '', imgs: [], imgOpen: false }];
+    document.getElementById('f-title').value = '';
+    document.getElementById('f-desc').value = '';
+    document.getElementById('f-tags').value = '';
+  }
   document.getElementById('draft-indicator').style.display = 'none';
   _openEditMode();
   document.getElementById('f-title').focus();
@@ -470,7 +557,8 @@ function newEntry() {
 
 function cancelEdit() {
   stopDraftTimer();
-  _syncAllStepsFromDOM();
+  const eType = (current && current.type) || noteFilter || 'cmd';
+  if (eType === 'cmd') _syncAllStepsFromDOM();
   saveDraft();
   document.getElementById('edit-mode').style.display = 'none';
   document.getElementById('draft-indicator').style.display = 'none';
@@ -480,39 +568,81 @@ function cancelEdit() {
 }
 
 async function saveEntry() {
-  _syncAllStepsFromDOM();
-  const steps = editSteps
-    .filter(s => s.cmd.trim())
-    .map(s => ({ cmd: s.cmd.trim(), output: s.output, imgs: s.imgs || [], imgOpen: false }));
-  if (!steps.length) {
-    toast(t().cbNeedCmd);
-    return;
+  const eType = (current && current.type) || noteFilter || 'cmd';
+
+  if (eType === 'note') {
+    // ── 保存随笔笔记 ──
+    const rawContent = document.getElementById('f-content').innerHTML;
+    // 空内容检测: 排除纯 <br>/<div> 的情况
+    const check = rawContent.replace(/<\s*br\s*\/?\s*>/gi, '').replace(/<\s*div\s*>\s*<\s*\/div\s*>/gi, '').replace(/&nbsp;/gi, '').trim();
+    if (!check) {
+      toast(t().cbNeedContent);
+      return;
+    }
+    current.title = document.getElementById('f-title').value.trim();
+    current.type = 'note';
+    current.content = rawContent;  // 存储完整 HTML
+    current.desc = '';
+    current.steps = [];
+    current.tags = document.getElementById('f-tags').value
+      .split(',').map(t => t.trim()).filter(Boolean);
+    delete current.imgs;
+    current.ts = current.ts || Date.now();
+
+    const idx = entries.findIndex(e => e.id === current.id);
+    if (idx >= 0) entries[idx] = current;
+    else entries.unshift(current);
+
+    entries.sort((a, b) => b.ts - a.ts);
+
+    clearDraft();
+    stopDraftTimer();
+    isEditingNew = false;
+
+    document.getElementById('edit-mode').style.display = 'none';
+    showEntry(current.id);
+    renderList();
+    updateTagFilters();
+    scheduleSave();
+    toast(t().cbSaved);
+  } else {
+    // ── 保存命令笔记 (现有逻辑) ──
+    _syncAllStepsFromDOM();
+    const steps = editSteps
+      .filter(s => s.cmd.trim())
+      .map(s => ({ cmd: s.cmd.trim(), output: s.output, imgs: s.imgs || [], imgOpen: false }));
+    if (!steps.length) {
+      toast(t().cbNeedCmd);
+      return;
+    }
+
+    current.title = document.getElementById('f-title').value.trim();
+    current.type = 'cmd';
+    current.steps = steps;
+    current.desc = document.getElementById('f-desc').value.trim();
+    current.content = '';
+    current.tags = document.getElementById('f-tags').value
+      .split(',').map(t => t.trim()).filter(Boolean);
+    delete current.imgs;
+    current.ts = current.ts || Date.now();
+
+    const idx = entries.findIndex(e => e.id === current.id);
+    if (idx >= 0) entries[idx] = current;
+    else entries.unshift(current);
+
+    entries.sort((a, b) => b.ts - a.ts);
+
+    clearDraft();
+    stopDraftTimer();
+    isEditingNew = false;
+
+    document.getElementById('edit-mode').style.display = 'none';
+    showEntry(current.id);
+    renderList();
+    updateTagFilters();
+    scheduleSave();
+    toast(t().cbSaved);
   }
-
-  current.title = document.getElementById('f-title').value.trim();
-  current.steps = steps;
-  current.desc = document.getElementById('f-desc').value.trim();
-  current.tags = document.getElementById('f-tags').value
-    .split(',').map(t => t.trim()).filter(Boolean);
-  delete current.imgs;
-  current.ts = current.ts || Date.now();
-
-  const idx = entries.findIndex(e => e.id === current.id);
-  if (idx >= 0) entries[idx] = current;
-  else entries.unshift(current);
-
-  entries.sort((a, b) => b.ts - a.ts);
-
-  clearDraft();
-  stopDraftTimer();
-  isEditingNew = false;
-
-  document.getElementById('edit-mode').style.display = 'none';
-  showEntry(current.id);
-  renderList();
-  updateTagFilters();
-  scheduleSave();      // ★ 触发带队列的保存
-  toast(t().cbSaved);
 }
 
 async function deleteEntry() {
@@ -572,6 +702,19 @@ async function importJSON(e) {
 // 草稿管理
 // ═══════════════════════════════════════════════
 function collectEditState() {
+  const eType = (current && current.type) || noteFilter || 'cmd';
+  if (eType === 'note') {
+    return {
+      type: 'note',
+      entryId: current?.id || null,
+      isNew: isEditingNew,
+      title: document.getElementById('f-title')?.value || '',
+      content: document.getElementById('f-content')?.innerHTML || '',
+      tags: document.getElementById('f-tags')?.value || '',
+      savedAt: Date.now()
+    };
+  }
+  // cmd draft
   const steps = [];
   document.querySelectorAll('.step-block').forEach((el, i) => {
     steps.push({
@@ -582,6 +725,7 @@ function collectEditState() {
     });
   });
   return {
+    type: 'cmd',
     entryId: current?.id || null,
     isNew: isEditingNew,
     title: document.getElementById('f-title')?.value || '',
@@ -594,8 +738,8 @@ function collectEditState() {
 
 function saveDraft() {
   const d = collectEditState();
-  const hasContent = d.title || d.desc || d.tags
-    || d.steps.some(s => s.cmd || s.output || s.imgs?.length);
+  const hasContent = d.title || d.tags
+    || (d.type === 'note' ? d.content : (d.desc || d.steps?.some(s => s.cmd || s.output || s.imgs?.length)));
   if (hasContent) {
     localStorage.setItem(DRAFT_KEY, JSON.stringify(d));
     const el = document.getElementById('draft-indicator');
@@ -628,8 +772,8 @@ function checkDraftOnLoad() {
   if (!raw) return;
   try {
     const d = JSON.parse(raw);
-    const hasContent = d.title || d.desc
-      || d.steps?.some(s => s.cmd || s.imgs?.length);
+    const hasContent = d.title
+      || (d.type === 'note' ? d.content : (d.desc || d.steps?.some(s => s.cmd || s.imgs?.length)));
     if (!hasContent) { clearDraft(); return; }
     const elapsed = Math.round((Date.now() - d.savedAt) / 60000);
     const ts = elapsed < 1 ? '刚刚'
@@ -648,17 +792,23 @@ function restoreDraft() {
   try {
     const d = JSON.parse(raw);
     current = d.isNew || !d.entryId
-      ? { id: uid(), title: '', steps: [], desc: '', tags: [], ts: Date.now() }
+      ? { id: uid(), title: '', type: d.type || 'cmd', steps: [], desc: '', content: '', tags: [], ts: Date.now() }
       : (entries.find(e => e.id === d.entryId)
-        || { id: d.entryId, title: '', steps: [], desc: '', tags: [], ts: Date.now() });
+        || { id: d.entryId, title: '', type: d.type || 'cmd', steps: [], desc: '', content: '', tags: [], ts: Date.now() });
     isEditingNew = d.isNew || false;
-    editSteps = d.steps?.length
-      ? d.steps
-      : [{ cmd: '', output: '', imgs: [], imgOpen: false }];
+    if (d.type === 'note') {
+      document.getElementById('f-title').value = d.title || '';
+      document.getElementById('f-content').innerHTML = d.content || '';
+      document.getElementById('f-tags').value = d.tags || '';
+    } else {
+      editSteps = d.steps?.length
+        ? d.steps
+        : [{ cmd: '', output: '', imgs: [], imgOpen: false }];
+      document.getElementById('f-title').value = d.title || '';
+      document.getElementById('f-desc').value = d.desc || '';
+      document.getElementById('f-tags').value = d.tags || '';
+    }
     _openEditMode();
-    document.getElementById('f-title').value = d.title || '';
-    document.getElementById('f-desc').value = d.desc || '';
-    document.getElementById('f-tags').value = d.tags || '';
     document.getElementById('draft-banner').style.display = 'none';
     const el = document.getElementById('draft-indicator');
     if (el) {

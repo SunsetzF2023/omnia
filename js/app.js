@@ -27,6 +27,7 @@ let ledgerFileId = null;
 let entries = [];
 let current = null;
 let filterTag = null;
+let noteFilter = 'cmd';     // 'cmd' | 'note' — 当前笔记模式
 let isEditingNew = false;
 let editSteps = [];
 let draftTimer = null;
@@ -171,6 +172,13 @@ document.addEventListener('DOMContentLoaded', () => {
       if (typeof renderList === 'function') renderList();
     });
   }
+  // 随笔编辑器 — 输入时标记脏状态
+  const contentEl = document.getElementById('f-content');
+  if (contentEl) {
+    contentEl.addEventListener('input', () => {
+      if (typeof markDirtyContent === 'function') markDirtyContent();
+    });
+  }
 });
 
 // 页面关闭前尝试保存草稿 + 刷新 Drive 保存队列
@@ -236,6 +244,64 @@ if (window.electronAPI && typeof window.electronAPI.onUpdateStatus === 'function
         break;
     }
   });
+}
+
+// ═══════════════════════════════════════════════
+// 随笔笔记 — 内容格式化
+// ═══════════════════════════════════════════════
+function renderContent(html) {
+  // 渲染存储的 HTML — 只做基本安全过滤，允许 b/u/ul/ol/li/br/div
+  if (!html) return '';
+  const div = document.createElement('div');
+  div.innerHTML = html;
+  // 递归移除不允许的标签和属性
+  function clean(node) {
+    const allowTags = { B:1, U:1, I:1, UL:1, OL:1, LI:1, BR:1, DIV:1, P:1, SPAN:1, STRONG:1, EM:1 };
+    for (let i = node.childNodes.length - 1; i >= 0; i--) {
+      const child = node.childNodes[i];
+      if (child.nodeType === 1) { // Element
+        if (!allowTags[child.tagName]) {
+          // 用文本节点替换不允许的元素
+          node.replaceChild(document.createTextNode(child.textContent), child);
+        } else {
+          // 清除所有属性
+          while (child.attributes.length > 0) {
+            child.removeAttribute(child.attributes[0].name);
+          }
+          clean(child);
+        }
+      }
+    }
+  }
+  clean(div);
+  return div.innerHTML;
+}
+
+function stripHtml(html) {
+  // 去除 HTML 标签，用于列表预览和搜索
+  if (!html) return '';
+  const div = document.createElement('div');
+  div.innerHTML = html;
+  return div.textContent || '';
+}
+
+// ═══════════════════════════════════════════════
+// 格式化工具栏 — 使用 contenteditable execCommand
+// ═══════════════════════════════════════════════
+function execFmt(command, value) {
+  const ed = document.getElementById('f-content');
+  if (!ed) return;
+  ed.focus();
+  document.execCommand(command, false, value || null);
+  markDirtyContent();
+}
+
+function markDirtyContent() {
+  const el = document.getElementById('draft-indicator');
+  if (el) {
+    el.style.display = 'block';
+    el.textContent = '⏳ 有未保存的更改...';
+  }
 }
 
 // 点击更新状态手动检查

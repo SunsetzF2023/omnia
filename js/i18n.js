@@ -20,11 +20,15 @@ const I18N = {
     signOut: '退出',
     cbEdit: '✏ 编辑', cbDelete: '✕ 删除', cbSync: '↻ 同步', cbExport: '↓ 导出', cbImport: '↑ 导入',
     cbReady: '就绪', cbSyncing: '同步中 ↺', cbSynced: '已同步 ✓',
+    cbModeCmd: '⌘ 命令', cbModeNote: '📄 随笔',
     cbDraftFound: '📝 发现未保存的草稿', cbRestoreDraft: '恢复草稿', cbDiscardDraft: '丢弃',
-    cbSearch: '搜索标题或命令...',
-    cbNewEntry: '＋ 新建条目',
+    cbSearch: '搜索标题或命令...', cbSearchNote: '搜索标题或正文...',
+    cbNewEntry: '＋ 新建条目', cbNewCmd: '＋ 新建命令', cbNewNote: '＋ 新建随笔',
     cbEmptyBig: '$_', cbEmptyDesc: '点击左下角「新建条目」开始记录',
     cbTitleLabel: '▸ 标题', cbTitlePH: 'e.g. 替换 LVM 旧盘并更新 fstab',
+    cbContentLabel: '▸ 正文', cbContentPH: '开始写笔记... 支持 **加粗**、__下划线__、* 列表',
+    cbToolbarBold: '加粗', cbToolbarUnderline: '下划线', cbToolbarBullet: '列表',
+    cbNeedContent: '请输入正文内容',
     cbStepsLabel: '▸ 命令步骤', cbAddStep: '＋ 在末尾添加步骤',
     cbDescLabel: '▸ 场景说明 / 备注', cbDescPH: '什么情况下用？有哪些注意事项？',
     cbTagsLabel: '▸ 标签（逗号分隔）', cbTagsPH: '网络, 日志, 调试',
@@ -113,11 +117,15 @@ const I18N = {
     signOut: '登出',
     cbEdit: '✏ 編輯', cbDelete: '✕ 刪除', cbSync: '↻ 同步', cbExport: '↓ 匯出', cbImport: '↑ 匯入',
     cbReady: '就緒', cbSyncing: '同步中 ↺', cbSynced: '已同步 ✓',
+    cbModeCmd: '⌘ 指令', cbModeNote: '📄 隨筆',
     cbDraftFound: '📝 發現未儲存的草稿', cbRestoreDraft: '恢復草稿', cbDiscardDraft: '丟棄',
-    cbSearch: '搜尋標題或指令...',
-    cbNewEntry: '＋ 新建條目',
+    cbSearch: '搜尋標題或指令...', cbSearchNote: '搜尋標題或正文...',
+    cbNewEntry: '＋ 新建條目', cbNewCmd: '＋ 新建指令', cbNewNote: '＋ 新建隨筆',
     cbEmptyBig: '$_', cbEmptyDesc: '點擊左下角「新建條目」開始記錄',
     cbTitleLabel: '▸ 標題', cbTitlePH: 'e.g. 替換 LVM 舊碟並更新 fstab',
+    cbContentLabel: '▸ 正文', cbContentPH: '開始寫筆記... 支援 **粗體**、__底線__、* 清單',
+    cbToolbarBold: '粗體', cbToolbarUnderline: '底線', cbToolbarBullet: '清單',
+    cbNeedContent: '請輸入正文內容',
     cbStepsLabel: '▸ 指令步驟', cbAddStep: '＋ 在末尾新增步驟',
     cbDescLabel: '▸ 情境說明 / 備註', cbDescPH: '什麼情況下用？有哪些注意事項？',
     cbTagsLabel: '▸ 標籤（逗號分隔）', cbTagsPH: '網路, 日誌, 除錯',
@@ -206,11 +214,15 @@ const I18N = {
     signOut: 'Sign out',
     cbEdit: '✏ Edit', cbDelete: '✕ Delete', cbSync: '↻ Sync', cbExport: '↓ Export', cbImport: '↑ Import',
     cbReady: 'Ready', cbSyncing: 'Syncing ↺', cbSynced: 'Synced ✓',
+    cbModeCmd: '⌘ Cmd', cbModeNote: '📄 Note',
     cbDraftFound: '📝 Unsaved draft found', cbRestoreDraft: 'Restore', cbDiscardDraft: 'Discard',
-    cbSearch: 'Search title or command...',
-    cbNewEntry: '＋ New Entry',
+    cbSearch: 'Search title or command...', cbSearchNote: 'Search title or content...',
+    cbNewEntry: '＋ New Entry', cbNewCmd: '＋ New Cmd', cbNewNote: '＋ New Note',
     cbEmptyBig: '$_', cbEmptyDesc: 'Click "New Entry" to start',
     cbTitleLabel: '▸ Title', cbTitlePH: 'e.g. Extend LVM volume and update fstab',
+    cbContentLabel: '▸ Content', cbContentPH: 'Start writing... Supports **bold**, __underline__, * bullet',
+    cbToolbarBold: 'Bold', cbToolbarUnderline: 'Underline', cbToolbarBullet: 'List',
+    cbNeedContent: 'Please enter some content',
     cbStepsLabel: '▸ Command Steps', cbAddStep: '＋ Add step at end',
     cbDescLabel: '▸ Notes / Description', cbDescPH: 'When to use? Any caveats?',
     cbTagsLabel: '▸ Tags (comma separated)', cbTagsPH: 'network, logs, debug',
@@ -349,8 +361,27 @@ function applyLang() {
   safeText('cb-btn-import', L.cbImport);
 
   const searchEl = document.getElementById('search');
-  if(searchEl) searchEl.placeholder = L.cbSearch;
-  safeText('add-btn', L.cbNewEntry);
+  if(searchEl) searchEl.placeholder = (typeof noteFilter !== 'undefined' && noteFilter === 'note') ? L.cbSearchNote : L.cbSearch;
+  // 根据当前模式设置新建按钮文字
+  const addBtn = document.getElementById('add-btn');
+  if (addBtn) addBtn.textContent = (typeof noteFilter !== 'undefined' && noteFilter === 'note') ? L.cbNewNote : L.cbNewCmd;
+
+  // mode tabs
+  safeText('mode-tab-cmd', L.cbModeCmd);
+  safeText('mode-tab-note', L.cbModeNote);
+
+  // essay editor
+  safeText('f-content-label', L.cbContentLabel);
+  const fcontent = document.getElementById('f-content');
+  if(fcontent) fcontent.setAttribute('data-placeholder', L.cbContentPH);
+
+  // toolbar buttons
+  const tbBold = document.getElementById('tb-bold');
+  const tbUnder = document.getElementById('tb-underline');
+  const tbBullet = document.getElementById('tb-bullet');
+  if(tbBold) tbBold.title = L.cbToolbarBold;
+  if(tbUnder) tbUnder.title = L.cbToolbarUnderline;
+  if(tbBullet) tbBullet.title = L.cbToolbarBullet;
 
   const emBig = document.querySelector('#empty .big');
   const emDesc = document.querySelector('#empty div:last-child');
