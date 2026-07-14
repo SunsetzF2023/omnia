@@ -169,6 +169,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const searchEl = document.getElementById('search');
   if (searchEl) {
     searchEl.addEventListener('input', () => {
+      filterTag = null;
       if (typeof renderList === 'function') renderList();
     });
   }

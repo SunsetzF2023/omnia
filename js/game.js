@@ -1,4 +1,4 @@
-/* ═══════════════════════════════════════════════
+﻿/* ═══════════════════════════════════════════════
    game.js — 游戏中心
    2048 / 扫雷 / 数独，支持多难度/尺寸
    ═══════════════════════════════════════════════ */
@@ -453,6 +453,14 @@ const MS = {
     const mc=document.getElementById('ms-mines'); if(mc)mc.textContent=String(Math.max(0,MS.mines-MS.flags)).padStart(3,'0');
   },
 
+  _hasConflict(r,c) {
+    const v=SD.board[r][c]; if (v===0) return false;
+    for (let i=0;i<9;i++) { if (i!==c&&SD.board[r][i]===v) return true; if (i!==r&&SD.board[i][c]===v) return true; }
+    const br=Math.floor(r/3)*3, bc=Math.floor(c/3)*3;
+    for (let rr=br;rr<br+3;rr++) for (let cc=bc;cc<bc+3;cc++) if ((rr!==r||cc!==c)&&SD.board[rr][cc]===v) return true;
+    return false;
+  },
+
   _checkWin() {
     let unrevealed=0; for (let r=0;r<MS.rows;r++) for (let c=0;c<MS.cols;c++) if (!MS.board[r][c].revealed) unrevealed++;
     if (unrevealed===MS.mines) { MS.over=true; const face=document.getElementById('ms-face'); if(face)face.textContent='😎';
@@ -492,7 +500,7 @@ const SD = {
     if (gCurr !== 'sudoku') return;
     SD.deactivate();
     SD.active = true;
-    SD.board=[]; SD.solution=[]; SD.given=[]; SD.selR=-1; SD.selC=-1; SD.errs=0;
+    SD.board=[]; SD.solution=[]; SD.given=[]; SD.selR=-1; SD.selC=-1; SD.errs=0; SD.conflicts=0;
     SD._generate();
     SD._render();
     document.addEventListener('keydown', SD._key);
@@ -512,24 +520,68 @@ const SD = {
       sol[r][c]=0; return false;
     };
     fill(0,0);
-    // 变换增加随机性
+    // 合法变换增加随机性（仅限保持数独有效的操作）
     for (let i=0;i<5;i++) {
       const op=Math.floor(Math.random()*4);
-      if (op===0){const b1=Math.floor(Math.random()*3)*3,b2=Math.floor(Math.random()*3)*3;for(let c=0;c<9;c++){[sol[b1][c],sol[b2][c]]=[sol[b2][c],sol[b1][c]];}}
-      else if(op===1){const b1=Math.floor(Math.random()*3)*3,b2=Math.floor(Math.random()*3)*3;for(let r=0;r<9;r++){[sol[r][b1],sol[r][b2]]=[sol[r][b2],sol[r][b1]];}}
-      else if(op===2){const a=1+Math.floor(Math.random()*9),b=1+Math.floor(Math.random()*9);for(let r=0;r<9;r++)for(let c=0;c<9;c++){if(sol[r][c]===a)sol[r][c]=b;else if(sol[r][c]===b)sol[r][c]=a;}}
-      else {for(let r=0;r<9;r++)for(let c=r+1;c<9;c++){[sol[r][c],sol[c][r]]=[sol[c][r],sol[r][c]];}}
+      if (op===0){
+        const band=Math.floor(Math.random()*3)*3;
+        let r1=band+Math.floor(Math.random()*3), r2=band+Math.floor(Math.random()*3);
+        for(let c=0;c<9;c++){[sol[r1][c],sol[r2][c]]=[sol[r2][c],sol[r1][c]];}
+      } else if(op===1){
+        const stack=Math.floor(Math.random()*3)*3;
+        let c1=stack+Math.floor(Math.random()*3), c2=stack+Math.floor(Math.random()*3);
+        for(let r=0;r<9;r++){[sol[r][c1],sol[r][c2]]=[sol[r][c2],sol[r][c1]];}
+      } else if(op===2){
+        const a=1+Math.floor(Math.random()*9), b=1+Math.floor(Math.random()*9);
+        for(let r=0;r<9;r++)for(let c=0;c<9;c++){if(sol[r][c]===a)sol[r][c]=b;else if(sol[r][c]===b)sol[r][c]=a;}
+      } else {
+        for(let r=0;r<9;r++)for(let c=r+1;c<9;c++){[sol[r][c],sol[c][r]]=[sol[c][r],sol[r][c]];}
+      }
     }
     SD.solution = sol.map(r=>[...r]);
-    // 挖空
-    SD.given = Array.from({length:9},()=>Array(9).fill(false));
+    // 挖空 — 逐个验证唯一解
+    SD.given = Array.from({length:9},()=>Array(9).fill(true));
     SD.board = sol.map(r=>[...r]);
     const cells=[]; for (let r=0;r<9;r++) for (let c=0;c<9;c++) cells.push({r,c});
     for (let i=cells.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[cells[i],cells[j]]=[cells[j],cells[i]];}
     let removed=0; const target=81-SD.cfg.givens;
-    for (const {r,c} of cells) { if (removed>=target) break; SD.board[r][c]=0; removed++; }
-    for (let r=0;r<9;r++) for (let c=0;c<9;c++) if (SD.board[r][c]!==0) SD.given[r][c]=true;
-    SD.errs=0;
+    for (const {r,c} of cells) {
+      if (removed>=target) break;
+      const backup=SD.board[r][c];
+      SD.board[r][c]=0; SD.given[r][c]=false;
+      if (SD._countSolutions(SD.board.map(row=>[...row]), 2)===1) {
+        removed++;
+      } else {
+        SD.board[r][c]=backup; SD.given[r][c]=true;
+      }
+    }
+    SD.errs=0; SD.conflicts=0;
+  },
+
+  // 计数解的数量（MRV启发式，达到limit即停止）
+  _countSolutions(board, limit) {
+    let bestR=-1, bestC=-1, bestOpts=10;
+    for (let r=0;r<9;r++) {
+      for (let c=0;c<9;c++) {
+        if (board[r][c]===0) {
+          let opts=0;
+          for (let n=1;n<=9;n++) { if (SD._valid(board,r,c,n)) opts++; }
+          if (opts===0) return 0;
+          if (opts<bestOpts) { bestOpts=opts; bestR=r; bestC=c; if (opts===1) break; }
+        }
+      }
+    }
+    if (bestR===-1) return 1;
+    let count=0;
+    for (let n=1;n<=9;n++) {
+      if (SD._valid(board,bestR,bestC,n)) {
+        board[bestR][bestC]=n;
+        count+=SD._countSolutions(board, limit-count);
+        board[bestR][bestC]=0;
+        if (count>=limit) return count;
+      }
+    }
+    return count;
   },
 
   _valid(board,r,c,n) {
@@ -545,7 +597,7 @@ const SD = {
     view.innerHTML =
       '<div class="sd-topbar">'
       + '<button class="sd-new-btn" onclick="SD.init()">新游戏</button>'
-      + (SD.errs>0?'<span class="sd-err">⚠ '+SD.errs+' 处错误</span>':'')
+	      + (SD.errs>0||SD.conflicts>0?'<span class="sd-err">⚠ '+(SD.conflicts>0?SD.conflicts+'处冲突':'')+(SD.conflicts>0&&SD.errs>0?' ':'')+(SD.errs>0?SD.errs+'处错误':'')+'</span>':'') +
       + '</div>'
       + '<div class="sd-grid" id="sd-grid"></div>'
       + '<div class="sd-num-pad" id="sd-numpad"></div>'
@@ -557,6 +609,7 @@ const SD = {
       if (SD.given[r][c]) cell.classList.add('given');
       if (SD.board[r][c]!==0) cell.textContent=SD.board[r][c];
       if (SD.board[r][c]!==0&&!SD.given[r][c]&&SD.board[r][c]!==SD.solution[r][c]) cell.classList.add('error');
+	      if (SD.board[r][c]!==0&&SD._hasConflict(r,c)) cell.classList.add('conflict');
       if (r===SD.selR&&c===SD.selC) cell.classList.add('selected');
       // 高亮同行同列同宫
       if (SD.selR>=0&&(r===SD.selR||c===SD.selC||(Math.floor(r/3)===Math.floor(SD.selR/3)&&Math.floor(c/3)===Math.floor(SD.selC/3)))) cell.classList.add('hint');
@@ -588,11 +641,21 @@ const SD = {
   place(n) {
     if (SD.selR<0||SD.selC<0||SD.given[SD.selR][SD.selC]) return;
     SD.board[SD.selR][SD.selC]=n;
-    // 检查错误
-    SD.errs=0;
-    for (let r=0;r<9;r++) for (let c=0;c<9;c++) { if (SD.board[r][c]!==0&&!SD.given[r][c]&&SD.board[r][c]!==SD.solution[r][c]) SD.errs++; }
+	    SD.errs=0; SD.conflicts=0;
+	    for (let r=0;r<9;r++) for (let c=0;c<9;c++) {
+	      if (SD.board[r][c]!==0&&!SD.given[r][c]&&SD.board[r][c]!==SD.solution[r][c]) SD.errs++;
+	      if (SD.board[r][c]!==0&&SD._hasConflict(r,c)) SD.conflicts++;
+	    }
     SD._render();
     SD._checkWin();
+  },
+
+  _hasConflict(r,c) {
+    const v=SD.board[r][c]; if (v===0) return false;
+    for (let i=0;i<9;i++) { if (i!==c&&SD.board[r][i]===v) return true; if (i!==r&&SD.board[i][c]===v) return true; }
+    const br=Math.floor(r/3)*3, bc=Math.floor(c/3)*3;
+    for (let rr=br;rr<br+3;rr++) for (let cc=bc;cc<bc+3;cc++) if ((rr!==r||cc!==c)&&SD.board[rr][cc]===v) return true;
+    return false;
   },
 
   _checkWin() {

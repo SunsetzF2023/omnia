@@ -44,18 +44,19 @@ function renderList() {
   const q = document.getElementById('search').value.toLowerCase();
   const filtered = entries.filter(e => {
     const eType = e.type || 'cmd';
-    const typeMatch = eType === noteFilter;
-    const mt = !filterTag || (e.tags || []).includes(filterTag);
+    const typeMatch = q ? true : eType === noteFilter;
+    const mt = !filterTag || (e.tags || []).some(t => t.toLowerCase() === filterTag.toLowerCase());
     const allCmds = (e.steps || []).map(s => s.cmd).join(' ');
     const content = e.content || '';
     const mq = !q
       || (e.title || '').toLowerCase().includes(q)
       || allCmds.toLowerCase().includes(q)
       || (e.desc || '').toLowerCase().includes(q)
-      || content.toLowerCase().includes(q);
+      || content.toLowerCase().includes(q) || (e.tags || []).some(t => t.toLowerCase().includes(q));
     return typeMatch && mt && mq;
   });
   const L = t();
+  updateTagFilters();
   document.getElementById('count-line').textContent =
     filtered.length + ' / ' + entries.length + ' 条';
   document.getElementById('list').innerHTML = filtered.map(e => {
@@ -69,14 +70,27 @@ function renderList() {
       + '" onclick="showEntry(\'' + e.id + '\')">'
       + '<div class="e-title">' + esc(e.title || L.cbNoTitle) + '</div>'
       + preview
-      + '<div class="e-date">' + fmtDate(e.ts) + '</div></div>';
+      + '<div class="e-date">' + fmtDate(e.ts) + '</div>'
+      + (filterTag && (e.tags||[]).includes(filterTag) ? '<div class="tags-row" style="margin-top:4px"><span class="tag-badge" style="font-size:10px;padding:1px 6px">' + esc(filterTag) + '</span></div>' : '') + '</div>';
   }).join('');
 }
 
 function updateTagFilters() {
-  const all = [...new Set(entries.flatMap(e => e.tags || []))];
+  const q = document.getElementById('search').value.toLowerCase();
+  let source;
+  if (q) {
+    source = entries.filter(e => {
+      const ac = (e.steps || []).map(s => s.cmd).join(' ');
+      const ct = e.content || '';
+      return (e.title || '').toLowerCase().includes(q) || ac.toLowerCase().includes(q) || (e.desc || '').toLowerCase().includes(q) || ct.toLowerCase().includes(q) || (e.tags || []).some(t => t.toLowerCase().includes(q));
+    });
+  } else {
+    source = entries.slice().sort((a,b)=>(b.ts||0)-(a.ts||0)).slice(0,3);
+  }
+  const raw = [...new Set(source.flatMap(e => e.tags || []))];
+  const all = q ? raw.filter(t => t.toLowerCase().includes(q)) : raw;
   document.getElementById('tags-wrap').innerHTML = all.map(t =>
-    '<span class="tag-filter ' + (filterTag === t ? 'active' : '')
+    '<span class="tag-filter ' + (filterTag && filterTag.toLowerCase() === t.toLowerCase() ? 'active' : '')
     + '" onclick="setFilter(\'' + esc(t) + '\')">' + esc(t) + '</span>'
   ).join('');
 }
