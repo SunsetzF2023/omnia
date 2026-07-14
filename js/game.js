@@ -66,7 +66,27 @@ function deactivateGame() {
   SD.deactivate();
 }
 
-// ── 自适应格子大小 ──────────────────────────────
+// ── 侧边栏折叠 ──────────────────────────────────
+function toggleGameSidebar() {
+  const body = document.getElementById('game-body')
+  if (!body) return
+  body.classList.toggle('sidebar-collapsed')
+  const btn = document.getElementById('game-sidebar-toggle')
+  const collapsed = body.classList.contains('sidebar-collapsed')
+  if (btn) btn.textContent = collapsed ? '▶' : '◀'
+  localStorage.setItem('game_sidebar_collapsed', collapsed ? '1' : '0')
+  // 侧边栏折叠后触发 resize 重新计算网格
+  setTimeout(() => { if (gCurr === '2048') G24._resize(); if (gCurr === 'minesweeper') MS._resize(); if (gCurr === 'sudoku') SD._resize(); }, 250)
+}
+
+function _initSidebarState() {
+  const collapsed = localStorage.getItem('game_sidebar_collapsed') === '1'
+  if (!collapsed) return
+  const body = document.getElementById('game-body')
+  if (body) body.classList.add('sidebar-collapsed')
+  const btn = document.getElementById('game-sidebar-toggle')
+  if (btn) btn.textContent = '▶'
+}
 function _fitCell(maxCell, cols, rows, padW, padH) {
   const main = document.getElementById('game-main');
   const availW = (main ? main.clientWidth : 600) - padW;
@@ -91,7 +111,15 @@ const G24 = {
       { n:6, cell:52, gap:5, font:18 },
     ];
     const d = designs[gDiff] || designs[0];
-    const cell = _fitCell(d.cell, d.n, d.n, 50, 130);
+    // 小窗口自动隐藏排行榜（game-main 宽度 < 500 时）
+    const main = document.getElementById('game-main');
+    const mainW = main ? main.clientWidth : 600;
+    const lbEl = document.getElementById('g24-lb');
+    if (lbEl) lbEl.style.display = mainW < 500 ? 'none' : '';
+    const hasLb = lbEl && lbEl.style.display !== 'none';
+    // 动态 padW：排行榜可见时多留空间，隐藏时只用基本边距
+    const padW = hasLb ? 240 : 50;
+    const cell = _fitCell(d.cell, d.n, d.n, padW, 130);
     const ratio = cell / d.cell;
     return { n: d.n, cell, gap: Math.max(3, Math.round(d.gap * ratio)), font: Math.round(d.font * ratio) };
   },

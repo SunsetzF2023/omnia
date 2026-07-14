@@ -35,6 +35,10 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--m
 .lang-btn{padding:3px 8px;border-radius:4px;background:var(--bg3);border:1px solid var(--border);color:var(--dim);font-size:10px;cursor:pointer;font-family:var(--mono);transition:all .15s;}
 .lang-btn:hover{color:var(--text);}
 .lang-btn.active{background:var(--green-dim);border-color:var(--green);color:var(--green-t);}
+/* 窗口分辨率 */
+#res-select{background:var(--bg3);border:1px solid var(--border);color:var(--dim);font-family:var(--mono);font-size:10px;padding:3px 6px;border-radius:4px;cursor:pointer;outline:none;transition:all .15s;margin-right:2px;}
+#res-select:hover{border-color:var(--green);color:var(--green-t);}
+#res-select option{background:var(--bg2);color:var(--text);}
 /* Inbox 通知中心 */
 #inbox-btn{position:relative;padding:3px 8px;background:transparent;border:1px solid transparent;color:var(--dim);font-size:14px;cursor:pointer;border-radius:4px;transition:all .15s;margin-right:4px;}
 #inbox-btn:hover{color:var(--text);border-color:var(--border);background:var(--bg3);}
@@ -404,10 +408,15 @@ canvas.ldg-chart{width:100%!important;max-height:200px;}
 .term-cancel:hover{border-color:var(--red);color:var(--red);}
 .term-block.editing{border-color:var(--teal);box-shadow:0 0 0 1px var(--teal-dim);}
 /* ── 游戏中心 ── */
-#game-body{display:flex;flex:1;overflow:hidden;}
-#game-sidebar{width:180px;min-width:180px;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow-y:auto;}
+#game-body{display:flex;flex:1;overflow:hidden;position:relative;}
+#game-sidebar{width:180px;min-width:180px;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow-y:auto;transition:width .2s,min-width .2s;}
 #game-sidebar::-webkit-scrollbar{width:3px;}
 #game-sidebar::-webkit-scrollbar-thumb{background:var(--border);}
+/* 侧边栏折叠 */
+#game-sidebar-toggle{position:absolute;top:50%;right:-14px;transform:translateY(-50%);width:14px;height:40px;background:var(--bg2);border:1px solid var(--border);border-left:none;border-radius:0 4px 4px 0;color:var(--dim);font-size:9px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:5;transition:all .15s;}
+#game-sidebar-toggle:hover{color:var(--text);background:var(--bg3);}
+.sidebar-collapsed #game-sidebar{width:0;min-width:0;overflow:hidden;border-right:none;}
+.sidebar-collapsed #game-sidebar-toggle{right:-1px;border-radius:4px 0 0 4px;}
 .gm-item{padding:10px 14px;cursor:pointer;font-size:12px;color:var(--dim);border-left:2px solid transparent;transition:all .12s;display:flex;align-items:center;gap:8px;}
 .gm-item:hover{background:var(--bg3);color:var(--text);}
 .gm-item.active{background:var(--bg3);border-left-color:var(--teal);color:var(--teal-t);}
@@ -541,6 +550,14 @@ canvas.ldg-chart{width:100%!important;max-height:200px;}
         <button class="lang-btn" data-lang="zh-TW" onclick="setLang('zh-TW')">繁</button>
         <button class="lang-btn" data-lang="en" onclick="setLang('en')">EN</button>
       </div>
+      <select id="res-select" onchange="changeResolution(this.value)" title="窗口分辨率">
+        <option value="1920x1080">1920×1080</option>
+        <option value="1366x768">1366×768</option>
+        <option value="1280x1024">1280×1024</option>
+        <option value="1280x720">1280×720</option>
+        <option value="1024x768">1024×768</option>
+        <option value="800x600">800×600</option>
+      </select>
       <button id="inbox-btn" onclick="event.stopPropagation();inboxToggle()" title="通知中心">
         ✉ <span id="inbox-badge"></span>
       </button>
@@ -676,6 +693,7 @@ canvas.ldg-chart{width:100%!important;max-height:200px;}
     <div class="module" id="mod-game">
       <div id="game-body">
         <div id="game-sidebar">
+          <button id="game-sidebar-toggle" onclick="toggleGameSidebar()" title="折叠侧边栏">◀</button>
           <div id="game-list"></div>
           <div id="game-diff"></div>
         </div>

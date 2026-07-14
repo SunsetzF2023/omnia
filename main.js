@@ -262,6 +262,19 @@ ipcMain.on('save-offline-backup', (event, data) => {
   } catch (_) { /* 备份失败不影响主流程 */ }
 });
 
+// ★ IPC: 窗口缩放（Ctrl+滚轮）
+ipcMain.on('set-zoom', (event, factor) => {
+  if (!mainWindow || mainWindow.isDestroyed()) return
+  mainWindow.webContents.setZoomFactor(factor)
+})
+
+// ★ IPC: 窗口分辨率切换
+ipcMain.on('set-window-size', (event, data) => {
+  if (!mainWindow || mainWindow.isDestroyed()) return
+  mainWindow.setSize(data.width, data.height)
+  mainWindow.center()
+})
+
 // ★ IPC: 收到渲染进程"保存完成"信号后真正退出
 ipcMain.on('quit-ready', () => {
   forceQuit = true

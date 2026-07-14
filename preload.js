@@ -34,4 +34,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   onInboxMsg: (callback) => {
     ipcRenderer.on('inbox-msg', (event, data) => callback(data))
   },
+
+  // ★ 窗口分辨率切换
+  setWindowSize: (width, height) => ipcRenderer.send('set-window-size', { width, height }),
+
+  // ★ 窗口缩放（Ctrl+滚轮）
+  setZoom: (factor) => ipcRenderer.send('set-zoom', factor),
 })

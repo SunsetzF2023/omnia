@@ -304,8 +304,71 @@ function markDirtyContent() {
   }
 }
 
+// ═══════════════════════════════════════════════
+// Ctrl+滚轮缩放（桌面端）
+// ═══════════════════════════════════════════════
+let _zoomFactor = parseFloat(localStorage.getItem('omnia_zoom') || '1');
+
+function _applyZoom(factor) {
+  _zoomFactor = Math.max(0.5, Math.min(2.0, Math.round(factor * 10) / 10));
+  localStorage.setItem('omnia_zoom', _zoomFactor);
+  if (window.electronAPI && window.electronAPI.setZoom) {
+    window.electronAPI.setZoom(_zoomFactor);
+  }
+}
+
+// 启动时恢复缩放
+document.addEventListener('DOMContentLoaded', () => {
+  if (window.electronAPI && window.electronAPI.setZoom && _zoomFactor !== 1) {
+    window.electronAPI.setZoom(_zoomFactor);
+  }
+});
+
+// Ctrl+滚轮
+window.addEventListener('wheel', (e) => {
+  if (!e.ctrlKey) return;
+  e.preventDefault();
+  _applyZoom(_zoomFactor + (e.deltaY < 0 ? 0.1 : -0.1));
+}, { passive: false });
+
+// Ctrl+0 重置
+window.addEventListener('keydown', (e) => {
+  if (e.ctrlKey && e.key === '0') {
+    e.preventDefault();
+    _applyZoom(1);
+  }
+});
+
+// ═══════════════════════════════════════════════
+// 窗口分辨率切换
+// ═══════════════════════════════════════════════
+function changeResolution(val) {
+  const [w, h] = val.split('x').map(Number)
+  if (window.electronAPI && window.electronAPI.setWindowSize) {
+    window.electronAPI.setWindowSize(w, h)
+  }
+  localStorage.setItem('omnia_win_res', val)
+}
+
+function updateResSelect() {
+  const sel = document.getElementById('res-select')
+  if (!sel) return
+  // Web 版隐藏分辨率选择器（仅桌面端可用）
+  if (!window.electronAPI || !window.electronAPI.setWindowSize) {
+    sel.style.display = 'none'; return
+  }
+  const saved = localStorage.getItem('omnia_win_res')
+  if (saved) {
+    for (const opt of sel.options) {
+      if (opt.value === saved) { sel.value = saved; return }
+    }
+  }
+}
+
 // 点击更新状态手动检查
 document.addEventListener('DOMContentLoaded', () => {
+  updateResSelect();
+  if (typeof _initSidebarState === 'function') _initSidebarState();
   const el = document.getElementById('update-status');
   if (el) {
     el.addEventListener('click', function() {
