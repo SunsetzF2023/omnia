@@ -23,6 +23,7 @@ function setNoteFilter(type) {
   if (search) search.placeholder = type === 'cmd' ? L.cbSearch : L.cbSearchNote;
   // 关闭当前编辑器并重渲染
   if (document.getElementById('edit-mode').style.display !== 'none') {
+    saveDraft();
     stopDraftTimer();
   }
   current = null;
@@ -44,7 +45,7 @@ function renderList() {
   const q = document.getElementById('search').value.toLowerCase();
   const filtered = entries.filter(e => {
     const eType = e.type || 'cmd';
-    const typeMatch = q ? true : eType === noteFilter;
+    const typeMatch = (q || filterTag) ? true : eType === noteFilter;
     const mt = !filterTag || (e.tags || []).some(t => t.toLowerCase() === filterTag.toLowerCase());
     const allCmds = (e.steps || []).map(s => s.cmd).join(' ');
     const content = e.content || '';
@@ -111,6 +112,11 @@ function showEmpty() {
 }
 
 function showEntry(id) {
+  // ★ 如果正在编辑中，先保存草稿防止误触丢失
+  if (document.getElementById('edit-mode').style.display !== 'none') {
+    saveDraft();
+    stopDraftTimer();
+  }
   current = entries.find(e => e.id === id);
   if (!current) return;
 
@@ -762,6 +768,13 @@ function saveDraft() {
       el.textContent = '⏳ 草稿已自动保存 '
         + new Date().toLocaleTimeString('zh-CN');
     }
+    // ★ 同时显示草稿恢复栏，用户无需重启即可恢复
+    const elapsed = Math.round((Date.now() - d.savedAt) / 60000);
+    const ts = elapsed < 1 ? '刚刚' : elapsed + '分钟前';
+    const timeEl = document.getElementById('draft-time');
+    if (timeEl) timeEl.textContent = '（' + ts + '保存）';
+    const banner = document.getElementById('draft-banner');
+    if (banner) banner.style.display = 'flex';
   }
 }
 

@@ -35,6 +35,10 @@ async function loadFromDrive() {
   setSyncStatus('同步中 ↺');
   showSaveStatus('saving', '正在从 Google Drive 同步...');
   try {
+    // ★ 同步前先备份本地数据到磁盘（安全网）
+    if (entries.length > 0 && window.electronAPI && window.electronAPI.saveOfflineBackup) {
+      window.electronAPI.saveOfflineBackup(JSON.stringify(entries));
+    }
     const found = await findDriveFile();
     if (found) {
       const raw = await gfetch(
@@ -51,9 +55,17 @@ async function loadFromDrive() {
 
       try {
         const p = typeof raw === 'string' ? JSON.parse(raw) : raw;
-        // ★ 只有拿到有效数组才覆盖，否则保留现有数据
         if (Array.isArray(p)) {
-          entries = p;
+          // ★ 合并策略：以 id 为 key，本地与云端各保留时间戳最新的版本
+          // 防止本地未同步的新记录被云端旧数据覆盖导致丢失
+          const localMap = new Map(entries.map(e => [e.id, e]));
+          for (const cloudEntry of p) {
+            const localEntry = localMap.get(cloudEntry.id);
+            if (!localEntry || (cloudEntry.ts || 0) > (localEntry.ts || 0)) {
+              localMap.set(cloudEntry.id, cloudEntry);
+            }
+          }
+          entries = [...localMap.values()];
         } else {
           setSyncStatus('⚠ 数据异常');
           showSaveStatus('error', '云端数据格式异常，本地数据已保留');
@@ -128,6 +140,10 @@ function scheduleSave() {
     setSyncStatus('💾 已本地保存 + 备份');
     if (typeof inboxAdd === 'function') inboxAdd('backup', '💾 数据已备份', '离线模式下自动保存并备份 JSON 到本地磁盘');
     return;
+  }
+  // ★ 在线模式也写本地备份（防止同步覆盖导致数据丢失）
+  if (window.electronAPI && window.electronAPI.saveOfflineBackup) {
+    window.electronAPI.saveOfflineBackup(JSON.stringify(entries));
   }
   _cbSavePending = true;
   clearTimeout(_cbSaveTimer);

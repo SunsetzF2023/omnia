@@ -241,7 +241,10 @@ function createWindow() {
 // ★ IPC: 离线模式自动备份
 ipcMain.on('save-offline-backup', (event, data) => {
   try {
-    const backupDir = path.join(app.getPath('userData'), 'backups');
+    // 开发模式放项目目录方便查看，生产模式放 AppData
+    const backupDir = app.isPackaged
+      ? path.join(app.getPath('userData'), 'backups')
+      : path.join(__dirname, 'backups');
     if (!fs.existsSync(backupDir)) fs.mkdirSync(backupDir, { recursive: true });
     const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
     const filePath = path.join(backupDir, `omnia_${ts}.json`);

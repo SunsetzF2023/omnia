@@ -11,3 +11,6 @@ builder-debug.yml
 *.key
 credentials.json
 .claude/settings.local.json
+
+# 数据备份（自动生成）
+backups/*.json
