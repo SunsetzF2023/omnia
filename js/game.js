@@ -102,7 +102,7 @@ function _fitCell(maxCell, cols, rows, padW, padH) {
 const G24 = {
   tiles: [], score: 0, best: 0, over: false, won: false,
   nextId: 1, moving: false, elMap: {}, active: false,
-  leaderboard: [],
+  leaderboard: [], playerName: '',
 
   get cfg() {
     const designs = [
@@ -130,6 +130,8 @@ const G24 = {
     G24.active = true;
     G24.tiles = []; G24.score = 0; G24.over = false; G24.won = false;
     G24.nextId = 1; G24.moving = false; G24.elMap = {};
+    G24.playerName = ''; // 重置，等游戏结束再取名
+    G24._scored = false;  // 防止重复弹框
     G24.best = parseInt(localStorage.getItem('2048_best') || '0');
     G24._render();
     G24._initLeaderboard();
@@ -138,6 +140,35 @@ const G24 = {
     G24._updateUI();
     document.addEventListener('keydown', G24._key);
     window.addEventListener('resize', G24._onResize);
+  },
+
+  // ★ 随机名字生成（英文风格）
+  _randomName() {
+    const adj = ['Swift','Storm','Shadow','Nova','Blaze','Frost','Rogue','Ace','Echo','Neon','Zen','Flux','Void','Hawk','Lynx'];
+    const noun = ['Tile','Grid','Merge','Pixel','Slide','Block','Shift','Spin','Dash','Wave','Core','Link','Path','Rush','Edge'];
+    return adj[Math.floor(Math.random()*adj.length)] + noun[Math.floor(Math.random()*noun.length)];
+  },
+
+  // ★ 保存分数（从内联输入框读取名字）
+  _saveScore() {
+    const input = document.getElementById('g24-name-input');
+    G24.playerName = (input?.value || '').trim() || G24._randomName();
+    G24._saveToLeaderboard();
+    G24._renderLeaderboard();
+    // 隐藏输入框，显示已保存
+    const wrap = document.getElementById('g24-name-wrap');
+    if (wrap) wrap.innerHTML = '<span style="color:var(--amber);font-size:13px">✅ ' + G24.playerName + ' · ' + G24.score.toLocaleString() + ' 分 已上榜</span>';
+  },
+
+  // ★ 投降：随机名 + 当前分数，直接结束，不弹框
+  _surrender() {
+    if (G24.over) return;
+    G24.over = true;
+    G24._scored = true;
+    G24.playerName = G24._randomName();
+    G24._saveToLeaderboard();
+    G24._renderLeaderboard();
+    G24._updateUI();
   },
 
   deactivate() { document.removeEventListener('keydown', G24._key); window.removeEventListener('resize', G24._onResize); G24.active = false; },
@@ -165,7 +196,8 @@ const G24 = {
       + '<div class="g2048-title">2<span style="color:var(--amber)">0</span>4<span style="color:var(--amber)">8</span></div>'
       + '<div class="g2048-stat"><div class="g2048-stat-label">分数</div><div class="g2048-stat-val" id="g24-score">0</div></div>'
       + '<div class="g2048-stat"><div class="g2048-stat-label">最佳</div><div class="g2048-stat-val" id="g24-best">0</div></div>'
-      + '<button class="g2048-new-btn" onclick="G24.init()">新游戏</button></div>'
+      + '<button class="g2048-new-btn" onclick="G24.init()">新游戏</button>'
+      + '<button class="g2048-new-btn" style="background:var(--red-dim);border-color:var(--red);color:var(--red);margin-left:6px" onclick="G24._surrender()">投降</button></div>'
       + '<div class="g2048-body">'
       + '<div class="g2048-wrap"><div id="g24-particles"></div><div class="g2048-grid" id="g24-grid" style="grid-template-columns:repeat('+cfg.n+','+cfg.cell+'px);grid-template-rows:repeat('+cfg.n+','+cfg.cell+'px);gap:'+cfg.gap+'px;width:'+gw+'px;height:'+gw+'px;"></div>'
       + '<div class="g2048-msg" id="g24-msg"></div></div>'
@@ -301,34 +333,48 @@ const G24 = {
   _onResize() { clearTimeout(G24._rt); G24._rt = setTimeout(() => G24._resize(), 120); },
 
   _updateUI() {
-    if (G24.score>G24.best){G24.best=G24.score;localStorage.setItem('2048_best',G24.best);G24._generateAIScores();G24._renderLeaderboard();}
+    if (G24.score>G24.best){G24.best=G24.score;localStorage.setItem('2048_best',G24.best);}
     const s=document.getElementById('g24-score'), b=document.getElementById('g24-best'), m=document.getElementById('g24-msg');
     if(s)s.textContent=G24.score; if(b)b.textContent=G24.best;
     if(m){ if(G24.won&&!G24.over){m.style.display='flex';m.innerHTML='<div class="g2048-win">🎉 2048！<br><span style="font-size:13px;color:var(--dim)">继续挑战更高分？</span></div>';}else if(G24.over){m.style.display='flex';m.innerHTML='<div class="g2048-over">Game Over</div>';}else{m.style.display='none';m.innerHTML='';} }
-    if (G24.over) G24._renderLeaderboard();
+    if (G24.over && !G24._scored) {
+      G24._scored = true;
+      const rnd = G24._randomName();
+      if (m) {
+        m.innerHTML += '<div id="g24-name-wrap" style="margin-top:10px;display:flex;gap:6px;justify-content:center;align-items:center">'
+          + '<input id="g24-name-input" value="' + rnd + '" style="width:120px;padding:4px 8px;background:var(--bg);border:1px solid var(--amber);border-radius:4px;color:var(--fg);font-size:13px;text-align:center" maxlength="16">'
+          + '<button onclick="G24._saveScore()" style="padding:4px 12px;background:var(--amber-dim);border:1px solid var(--amber);color:var(--amber);border-radius:4px;cursor:pointer;font-size:12px">保存分数</button>'
+          + '</div>';
+        setTimeout(() => { const inp = document.getElementById('g24-name-input'); if (inp) { inp.focus(); inp.select(); } }, 50);
+      }
+    }
   },
 
   // ── 排行榜 ──────────────────────────────────────
   _initLeaderboard() {
     const saved = localStorage.getItem('2048_lb');
     if (saved) { try { G24.leaderboard = JSON.parse(saved); } catch(_){} }
-    G24._generateAIScores();
+    if (!Array.isArray(G24.leaderboard)) G24.leaderboard = [];
+    // ★ 清除旧版 AI 假数据（有 isMe 属性的条目）
+    if (G24.leaderboard.length > 0 && G24.leaderboard.some(e => 'isMe' in e)) {
+      G24.leaderboard = [];
+      localStorage.removeItem('2048_lb');
+    }
     G24._renderLeaderboard();
   },
 
-  _generateAIScores() {
-    const AI_POOL = ['AlphaGo','DeepMind','Neural-4K','SiliconBot','Pixel-256','GridMaster','TileWhisperer','BinaryBrain','QuantumTile','VectorX','CodeWeaver','LogicPulse','MatrixMind','DataGhost'];
-    const entries = [];
-    if (G24.best > 0) entries.push({ name: '我', score: G24.best, isMe: true });
-    const shuffled = [...AI_POOL].sort(() => Math.random() - 0.5);
-    const base = Math.max(G24.best, 1000);
-    for (let i = 0; i < 9; i++) {
-      const factor = 0.35 + Math.random() * 1.6;
-      const score = Math.max(100, Math.round(base * factor / 50) * 50);
-      entries.push({ name: shuffled[i] || AI_POOL[i], score, isMe: false });
+  _saveToLeaderboard() {
+    if (G24.score <= 0) return;
+    const lb = G24.leaderboard || [];
+    // 同名覆盖旧分数
+    const idx = lb.findIndex(e => e.name === G24.playerName);
+    if (idx >= 0) {
+      if (G24.score > lb[idx].score) lb[idx].score = G24.score;
+    } else {
+      lb.push({ name: G24.playerName, score: G24.score });
     }
-    entries.sort((a, b) => b.score - a.score);
-    G24.leaderboard = entries.slice(0, 10);
+    lb.sort((a, b) => b.score - a.score);
+    G24.leaderboard = lb.slice(0, 10);
     localStorage.setItem('2048_lb', JSON.stringify(G24.leaderboard));
   },
 
@@ -341,10 +387,11 @@ const G24 = {
       '<div class="g2048-lb-title">🏆 排行榜</div>'
       + G24.leaderboard.map((e, i) => {
         const rankClass = i < 3 ? ' r' + (i + 1) : '';
+        const isMe = e.name === G24.playerName;
         return '<div class="g2048-lb-row">'
           + '<span class="g2048-lb-rank' + rankClass + '">' + (medals[i] || (i + 1)) + '</span>'
-          + '<span class="g2048-lb-name' + (e.isMe ? ' is-me' : '') + '">' + e.name + '</span>'
-          + '<span class="g2048-lb-score' + (e.isMe ? ' is-me' : '') + '">' + e.score.toLocaleString() + '</span>'
+          + '<span class="g2048-lb-name' + (isMe ? ' is-me' : '') + '">' + e.name + '</span>'
+          + '<span class="g2048-lb-score' + (isMe ? ' is-me' : '') + '">' + e.score.toLocaleString() + '</span>'
           + '</div>';
       }).join('');
   },
