@@ -10,6 +10,7 @@ const GAMES = {
   'sudoku':      { name: '数独', icon: '🧩', diffs: ['简单','中等','困难'] },
 };
 let gCurr = '2048', gDiff = 0;   // 当前游戏 & 难度索引
+const APPSCRIPT = 'https://script.google.com/macros/s/AKfycbyDR6xKzyevIhi3e1zgWC8KvnWH2JaB7ni7Eo_Md7SKknRASUOtRt8Hj_02470Z-CmV3w/exec';
 
 // ── 游戏中心：渲染 ──────────────────────────────
 function renderGameCenter() {
@@ -352,21 +353,53 @@ const G24 = {
 
   // ── 排行榜 ──────────────────────────────────────
   _initLeaderboard() {
-    const saved = localStorage.getItem('2048_lb');
+    const key = '2048_lb_' + G24.cfg.n;
+    const saved = localStorage.getItem(key);
     if (saved) { try { G24.leaderboard = JSON.parse(saved); } catch(_){} }
     if (!Array.isArray(G24.leaderboard)) G24.leaderboard = [];
-    // ★ 清除旧版 AI 假数据（有 isMe 属性的条目）
+    // ★ 清除旧版 AI 假数据
     if (G24.leaderboard.length > 0 && G24.leaderboard.some(e => 'isMe' in e)) {
       G24.leaderboard = [];
-      localStorage.removeItem('2048_lb');
+      localStorage.removeItem(key);
     }
     G24._renderLeaderboard();
+    // 异步拉取全球排行榜
+    G24._fetchRemoteLB();
+  },
+
+  _fetchRemoteLB() {
+    const size = G24.cfg.n;
+    fetch(APPSCRIPT + '?action=lb_get&size=' + size)
+      .then(r => r.json())
+      .then(data => {
+        if (!Array.isArray(data) || !data.length) return;
+        if (G24.cfg.n !== size) return; // 难度已切换，丢弃过期数据
+        G24._mergeLB(data);
+        G24._renderLeaderboard();
+      })
+      .catch(() => {}); // 网络不通时静默降级
+  },
+
+  _mergeLB(remote) {
+    const map = new Map();
+    // 先放本地数据
+    (G24.leaderboard || []).forEach(e => map.set(e.name, e.score));
+    // 远程数据覆盖（保留更高分）
+    remote.forEach(e => {
+      const cur = map.get(e.name) || 0;
+      if (e.score > cur) map.set(e.name, e.score);
+    });
+    G24.leaderboard = [...map.entries()]
+      .map(([name, score]) => ({ name, score }))
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 15);
+    const key = '2048_lb_' + G24.cfg.n;
+    localStorage.setItem(key, JSON.stringify(G24.leaderboard));
   },
 
   _saveToLeaderboard() {
     if (G24.score <= 0) return;
     const lb = G24.leaderboard || [];
-    // 同名覆盖旧分数
     const idx = lb.findIndex(e => e.name === G24.playerName);
     if (idx >= 0) {
       if (G24.score > lb[idx].score) lb[idx].score = G24.score;
@@ -374,8 +407,15 @@ const G24 = {
       lb.push({ name: G24.playerName, score: G24.score });
     }
     lb.sort((a, b) => b.score - a.score);
-    G24.leaderboard = lb.slice(0, 10);
-    localStorage.setItem('2048_lb', JSON.stringify(G24.leaderboard));
+    G24.leaderboard = lb.slice(0, 15);
+    const key = '2048_lb_' + G24.cfg.n;
+    localStorage.setItem(key, JSON.stringify(G24.leaderboard));
+    // ★ 提交到全球排行榜
+    G24._submitRemote(G24.playerName, G24.score);
+  },
+
+  _submitRemote(name, score) {
+    fetch(APPSCRIPT + '?action=lb_submit&name=' + encodeURIComponent(name) + '&score=' + score + '&size=' + G24.cfg.n, { mode: 'no-cors' }).catch(() => {});
   },
 
   _renderLeaderboard() {
@@ -384,7 +424,7 @@ const G24 = {
     if (!G24.leaderboard.length) { lb.innerHTML = ''; return; }
     const medals = ['🥇','🥈','🥉'];
     lb.innerHTML =
-      '<div class="g2048-lb-title">🏆 排行榜</div>'
+      '<div class="g2048-lb-title">🏆 ' + G24.cfg.n + '×' + G24.cfg.n + ' 排行榜</div>'
       + G24.leaderboard.map((e, i) => {
         const rankClass = i < 3 ? ' r' + (i + 1) : '';
         const isMe = e.name === G24.playerName;
