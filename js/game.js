@@ -141,6 +141,13 @@ const G24 = {
     G24._updateUI();
     document.addEventListener('keydown', G24._key);
     window.addEventListener('resize', G24._onResize);
+    // 触屏滑动支持
+    const grid = document.getElementById('g24-grid');
+    if (grid) {
+      grid.addEventListener('touchstart', G24._touchStart, { passive: false });
+      grid.addEventListener('touchend', G24._touchEnd, { passive: false });
+      grid.addEventListener('touchmove', function(e) { e.preventDefault(); }, { passive: false });
+    }
   },
 
   // ★ 随机名字生成（英文风格）
@@ -172,7 +179,7 @@ const G24 = {
     G24._updateUI();
   },
 
-  deactivate() { document.removeEventListener('keydown', G24._key); window.removeEventListener('resize', G24._onResize); G24.active = false; },
+  deactivate() { document.removeEventListener('keydown', G24._key); window.removeEventListener('resize', G24._onResize); const g = document.getElementById('g24-grid'); if (g) { g.removeEventListener('touchstart', G24._touchStart); g.removeEventListener('touchend', G24._touchEnd); } G24.active = false; },
 
   _at(r,c) { return G24.tiles.find(t => t.row===r && t.col===c); },
 
@@ -203,7 +210,7 @@ const G24 = {
       + '<div class="g2048-wrap"><div id="g24-particles"></div><div class="g2048-grid" id="g24-grid" style="grid-template-columns:repeat('+cfg.n+','+cfg.cell+'px);grid-template-rows:repeat('+cfg.n+','+cfg.cell+'px);gap:'+cfg.gap+'px;width:'+gw+'px;height:'+gw+'px;"></div>'
       + '<div class="g2048-msg" id="g24-msg"></div></div>'
       + '<div class="g2048-lb" id="g24-lb"></div></div>'
-      + '<div class="gm-hint">↑↓←→ / WASD 方向键 | 合并到 2048 获胜</div>';
+      + '<div class="gm-hint">↑↓←→ / WASD / 触屏滑动 | 合并到 2048 获胜</div>';
     // 背景格
     const grid = document.getElementById('g24-grid');
     for (let r=0; r<cfg.n; r++) for (let c=0; c<cfg.n; c++) {
@@ -455,6 +462,17 @@ const G24 = {
     tip.style.top = (e.clientY - 34) + 'px';
     document.body.appendChild(tip);
     setTimeout(function() { var t = document.getElementById('g24-lb-tip'); if (t) t.remove(); }, 4000);
+  },
+
+  _touchStart(e) { var t = e.touches[0]; G24._tsX = t.clientX; G24._tsY = t.clientY; },
+  _touchEnd(e) {
+    if (G24.over || G24.moving) return;
+    var t = e.changedTouches[0];
+    var dx = t.clientX - G24._tsX, dy = t.clientY - G24._tsY;
+    if (Math.abs(dx) < 30 && Math.abs(dy) < 30) return;
+    e.preventDefault();
+    if (Math.abs(dx) > Math.abs(dy)) { G24.move(dx > 0 ? 'right' : 'left'); }
+    else { G24.move(dy > 0 ? 'down' : 'up'); }
   },
 
   _key(e) { if (e.target.id === 'g24-name-input') return; const map={ArrowLeft:'left',ArrowRight:'right',ArrowUp:'up',ArrowDown:'down',a:'left',A:'left',d:'right',D:'right',w:'up',W:'up',s:'down',S:'down'}; if(map[e.key]){e.preventDefault();G24.move(map[e.key]);} },
