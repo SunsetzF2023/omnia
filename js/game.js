@@ -382,15 +382,15 @@ const G24 = {
 
   _mergeLB(remote) {
     const map = new Map();
-    // 先放本地数据
-    (G24.leaderboard || []).forEach(e => map.set(e.name, e.score));
-    // 远程数据覆盖（保留更高分）
+    // 先放本地数据（保留 name/score/ts）
+    (G24.leaderboard || []).forEach(e => map.set(e.name, { score: e.score, ts: e.ts }));
+    // 远程数据覆盖（保留更高分，同时更新时间）
     remote.forEach(e => {
-      const cur = map.get(e.name) || 0;
-      if (e.score > cur) map.set(e.name, e.score);
+      const cur = map.get(e.name);
+      if (!cur || e.score > cur.score) map.set(e.name, { score: e.score, ts: e.ts });
     });
     G24.leaderboard = [...map.entries()]
-      .map(([name, score]) => ({ name, score }))
+      .map(([name, obj]) => ({ name, score: obj.score, ts: obj.ts }))
       .sort((a, b) => b.score - a.score)
       .slice(0, 15);
     const key = '2048_lb_' + G24.cfg.n;
@@ -400,22 +400,24 @@ const G24 = {
   _saveToLeaderboard() {
     if (G24.score <= 0) return;
     const lb = G24.leaderboard || [];
+    const now = new Date().toISOString();
     const idx = lb.findIndex(e => e.name === G24.playerName);
+    const entry = { name: G24.playerName, score: G24.score, ts: now };
     if (idx >= 0) {
-      if (G24.score > lb[idx].score) lb[idx].score = G24.score;
+      if (G24.score > lb[idx].score) lb[idx] = entry;
     } else {
-      lb.push({ name: G24.playerName, score: G24.score });
+      lb.push(entry);
     }
     lb.sort((a, b) => b.score - a.score);
     G24.leaderboard = lb.slice(0, 15);
     const key = '2048_lb_' + G24.cfg.n;
     localStorage.setItem(key, JSON.stringify(G24.leaderboard));
     // ★ 提交到全球排行榜
-    G24._submitRemote(G24.playerName, G24.score);
+    G24._submitRemote(G24.playerName, G24.score, now);
   },
 
-  _submitRemote(name, score) {
-    fetch(APPSCRIPT + '?action=lb_submit&name=' + encodeURIComponent(name) + '&score=' + score + '&size=' + G24.cfg.n, { mode: 'no-cors' }).catch(() => {});
+  _submitRemote(name, score, ts) {
+    fetch(APPSCRIPT + '?action=lb_submit&name=' + encodeURIComponent(name) + '&score=' + score + '&size=' + G24.cfg.n + '&ts=' + encodeURIComponent(ts || ''), { mode: 'no-cors' }).catch(() => {});
   },
 
   _renderLeaderboard() {
@@ -428,12 +430,31 @@ const G24 = {
       + G24.leaderboard.map((e, i) => {
         const rankClass = i < 3 ? ' r' + (i + 1) : '';
         const isMe = e.name === G24.playerName;
+        const hasTs = !!e.ts;
+        const click = hasTs ? ' onclick="G24._lbTooltip(event,\'' + e.ts + '\')"' : '';
+        const cursor = hasTs ? ' style="cursor:pointer"' : '';
         return '<div class="g2048-lb-row">'
           + '<span class="g2048-lb-rank' + rankClass + '">' + (medals[i] || (i + 1)) + '</span>'
-          + '<span class="g2048-lb-name' + (isMe ? ' is-me' : '') + '">' + e.name + '</span>'
+          + '<span class="g2048-lb-name' + (isMe ? ' is-me' : '') + '"' + cursor + click + '>' + e.name + '</span>'
           + '<span class="g2048-lb-score' + (isMe ? ' is-me' : '') + '">' + e.score.toLocaleString() + '</span>'
           + '</div>';
       }).join('');
+  },
+
+  _lbTooltip(e, ts) {
+    const old = document.getElementById('g24-lb-tip');
+    if (old) old.remove();
+    const d = new Date(ts);
+    const str = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0')
+      + ' ' + String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
+    const tip = document.createElement('div');
+    tip.id = 'g24-lb-tip';
+    tip.textContent = '🕐 ' + str;
+    tip.style.cssText = 'position:fixed;background:var(--bg);border:1px solid var(--amber);border-radius:6px;padding:6px 12px;font-size:12px;color:var(--fg);z-index:9999;pointer-events:none;box-shadow:0 2px 8px rgba(0,0,0,.5);white-space:nowrap';
+    tip.style.left = e.clientX + 'px';
+    tip.style.top = (e.clientY - 34) + 'px';
+    document.body.appendChild(tip);
+    setTimeout(function() { var t = document.getElementById('g24-lb-tip'); if (t) t.remove(); }, 4000);
   },
 
   _key(e) { if (e.target.id === 'g24-name-input') return; const map={ArrowLeft:'left',ArrowRight:'right',ArrowUp:'up',ArrowDown:'down',a:'left',A:'left',d:'right',D:'right',w:'up',W:'up',s:'down',S:'down'}; if(map[e.key]){e.preventDefault();G24.move(map[e.key]);} },
