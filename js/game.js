@@ -436,7 +436,7 @@ const G24 = {
       }).join('');
   },
 
-  _key(e) { const map={ArrowLeft:'left',ArrowRight:'right',ArrowUp:'up',ArrowDown:'down',a:'left',A:'left',d:'right',D:'right',w:'up',W:'up',s:'down',S:'down'}; if(map[e.key]){e.preventDefault();G24.move(map[e.key]);} },
+  _key(e) { if (e.target.id === 'g24-name-input') return; const map={ArrowLeft:'left',ArrowRight:'right',ArrowUp:'up',ArrowDown:'down',a:'left',A:'left',d:'right',D:'right',w:'up',W:'up',s:'down',S:'down'}; if(map[e.key]){e.preventDefault();G24.move(map[e.key]);} },
 };
 
 // ══════════════════════════════════════════════════
