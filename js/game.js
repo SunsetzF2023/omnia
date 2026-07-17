@@ -137,7 +137,7 @@ const G24 = {
     G24._render();
     G24._initLeaderboard();
     G24._spawn(); G24._spawn();
-    G24._syncDOM();
+    G24._syncDOM(false);
     G24._updateUI();
     document.addEventListener('keydown', G24._key);
     window.addEventListener('resize', G24._onResize);
@@ -218,7 +218,7 @@ const G24 = {
     }
   },
 
-  _syncDOM() {
+  _syncDOM(anim) {
     if (!G24.active) return;
     const grid = document.getElementById('g24-grid');
     if (!grid) return;
@@ -235,7 +235,7 @@ const G24 = {
         el.style.width = el.style.height = cfg.cell+'px';
         el.style.fontSize = t.val>=1024 ? Math.max(14,cfg.font-6)+'px' : cfg.font+'px';
         G24.elMap[t.id] = el; grid.appendChild(el);
-        if (t.isNew) {
+        if (t.isNew && anim) {
           el.style.transform = 'translate('+tx+'px,'+ty+'px) scale(0)';
           el.style.transition = 'none';
           void el.offsetHeight;
@@ -246,15 +246,21 @@ const G24 = {
           el.style.transition = 'none';
         }
       } else {
-        el.className = 'g2048-tile t'+t.val;
-        el.textContent = t.val;
+        if (!t._freeze) {
+          el.className = 'g2048-tile t'+t.val;
+          el.textContent = t.val;
+        }
         el.style.width = el.style.height = cfg.cell+'px';
         el.style.fontSize = t.val>=1024 ? Math.max(14,cfg.font-6)+'px' : cfg.font+'px';
-        el.style.transition = 'transform .15s ease-in-out';
+        el.style.transition = anim ? 'transform .15s ease-in-out' : 'none';
         el.style.transform = 'translate('+tx+'px,'+ty+'px) scale(1)';
+        if (t._pop && anim) {
+          el.style.transform = 'translate('+tx+'px,'+ty+'px) scale(1.25)';
+          setTimeout(function(elRef,tx,ty){ elRef.style.transition='transform .12s ease-out'; elRef.style.transform='translate('+tx+'px,'+ty+'px) scale(1)'; },120,el,tx,ty);
+        }
       }
     });
-    G24.tiles.forEach(t=>t.isNew=false);
+    G24.tiles.forEach(t=>{t.isNew=false;});
   },
 
   _slide(arr) {
@@ -267,26 +273,45 @@ const G24 = {
 
   move(dir) {
     if (G24.over||G24.moving||!G24.active) return;
-    const n=G24.cfg.n, oldPos={};
-    G24.tiles.forEach(t=>{oldPos[t.id]={row:t.row,col:t.col};});
+    const n=G24.cfg.n, oldPos={}, oldVal={};
+    G24.tiles.forEach(t=>{oldPos[t.id]={row:t.row,col:t.col};oldVal[t.id]=t.val;});
     let rows=[];
     if (dir==='left') { for (let r=0;r<n;r++) { const a=[]; for (let c=0;c<n;c++) { const t=G24._at(r,c); a.push(t?{val:t.val,id:t.id}:0); } rows.push({r,arr:G24._slide(a)}); } }
     else if (dir==='right') { for (let r=0;r<n;r++) { const a=[]; for (let c=n-1;c>=0;c--) { const t=G24._at(r,c); a.push(t?{val:t.val,id:t.id}:0); } rows.push({r,arr:G24._slide(a).reverse()}); } }
     else if (dir==='up') { for (let c=0;c<n;c++) { const a=[]; for (let r=0;r<n;r++) { const t=G24._at(r,c); a.push(t?{val:t.val,id:t.id}:0); } rows.push({c,arr:G24._slide(a)}); } }
     else if (dir==='down') { for (let c=0;c<n;c++) { const a=[]; for (let r=n-1;r>=0;r--) { const t=G24._at(r,c); a.push(t?{val:t.val,id:t.id}:0); } rows.push({c,arr:G24._slide(a).reverse()}); } }
-    const nt=[], mg=new Set(), mergeEvents=[];
+    const nt=[], mg=new Set(), mergeEvents=[], mergedSet=new Set(), mergeTarget={};
     rows.forEach(row=>{
-      if (dir==='left'||dir==='right') { const r=row.r; row.arr.forEach((it,ci)=>{ if(it===0)return; const t={id:it.id,val:it.val,row:r,col:ci,isNew:false}; nt.push(t); if(it.mergedFrom){mg.add(it.mergedFrom);mergeEvents.push({val:it.val,row:r,col:ci});} if(oldPos[it.id]&&oldPos[it.id].row===r&&oldPos[it.id].col===ci) t.unmoved=true; }); }
-      else { const c=row.c; row.arr.forEach((it,ri)=>{ if(it===0)return; const t={id:it.id,val:it.val,row:ri,col:c,isNew:false}; nt.push(t); if(it.mergedFrom){mg.add(it.mergedFrom);mergeEvents.push({val:it.val,row:ri,col:c});} if(oldPos[it.id]&&oldPos[it.id].row===ri&&oldPos[it.id].col===c) t.unmoved=true; }); }
+      if (dir==='left'||dir==='right') { const r=row.r; row.arr.forEach((it,ci)=>{ if(it===0)return; const t={id:it.id,val:it.val,row:r,col:ci,isNew:false}; nt.push(t); if(it.mergedFrom){mg.add(it.mergedFrom);mergeEvents.push({val:it.val,row:r,col:ci});mergeTarget[it.mergedFrom]={row:r,col:ci};mergedSet.add(it.id);} if(oldPos[it.id]&&oldPos[it.id].row===r&&oldPos[it.id].col===ci) t.unmoved=true; }); }
+      else { const c=row.c; row.arr.forEach((it,ri)=>{ if(it===0)return; const t={id:it.id,val:it.val,row:ri,col:c,isNew:false}; nt.push(t); if(it.mergedFrom){mg.add(it.mergedFrom);mergeEvents.push({val:it.val,row:ri,col:c});mergeTarget[it.mergedFrom]={row:ri,col:c};mergedSet.add(it.id);} if(oldPos[it.id]&&oldPos[it.id].row===ri&&oldPos[it.id].col===c) t.unmoved=true; }); }
     });
     if (nt.every(t=>t.unmoved)&&mg.size===0) return;
     nt.forEach(t=>delete t.unmoved);
+    // ghost: 被合并方块 — 保留DOM，让它滑向目标位置
+    const ghosts=[];
+    G24.tiles.forEach(t=>{ if(mg.has(t.id)){ const target=mergeTarget[t.id]||{row:t.row,col:t.col}; ghosts.push({id:t.id,val:t.val,row:t.row,col:t.col,_g:true,tRow:target.row,tCol:target.col}); } });
     G24.tiles = G24.tiles.filter(t=>!mg.has(t.id));
-    const staged = nt.map(t=>{ const o=oldPos[t.id]; return {...t, row:o?o.row:t.row, col:o?o.col:t.col}; });
-    G24.tiles=staged; G24._syncDOM();
+    // staged: 非合并→旧位置, 合并幸存→新位置+冻结旧值, ghost→旧位置
+    const staged = nt.map(t=>{
+      if (mergedSet.has(t.id)) return {...t, _freeze:true, _oldVal:oldVal[t.id]};
+      const o=oldPos[t.id]; return {...t, row:o?o.row:t.row, col:o?o.col:t.col};
+    });
+    ghosts.forEach(g=>staged.push({id:g.id,val:g.val,row:g.row,col:g.col,_g:true}));
+    G24.tiles=staged; G24._syncDOM(false);
     void (document.getElementById('g24-grid')||{}).offsetHeight;
-    G24.tiles=nt; G24.moving=true; G24._syncDOM();
-    setTimeout(()=>{ G24._spawn(true); G24._syncDOM(); G24.moving=false; G24._check(); G24._updateUI(); mergeEvents.forEach(evt=>G24._spawnParticle(evt)); },170);
+    // 动画: 非合并→新位置, 合并幸存→保持冻结, ghost→滑向目标
+    const animTiles = nt.map(t=> mergedSet.has(t.id) ? {...t, _freeze:true, _oldVal:oldVal[t.id]} : t);
+    ghosts.forEach(g=>animTiles.push({id:g.id,val:g.val,row:g.tRow,col:g.tCol,_g:true}));
+    G24.tiles=animTiles; G24.moving=true; G24._syncDOM(true);
+    // 动画结束: 移除ghost, 幸存者更新值+弹跳, 生成新方块
+    G24._animCleanup = {nt, mergeEvents, mergedSet};
+    setTimeout(()=>{
+      G24.tiles = G24._animCleanup.nt.map(t=> G24._animCleanup.mergedSet.has(t.id) ? {...t, _pop:true} : t);
+      G24._spawn(true); G24._syncDOM(true);
+      G24.moving=false; G24._check(); G24._updateUI();
+      G24._animCleanup.mergeEvents.forEach(evt=>G24._spawnParticle(evt));
+      G24._animCleanup = null;
+    },170);
   },
 
   _check() {
