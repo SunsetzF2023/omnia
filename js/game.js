@@ -394,6 +394,7 @@ const G24 = {
       G24.leaderboard = [];
       localStorage.removeItem(key);
     }
+    G24._lbPage = 0;
     G24._renderLeaderboard();
     // 异步拉取全球排行榜
     G24._fetchRemoteLB();
@@ -424,7 +425,7 @@ const G24 = {
     G24.leaderboard = [...map.entries()]
       .map(([name, obj]) => ({ name, score: obj.score, ts: obj.ts }))
       .sort((a, b) => b.score - a.score)
-      .slice(0, 15);
+      .slice(0, 50);
     const key = '2048_lb_' + G24.cfg.n;
     localStorage.setItem(key, JSON.stringify(G24.leaderboard));
   },
@@ -441,7 +442,7 @@ const G24 = {
       lb.push(entry);
     }
     lb.sort((a, b) => b.score - a.score);
-    G24.leaderboard = lb.slice(0, 15);
+    G24.leaderboard = lb.slice(0, 50);
     const key = '2048_lb_' + G24.cfg.n;
     localStorage.setItem(key, JSON.stringify(G24.leaderboard));
     // ★ 提交到全球排行榜
@@ -456,22 +457,38 @@ const G24 = {
     const lb = document.getElementById('g24-lb');
     if (!lb) return;
     if (!G24.leaderboard.length) { lb.innerHTML = ''; return; }
+    const PAGE = 10, total = Math.ceil(G24.leaderboard.length / PAGE);
+    if (G24._lbPage >= total) G24._lbPage = total - 1;
+    if (G24._lbPage < 0) G24._lbPage = 0;
+    const start = G24._lbPage * PAGE;
+    const pageData = G24.leaderboard.slice(start, start + PAGE);
     const medals = ['🥇','🥈','🥉'];
-    lb.innerHTML =
-      '<div class="g2048-lb-title">🏆 ' + G24.cfg.n + '×' + G24.cfg.n + ' 排行榜</div>'
-      + G24.leaderboard.map((e, i) => {
-        const rankClass = i < 3 ? ' r' + (i + 1) : '';
-        const isMe = e.name === G24.playerName;
-        const hasTs = !!e.ts;
-        const click = hasTs ? ' onclick="G24._lbTooltip(event,\'' + e.ts + '\')"' : '';
-        const cursor = hasTs ? ' style="cursor:pointer"' : '';
-        return '<div class="g2048-lb-row">'
-          + '<span class="g2048-lb-rank' + rankClass + '">' + (medals[i] || (i + 1)) + '</span>'
-          + '<span class="g2048-lb-name' + (isMe ? ' is-me' : '') + '"' + cursor + click + '>' + e.name + '</span>'
-          + '<span class="g2048-lb-score' + (isMe ? ' is-me' : '') + '">' + e.score.toLocaleString() + '</span>'
-          + '</div>';
-      }).join('');
+    let html = '<div class="g2048-lb-title">🏆 ' + G24.cfg.n + '×' + G24.cfg.n + ' 排行榜</div>';
+    if (total > 1) {
+      html += '<div class="g2048-lb-pager">'
+        + '<button onclick="G24._lbPagePrev()" ' + (G24._lbPage === 0 ? 'disabled' : '') + '>◀</button>'
+        + '<span>' + (G24._lbPage + 1) + '/' + total + '</span>'
+        + '<button onclick="G24._lbPageNext()" ' + (G24._lbPage >= total - 1 ? 'disabled' : '') + '>▶</button>'
+        + '</div>';
+    }
+    html += pageData.map((e, i) => {
+      const rank = start + i;
+      const rankClass = rank < 3 ? ' r' + (rank + 1) : '';
+      const isMe = e.name === G24.playerName;
+      const hasTs = !!e.ts;
+      const click = hasTs ? ' onclick="G24._lbTooltip(event,\'' + e.ts + '\')"' : '';
+      const cursor = hasTs ? ' style="cursor:pointer"' : '';
+      return '<div class="g2048-lb-row">'
+        + '<span class="g2048-lb-rank' + rankClass + '">' + (medals[rank] || (rank + 1)) + '</span>'
+        + '<span class="g2048-lb-name' + (isMe ? ' is-me' : '') + '"' + cursor + click + '>' + e.name + '</span>'
+        + '<span class="g2048-lb-score' + (isMe ? ' is-me' : '') + '">' + e.score.toLocaleString() + '</span>'
+        + '</div>';
+    }).join('');
+    lb.innerHTML = html;
   },
+
+  _lbPagePrev() { if (G24._lbPage > 0) { G24._lbPage--; G24._renderLeaderboard(); } },
+  _lbPageNext() { const total = Math.ceil((G24.leaderboard || []).length / 10); if (G24._lbPage < total - 1) { G24._lbPage++; G24._renderLeaderboard(); } },
 
   _lbTooltip(e, ts) {
     const old = document.getElementById('g24-lb-tip');
