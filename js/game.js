@@ -103,7 +103,7 @@ function _fitCell(maxCell, cols, rows, padW, padH) {
 const G24 = {
   tiles: [], score: 0, best: 0, over: false, won: false,
   nextId: 1, moving: false, elMap: {}, active: false,
-  leaderboard: [], playerName: '',
+  leaderboard: [], playerName: '', _history: [], _undoLeft: 5,
 
   get cfg() {
     const designs = [
@@ -130,7 +130,7 @@ const G24 = {
     G24.deactivate();
     G24.active = true;
     G24.tiles = []; G24.score = 0; G24.over = false; G24.won = false;
-    G24.nextId = 1; G24.moving = false; G24.elMap = {};
+    G24.nextId = 1; G24.moving = false; G24.elMap = {}; G24._history = []; G24._undoLeft = 5;
     G24.playerName = ''; // 重置，等游戏结束再取名
     G24._scored = false;  // 防止重复弹框
     G24.best = parseInt(localStorage.getItem('2048_best') || '0');
@@ -205,6 +205,7 @@ const G24 = {
       + '<div class="g2048-stat"><div class="g2048-stat-label">分数</div><div class="g2048-stat-val" id="g24-score">0</div></div>'
       + '<div class="g2048-stat"><div class="g2048-stat-label">最佳</div><div class="g2048-stat-val" id="g24-best">0</div></div>'
       + '<button class="g2048-new-btn" onclick="G24.init()">新游戏</button>'
+      + '<button class="g2048-new-btn" id="g24-undo-btn" style="margin-left:6px" onclick="G24._undo()">↩ 撤销</button>'
       + '<button class="g2048-new-btn" style="background:var(--red-dim);border-color:var(--red);color:var(--red);margin-left:6px" onclick="G24._surrender()">投降</button></div>'
       + '<div class="g2048-body">'
       + '<div class="g2048-wrap"><div id="g24-particles"></div><div class="g2048-grid" id="g24-grid" style="grid-template-columns:repeat('+cfg.n+','+cfg.cell+'px);grid-template-rows:repeat('+cfg.n+','+cfg.cell+'px);gap:'+cfg.gap+'px;width:'+gw+'px;height:'+gw+'px;"></div>'
@@ -286,6 +287,8 @@ const G24 = {
       else { const c=row.c; row.arr.forEach((it,ri)=>{ if(it===0)return; const t={id:it.id,val:it.val,row:ri,col:c,isNew:false}; nt.push(t); if(it.mergedFrom){mg.add(it.mergedFrom);mergeEvents.push({val:it.val,row:ri,col:c});mergeTarget[it.mergedFrom]={row:ri,col:c};mergedSet.add(it.id);} if(oldPos[it.id]&&oldPos[it.id].row===ri&&oldPos[it.id].col===c) t.unmoved=true; }); }
     });
     if (nt.every(t=>t.unmoved)&&mg.size===0) return;
+    // ★ 撤销：保存移动前状态
+    G24._saveState();
     nt.forEach(t=>delete t.unmoved);
     // ghost: 被合并方块 — 保留DOM，让它滑向目标位置
     const ghosts=[];
@@ -320,7 +323,7 @@ const G24 = {
     if (G24.tiles.length < n*n) return;
     for (let r=0;r<n;r++) for (let c=0;c<n-1;c++) { const a=G24._at(r,c),b=G24._at(r,c+1); if(!a||!b||a.val===b.val) return; }
     for (let r=0;r<n-1;r++) for (let c=0;c<n;c++) { const a=G24._at(r,c),b=G24._at(r+1,c); if(!a||!b||a.val===b.val) return; }
-    G24.over=true;
+    G24.over=true; G24._history=[]; G24._undoLeft=0;  // Game Over 后清空撤销历史
   },
 
   _spawnParticle(evt) {
@@ -337,6 +340,36 @@ const G24 = {
     el.style.fontSize = (evt.val >= 256 ? Math.max(12, cfg.font - 6) : cfg.font) + 'px';
     container.appendChild(el);
     setTimeout(() => el.remove(), 750);
+  },
+
+  // ★ 撤销：保存状态快照（最多5步）
+  _saveState() {
+    G24._history.push({
+      tiles: G24.tiles.map(t => ({ id: t.id, val: t.val, row: t.row, col: t.col, isNew: !!t.isNew })),
+      score: G24.score,
+      over: G24.over,
+      won: G24.won,
+      nextId: G24.nextId,
+    });
+  },
+
+  // ★ 撤销：恢复到上一步
+  _undo() {
+    if (!G24.active || G24.moving || G24._history.length === 0 || G24._undoLeft <= 0) return;
+    G24._undoLeft--;
+    const state = G24._history.pop();
+    if (G24._animCleanup) G24._animCleanup = null;
+    G24.tiles = state.tiles.map(t => ({ ...t }));
+    G24.score = state.score;
+    G24.over = state.over;
+    G24.won = state.won;
+    G24.nextId = state.nextId;
+    G24.elMap = {};
+    G24._scored = G24.over;
+    G24._render();
+    G24._syncDOM(false);
+    G24._renderLeaderboard();
+    G24._updateUI();
   },
 
   _resize() {
@@ -369,7 +402,7 @@ const G24 = {
     if (G24.score>G24.best){G24.best=G24.score;localStorage.setItem('2048_best',G24.best);}
     const s=document.getElementById('g24-score'), b=document.getElementById('g24-best'), m=document.getElementById('g24-msg');
     if(s)s.textContent=G24.score; if(b)b.textContent=G24.best;
-    if(m){ if(G24.won&&!G24.over){m.style.display='flex';m.innerHTML='<div class="g2048-win">🎉 2048！<br><span style="font-size:13px;color:var(--dim)">继续挑战更高分？</span></div>';}else if(G24.over){m.style.display='flex';m.innerHTML='<div class="g2048-over">Game Over</div>';}else{m.style.display='none';m.innerHTML='';} }
+    if(m){ if(G24.won){m.style.display='flex';m.style.pointerEvents='none';m.innerHTML='<div class="g2048-win">🎉 2048！<br><span style="font-size:13px;color:var(--dim)">继续挑战更高分？</span></div>';}else if(G24.over){m.style.display='flex';m.style.pointerEvents='auto';m.innerHTML='<div class="g2048-over">Game Over</div>';}else{m.style.display='none';m.innerHTML='';} }
     if (G24.over && !G24._scored) {
       G24._scored = true;
       const rnd = G24._randomName();
@@ -379,6 +412,16 @@ const G24 = {
           + '<button onclick="G24._saveScore()" style="padding:4px 12px;background:var(--amber-dim);border:1px solid var(--amber);color:var(--amber);border-radius:4px;cursor:pointer;font-size:12px">保存分数</button>'
           + '</div>';
         setTimeout(() => { const inp = document.getElementById('g24-name-input'); if (inp) { inp.focus(); inp.select(); } }, 50);
+      }
+    }
+    // 撤销按钮状态
+    const undoBtn = document.getElementById('g24-undo-btn');
+    if (undoBtn) {
+      undoBtn.textContent = '↩ 撤销 (' + G24._undoLeft + ')';
+      if (G24._history.length === 0 || G24.moving || G24._undoLeft <= 0) {
+        undoBtn.style.opacity = '0.4'; undoBtn.style.pointerEvents = 'none';
+      } else {
+        undoBtn.style.opacity = '1'; undoBtn.style.pointerEvents = 'auto';
       }
     }
   },
