@@ -1,0 +1,24 @@
+name: security-scan
+
+on:
+  pull_request:
+    branches: [master]
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: 扫描可疑模式
+        run: |
+          echo "=== 检查硬编码密钥 ==="
+          grep -rn 'AIza\|sk-[a-zA-Z0-9]\{20,\}\|ghp_\|xox[baprs]-' --include="*.js" --include="*.json" . || echo "✅ 无密钥泄露"
+
+          echo "=== 检查 eval/exec 注入 ==="
+          grep -rn 'eval(\|child_process\.exec\|require(.child_process.)' --include="*.js" . || echo "✅ 无危险调用"
+
+          echo "=== 检查外部请求 ==="
+          grep -rn 'fetch(\|XMLHttpRequest\|\.open(' --include="*.js" . | grep -v 'googleapis\|github\|script.google.com\|cdn.jsdelivr' || echo "✅ 无未知外部请求"
+
+          echo "=== 检查混淆代码 ==="
+          grep -rn '\\x[0-9a-fA-F]\{2\}\|String\.fromCharCode\|atob(' --include="*.js" . || echo "✅ 无可疑混淆"
