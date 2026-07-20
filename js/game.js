@@ -1,6 +1,6 @@
 ﻿/* ═══════════════════════════════════════════════
    game.js — 游戏中心
-   2048 / 扫雷 / 数独，支持多难度/尺寸
+   2048 / 扫雷 / 数独 / 勇者牌局，支持多难度/尺寸
    ═══════════════════════════════════════════════ */
 
 // ── 游戏注册表 ──────────────────────────────────
@@ -8,6 +8,7 @@ const GAMES = {
   '2048':        { name: '2048',        icon: '🟩', diffs: ['4×4','5×5','6×6'] },
   'minesweeper': { name: '扫雷', icon: '💣', diffs: ['简单','中等','困难'] },
   'sudoku':      { name: '数独', icon: '🧩', diffs: ['简单','中等','困难'] },
+  'tetris':      { name: '俄罗斯方块', icon: '🧱', diffs: ['经典'] },
 };
 let gCurr = '2048', gDiff = 0;   // 当前游戏 & 难度索引
 const APPSCRIPT = 'https://script.google.com/macros/s/AKfycbyDR6xKzyevIhi3e1zgWC8KvnWH2JaB7ni7Eo_Md7SKknRASUOtRt8Hj_02470Z-CmV3w/exec';
@@ -54,6 +55,7 @@ function launchGame() {
   G24.init();
   MS.init();
   SD.init();
+  TETRIS.init();
   window._activeGame = gCurr;
 }
 
@@ -65,6 +67,7 @@ function deactivateGame() {
   G24.deactivate();
   MS.deactivate();
   SD.deactivate();
+  TETRIS.deactivate();
 }
 
 // ── 侧边栏折叠 ──────────────────────────────────
@@ -402,17 +405,47 @@ const G24 = {
     if (G24.score>G24.best){G24.best=G24.score;localStorage.setItem('2048_best',G24.best);}
     const s=document.getElementById('g24-score'), b=document.getElementById('g24-best'), m=document.getElementById('g24-msg');
     if(s)s.textContent=G24.score; if(b)b.textContent=G24.best;
-    if(m){ if(G24.won){m.style.display='flex';m.style.pointerEvents='none';m.innerHTML='<div class="g2048-win">🎉 2048！<br><span style="font-size:13px;color:var(--dim)">继续挑战更高分？</span></div>';}else if(G24.over){m.style.display='flex';m.style.pointerEvents='auto';m.innerHTML='<div class="g2048-over">Game Over</div>';}else{m.style.display='none';m.innerHTML='';} }
+    // ── Game Over / Win 遮罩 ──
+    if (m) {
+      if (G24.over) {
+        m.style.display = 'flex';
+        m.style.flexDirection = 'column';
+        m.style.pointerEvents = 'auto';
+        m.style.background = '';
+        m.innerHTML = '<div class="g2048-over">Game Over</div>';
+      } else {
+        m.style.display = 'none';
+        m.innerHTML = '';
+      }
+    }
+    // Game Over 名字 + 保存
     if (G24.over && !G24._scored) {
       G24._scored = true;
       const rnd = G24._randomName();
       if (m) {
-        m.innerHTML += '<div id="g24-name-wrap" style="margin-top:10px;display:flex;gap:6px;justify-content:center;align-items:center">'
+        m.innerHTML += '<div id="g24-name-wrap" style="margin-top:12px;display:flex;gap:6px;justify-content:center;align-items:center">'
           + '<input id="g24-name-input" value="' + rnd + '" style="width:120px;padding:4px 8px;background:var(--bg);border:1px solid var(--amber);border-radius:4px;color:var(--fg);font-size:13px;text-align:center" maxlength="16">'
           + '<button onclick="G24._saveScore()" style="padding:4px 12px;background:var(--amber-dim);border:1px solid var(--amber);color:var(--amber);border-radius:4px;cursor:pointer;font-size:12px">保存分数</button>'
           + '</div>';
         setTimeout(() => { const inp = document.getElementById('g24-name-input'); if (inp) { inp.focus(); inp.select(); } }, 50);
       }
+    }
+    // 获胜时在 grid 上方显示小横幅，不遮挡游戏
+    if (G24.won && !G24.over) {
+      const wrap = document.querySelector('#game-view .g2048-wrap');
+      if (wrap) {
+        const existing = document.getElementById('g24-won-badge');
+        if (!existing) {
+          const badge = document.createElement('div');
+          badge.id = 'g24-won-badge';
+          badge.style.cssText = 'font-size:13px;color:var(--amber);font-weight:700;text-align:center;padding:4px 0;margin-bottom:8px';
+          badge.textContent = '🏆 2048 达成！继续挑战更高分';
+          wrap.parentNode.insertBefore(badge, wrap);
+        }
+      }
+    } else {
+      const existing = document.getElementById('g24-won-badge');
+      if (existing) existing.remove();
     }
     // 撤销按钮状态
     const undoBtn = document.getElementById('g24-undo-btn');
@@ -493,7 +526,11 @@ const G24 = {
   },
 
   _submitRemote(name, score, ts) {
-    fetch(APPSCRIPT + '?action=lb_submit&name=' + encodeURIComponent(name) + '&score=' + score + '&size=' + G24.cfg.n + '&ts=' + encodeURIComponent(ts || ''), { mode: 'no-cors' }).catch(() => {});
+    // 用 Image beacon 替代 fetch no-cors，永不阻塞主线程
+    try {
+      const img = new Image();
+      img.src = APPSCRIPT + '?action=lb_submit&name=' + encodeURIComponent(name) + '&score=' + score + '&size=' + G24.cfg.n + '&ts=' + encodeURIComponent(ts || '');
+    } catch(e) {}
   },
 
   _renderLeaderboard() {
@@ -895,6 +932,409 @@ const SD = {
     });
   },
   _onResize() { clearTimeout(SD._rt); SD._rt = setTimeout(() => SD._resize(), 120); },
+};
+
+// ══════════════════════════════════════════════════
+//  俄罗斯方块 (Tetris)
+// ══════════════════════════════════════════════════
+const SHAPES = {
+  I: { shape:[[0,0,0,0],[1,1,1,1],[0,0,0,0],[0,0,0,0]] },
+  O: { shape:[[1,1],[1,1]] },
+  T: { shape:[[0,1,0],[1,1,1],[0,0,0]] },
+  S: { shape:[[0,1,1],[1,1,0],[0,0,0]] },
+  Z: { shape:[[1,1,0],[0,1,1],[0,0,0]] },
+  J: { shape:[[1,0,0],[1,1,1],[0,0,0]] },
+  L: { shape:[[0,0,1],[1,1,1],[0,0,0]] },
+};
+const TETRIS_KEYS = 'IJOTSZL';
+
+const TETRIS = {
+  active: false, grid:[], piece:null, next:null, score:0, level:1, lines:0,
+  px:0, py:0, timer:null, playerName:'', leaderboard:[], _rt:null,
+  _lastPiece:null, _lastPx:-1, _lastPy:-1,
+  _rafId:null, _paused:false,
+
+  get cfg() {
+    const cell = _fitCell(24, 10, 22, 220, 80);
+    return { cell, gap:1, cols:10, rows:20 };
+  },
+
+  init() {
+    if (gCurr !== 'tetris') return;
+    TETRIS.deactivate();
+    TETRIS.active = true;
+    TETRIS.score = 0; TETRIS.level = 1; TETRIS.lines = 0;
+    TETRIS.playerName = ''; TETRIS._over = false;
+    TETRIS._reset();        // 先初始化 grid + piece
+    TETRIS._render();       // 再渲染（确保 grid 非空）
+    TETRIS._syncDOM();      // 画上活动方块
+    TETRIS._fetchLB();
+    document.addEventListener('keydown', TETRIS._key);
+    window.addEventListener('resize', TETRIS._onResize);
+  },
+
+  deactivate() {
+    clearInterval(TETRIS.timer); TETRIS.timer = null;
+    document.removeEventListener('keydown', TETRIS._key);
+    window.removeEventListener('resize', TETRIS._onResize);
+    TETRIS.active = false;
+  },
+
+  _reset() {
+    TETRIS.grid = Array.from({length:20}, ()=>Array(10).fill(0));
+    TETRIS._spawn();
+    TETRIS._spawn();
+    TETRIS._startTick();
+  },
+
+  _spawn() {
+    if (TETRIS.next) {
+      TETRIS.piece = TETRIS.next;
+    } else {
+      const keys = TETRIS_KEYS;
+      TETRIS.piece = keys[Math.floor(Math.random()*7)];
+    }
+    TETRIS.next = TETRIS_KEYS[Math.floor(Math.random()*7)];
+    TETRIS.px = 3; TETRIS.py = 0;
+    // check collision
+    if (TETRIS._collision(TETRIS.piece, TETRIS.px, TETRIS.py)) {
+      TETRIS._over = true;
+      clearInterval(TETRIS.timer);
+      TETRIS._endGame();
+    }
+  },
+
+  _collision(key, px, py) {
+    const s = SHAPES[key].shape;
+    for (let r=0; r<s.length; r++) {
+      for (let c=0; c<s[r].length; c++) {
+        if (!s[r][c]) continue;
+        const nx = px + c, ny = py + r;
+        if (nx < 0 || nx >= 10 || ny >= 20) return true;
+        if (ny >= 0 && TETRIS.grid[ny][nx]) return true;
+      }
+    }
+    return false;
+  },
+
+  _lock() {
+    const s = SHAPES[TETRIS.piece].shape;
+    for (let r=0; r<s.length; r++) {
+      for (let c=0; c<s[r].length; c++) {
+        if (!s[r][c]) continue;
+        const nx = TETRIS.px + c, ny = TETRIS.py + r;
+        if (ny < 0) { TETRIS._over = true; return; }
+        TETRIS.grid[ny][nx] = 1;
+      }
+    }
+    // clear lines
+    const clearedRows = [];
+    for (let r = 19; r >= 0; r--) {
+      if (TETRIS.grid[r].every(cell => cell !== 0)) {
+        clearedRows.push(r);
+      }
+    }
+    if (clearedRows.length > 0) {
+      TETRIS._paused = true; // 暂停下落，播动画
+      TETRIS._burstParticles(clearedRows);
+      setTimeout(() => {
+        TETRIS._paused = false;
+        for (let i = clearedRows.length - 1; i >= 0; i--) {
+          TETRIS.grid.splice(clearedRows[i] + (clearedRows.length - 1 - i), 1);
+          TETRIS.grid.unshift(Array(10).fill(0));
+        }
+        const pts = [0, 100, 300, 500, 800];
+        TETRIS.score += (pts[clearedRows.length] || 800) * TETRIS.level;
+        TETRIS.lines += clearedRows.length;
+        TETRIS.level = Math.floor(TETRIS.lines / 10) + 1;
+        TETRIS._syncDOM();
+        TETRIS._startTick(); // 更新速度
+      }, 150);
+    }
+    TETRIS._spawn();
+  },
+
+  _startTick() {
+    clearInterval(TETRIS.timer);
+    cancelAnimationFrame(TETRIS._rafId);
+    const speed = Math.max(60, 600 - (TETRIS.level - 1) * 50);
+    TETRIS.timer = setInterval(() => {
+      if (!TETRIS.active || TETRIS._over || TETRIS._paused) return;
+      if (!TETRIS._collision(TETRIS.piece, TETRIS.px, TETRIS.py + 1)) {
+        TETRIS.py++;
+        TETRIS._syncPiecePos(false);
+      } else {
+        TETRIS._lock();
+        TETRIS._syncDOM();
+      }
+    }, speed);
+    // raf 仅用于保持 overlay 响应（处理 resize 等）
+    TETRIS._rafId = null;
+  },
+
+  _key(e) {
+    if (!TETRIS.active || TETRIS._over) return;
+    if (gCurr !== 'tetris') return;
+    let moved = false;
+    switch (e.key) {
+      case 'a': case 'A':
+        if (!TETRIS._collision(TETRIS.piece, TETRIS.px - 1, TETRIS.py)) { TETRIS.px--; moved = true; }
+        break;
+      case 'd': case 'D':
+        if (!TETRIS._collision(TETRIS.piece, TETRIS.px + 1, TETRIS.py)) { TETRIS.px++; moved = true; }
+        break;
+      case 'w': case 'W':
+        TETRIS._rotate(); moved = true;
+        break;
+      case 's': case 'S':
+        if (!TETRIS._collision(TETRIS.piece, TETRIS.px, TETRIS.py + 1)) { TETRIS.py++; moved = true; }
+        break;
+      case ' ':
+        e.preventDefault();
+        while (!TETRIS._collision(TETRIS.piece, TETRIS.px, TETRIS.py + 1)) TETRIS.py++;
+        TETRIS._lock();
+        moved = true;
+        break;
+    }
+    if (moved) { e.preventDefault(); TETRIS._syncPiecePos(false); TETRIS._syncDOM(); }
+  },
+
+  _rotate() {
+    const s = SHAPES[TETRIS.piece].shape;
+    const n = s.length;
+    // rotate clockwise
+    const rotated = Array.from({length:n}, (_,r) =>
+      Array.from({length:n}, (_,c) => s[n-1-c][r])
+    );
+    // try 0, then wall kicks
+    const kicks = [0, -1, 1, -2, 2];
+    for (const dx of kicks) {
+      const tmp = SHAPES[TETRIS.piece].shape;
+      SHAPES[TETRIS.piece].shape = rotated;
+      if (!TETRIS._collision(TETRIS.piece, TETRIS.px + dx, TETRIS.py)) {
+        TETRIS.px += dx;
+        return;
+      }
+      SHAPES[TETRIS.piece].shape = tmp; // restore
+    }
+  },
+
+  _endGame() {
+    clearInterval(TETRIS.timer);
+    const input = document.getElementById('tetris-name');
+    TETRIS.playerName = (input?.value || '').trim() || TETRIS._randName();
+    TETRIS._submitLB();
+  },
+
+  _randName() {
+    const adj = ['Swift','Storm','Shadow','Nova','Blaze','Frost','Ace','Neon','Zen','Hawk'];
+    const noun = ['Block','Line','Drop','Stack','Clear','Spin','Grid','Rush','Fall','Edge'];
+    return adj[Math.floor(Math.random()*adj.length)] + noun[Math.floor(Math.random()*noun.length)];
+  },
+
+  async _fetchLB() {
+    try {
+      const resp = await fetch(APPSCRIPT + '?action=lb_get&size=tetris', { mode:'no-cors' });
+    } catch(e){}
+    const local = JSON.parse(localStorage.getItem('tetris_lb')||'[]');
+    TETRIS.leaderboard = local.slice(0,15);
+  },
+
+  async _submitLB() {
+    const name = TETRIS.playerName;
+    const score = TETRIS.score;
+    try {
+      await fetch(APPSCRIPT + '?action=lb_submit&size=tetris&name=' + encodeURIComponent(name) + '&score=' + score, { mode:'no-cors' });
+    } catch(e){}
+    const lb = JSON.parse(localStorage.getItem('tetris_lb')||'[]');
+    lb.push({ name, score, lines: TETRIS.lines, level: TETRIS.level, ts: Date.now() });
+    lb.sort((a,b)=>b.score-a.score);
+    localStorage.setItem('tetris_lb', JSON.stringify(lb.slice(0,50)));
+    TETRIS.leaderboard = lb.slice(0,15);
+    TETRIS._render();
+  },
+
+  _render() {
+    const view = document.getElementById('game-view');
+    if (!view) return;
+    const c = TETRIS.cfg;
+    const cellPx = c.cell + c.gap;
+    const gridW = cellPx * 10 + 4;
+
+    let html = '<div class="tetris-wrap">';
+    // 主游戏区
+    html += '<div class="tetris-main">';
+    html += '<div class="tetris-grid" id="tetris-grid" style="width:' + gridW + 'px;grid-template-columns:repeat(10,' + cellPx + 'px);grid-template-rows:repeat(20,' + cellPx + 'px)">';
+    for (let r = 0; r < 20; r++) {
+      for (let col = 0; col < 10; col++) {
+        const filled = TETRIS.grid[r] && TETRIS.grid[r][col];
+        html += '<div class="tetris-cell' + (filled ? ' tetris-filled' : '') + '"></div>';
+      }
+    }
+    // 活动方块覆盖层
+    html += '<div id="tetris-piece"></div>';
+    html += '</div></div>';
+
+    // 侧边栏
+    const nextW = c.cell * 4 + 20;
+    html += '<div class="tetris-side" style="width:' + nextW + 'px">';
+    html += '<div class="tetris-score">' + TETRIS.score.toLocaleString() + '</div>';
+    html += '<div class="tetris-info">LV.' + TETRIS.level + ' | ' + TETRIS.lines + ' ⬜</div>';
+    // 预览
+    html += '<div class="tetris-next-label">NEXT</div>';
+    html += '<div class="tetris-next" id="tetris-next">';
+    if (TETRIS.next) {
+      const ns = SHAPES[TETRIS.next].shape;
+      const n = ns.length;
+      for (let r=0; r<n; r++) {
+        for (let c2=0; c2<ns[r].length; c2++) {
+          html += '<div class="tetris-mini' + (ns[r][c2] ? ' tetris-filled' : '') + '"></div>';
+        }
+        html += '<br>';
+      }
+    }
+    html += '</div>';
+
+    // 排行榜 top 15
+    html += '<div class="tetris-lb-title">🏅 TOP 15</div>';
+    html += '<div class="tetris-lb-list">';
+    if (TETRIS.leaderboard.length === 0) {
+      html += '<div class="tetris-lb-empty">暂无数据</div>';
+    } else {
+      TETRIS.leaderboard.forEach((e, i) => {
+        html += '<div class="tetris-lb-row"><span>' + (i+1) + '. ' + esc(e.name) + '</span><span>' + e.score.toLocaleString() + '</span></div>';
+      });
+    }
+    html += '</div>';
+
+    // Game Over 名字输入
+    if (TETRIS._over) {
+      html += '<div class="tetris-go">GAME OVER</div>';
+      html += '<input id="tetris-name" class="tetris-name-input" placeholder="输入名字" value="' + TETRIS._randName() + '">';
+      html += '<button class="tetris-submit" onclick="TETRIS._endGame()">📋 提交分数</button>';
+      html += '<button class="tetris-restart" onclick="TETRIS.init()">🔄 重新开始</button>';
+    }
+
+    html += '</div></div>'; // tetris-side, tetris-wrap
+    view.innerHTML = html;
+  },
+
+  // 更新方块位置（2048 动画模式：无过渡→设位→回流→开过渡）
+  _syncPiecePos(isSpawn) {
+    const pieceEl = document.getElementById('tetris-piece');
+    if (!pieceEl || !TETRIS.piece) return;
+    const c = TETRIS.cfg;
+    const cellPx = c.cell + c.gap;
+    const nx = TETRIS.px * cellPx;
+    const ny = TETRIS.py * cellPx;
+    if (isSpawn) {
+      pieceEl.style.transition = 'none';
+      pieceEl.style.left = nx + 'px';
+      pieceEl.style.top = ny + 'px';
+      void pieceEl.offsetHeight; // 强制回流
+      pieceEl.style.transition = '';
+    } else {
+      pieceEl.style.left = nx + 'px';
+      pieceEl.style.top = ny + 'px';
+    }
+  },
+
+  _syncDOM() {
+    if (TETRIS._over) return;
+    const c = TETRIS.cfg;
+    const cellPx = c.cell + c.gap;
+    // 更新已锁定的格子
+    const cells = document.querySelectorAll('#tetris-grid > .tetris-cell');
+    for (let r = 0; r < 20; r++) {
+      for (let col = 0; col < 10; col++) {
+        const idx = r * 10 + col;
+        if (cells[idx]) {
+          cells[idx].classList.toggle('tetris-filled', !!(TETRIS.grid[r] && TETRIS.grid[r][col]));
+        }
+      }
+    }
+    // 更新活动方块覆盖层
+    const pieceEl = document.getElementById('tetris-piece');
+    if (!pieceEl || !TETRIS.piece) return;
+    const changed = (TETRIS._lastPiece !== TETRIS.piece || TETRIS._lastPx !== TETRIS.px || TETRIS._lastPy !== TETRIS.py);
+    const spawned = (TETRIS._lastPiece !== TETRIS.piece);
+    if (changed) {
+      if (spawned) {
+        // 新方块：瞬间跳顶（无过渡）
+        TETRIS._syncPiecePos(true);
+      } else {
+        // 旋转/平移：正常过渡
+        TETRIS._syncPiecePos(false);
+      }
+      // 重建方块内部 HTML
+      const s = SHAPES[TETRIS.piece].shape;
+      const n = s.length;
+      let pieceHtml = '';
+      for (let r=0; r<n; r++) {
+        for (let c2=0; c2<s[r].length; c2++) {
+          if (s[r][c2]) {
+            pieceHtml += '<div class="tetris-cell tetris-filled" style="position:absolute;left:' + (c2*cellPx) + 'px;top:' + (r*cellPx) + 'px;width:' + cellPx + 'px;height:' + cellPx + 'px"></div>';
+          }
+        }
+      }
+      pieceEl.innerHTML = pieceHtml;
+    }
+    TETRIS._lastPiece = TETRIS.piece;
+    TETRIS._lastPx = TETRIS.px;
+    TETRIS._lastPy = TETRIS.py;
+    // 更新 NEXT 预览
+    TETRIS._updateNext();
+  },
+
+  _updateNext() {
+    const el = document.getElementById('tetris-next');
+    if (!el || !TETRIS.next) return;
+    const ns = SHAPES[TETRIS.next].shape;
+    const n = ns.length;
+    let h = '';
+    for (let r=0; r<n; r++) {
+      for (let c2=0; c2<ns[r].length; c2++) {
+        h += '<div class="tetris-mini' + (ns[r][c2] ? ' tetris-filled' : '') + '"></div>';
+      }
+      h += '<br>';
+    }
+    el.innerHTML = h;
+  },
+
+  // ── 消行粒子 ──
+  _burstParticles(rows) {
+    const gridEl = document.getElementById('tetris-grid');
+    if (!gridEl) return;
+    const c = TETRIS.cfg;
+    const cellPx = c.cell + c.gap;
+    rows.forEach(r => {
+      for (let col = 0; col < 10; col++) {
+        const cx = col * cellPx + cellPx / 2;
+        const cy = r * cellPx + cellPx / 2;
+        for (let i = 0; i < 8; i++) {
+          const p = document.createElement('div');
+          p.className = 'tetris-particle';
+          const angle = (Math.PI * 2 * i / 8) + Math.random() * 0.5;
+          const dist = 20 + Math.random() * 30;
+          const dx = Math.cos(angle) * dist;
+          const dy = Math.sin(angle) * dist;
+          p.style.cssText = 'left:' + cx + 'px;top:' + cy + 'px;'
+            + '--dx:' + dx + 'px;--dy:' + dy + 'px;'
+            + '--rot:' + (Math.random()*360) + 'deg;'
+            + '--delay:' + (Math.random()*0.1) + 's;'
+            + 'width:' + (4+Math.random()*4) + 'px;height:' + (4+Math.random()*4) + 'px;';
+          gridEl.appendChild(p);
+          setTimeout(() => p.remove(), 600);
+        }
+      }
+    });
+  },
+
+  _resize() {
+    TETRIS._render();
+    TETRIS._syncDOM();
+  },
+  _onResize() { clearTimeout(TETRIS._rt); TETRIS._rt = setTimeout(() => { TETRIS._resize(); TETRIS._syncDOM(); }, 120); },
 };
 
 // ── init2048 兼容旧引用 ─────────────────────────

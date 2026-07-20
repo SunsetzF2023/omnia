@@ -39,7 +39,7 @@ function signIn() {
 // ── Electron 桌面版登录 ───────────────────────
 function signInElectron() {
   const REDIRECT = 'http://localhost:3000/callback';
-  const SCOPE = encodeURIComponent(SCOPES + ' https://www.googleapis.com/auth/userinfo.profile');
+  const SCOPE = encodeURIComponent(SCOPES + ' https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email');
 
   // 授权回调 — Electron 主进程通过 executeJavaScript 调用此函数传递 token
   window.__electronToken = async function(accessToken) {
@@ -55,7 +55,8 @@ function signInElectron() {
     + '?client_id=' + CLIENT_ID
     + '&redirect_uri=' + encodeURIComponent(REDIRECT)
     + '&response_type=token'
-    + '&scope=' + SCOPE;
+    + '&scope=' + SCOPE
+    + '&prompt=consent';
 
   window.open(authUrl, '_blank');
 }
@@ -63,7 +64,7 @@ function signInElectron() {
 // ── Web 版登录（GitHub Pages） ────────────────
 function signInWeb() {
   const REDIRECT = window.location.origin + window.location.pathname;
-  const SCOPE = encodeURIComponent(SCOPES + ' https://www.googleapis.com/auth/userinfo.profile');
+  const SCOPE = encodeURIComponent(SCOPES + ' https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email');
 
   const authUrl = 'https://accounts.google.com/o/oauth2/v2/auth'
     + '?client_id=' + CLIENT_ID
@@ -167,6 +168,11 @@ async function tryRestoreSession() {
     name: r.name || r.email || '',
     picture: r.picture || ''
   }));
+  // 存储邮箱 + 检测开发者模式
+  if (r.email) {
+    localStorage.setItem('omnia_email', r.email);
+    if (typeof _checkDevMode === 'function') _checkDevMode(r.email);
+  }
 
   showApp();
   if (typeof loadFromDrive === 'function') await loadFromDrive();
@@ -209,6 +215,8 @@ async function fetchUserInfo() {
   if (!r) return;
   const displayName = r.name || r.email || '';
   document.getElementById('user-name').textContent = displayName;
+  // 检测开发者模式
+  if (r.email) _checkDevMode(r.email);
   const avatarEl = document.getElementById('avatar');
   if (r.picture && avatarEl) {
     avatarEl.src = r.picture;

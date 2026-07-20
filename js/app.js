@@ -17,6 +17,162 @@ const DRAFT_KEY  = 'cmdbook_draft_v2';
 const CURRENCIES = { HKD: 'HK$', CNY: 'CN¥', USD: 'US$' };
 
 // ═══════════════════════════════════════════════
+// 错误上报系统
+// ═══════════════════════════════════════════════
+const ERROR_LOG_KEY = 'omnia_error_log';
+const DEV_EMAILS = ['2867440557ftt@gmail.com', '2867440557@qq.com'];
+let _devMode = false;
+
+(function initErrorReporter() {
+  const _origError = window.onerror;
+  window.onerror = function(msg, src, line, col, err) {
+    // 收集错误
+    const entry = {
+      msg: String(msg).slice(0, 200),
+      src: String(src || '').slice(0, 200),
+      line: line || 0,
+      ts: Date.now(),
+      ua: navigator.userAgent.slice(0, 100)
+    };
+    try {
+      const log = JSON.parse(localStorage.getItem(ERROR_LOG_KEY) || '[]');
+      log.push(entry);
+      // 保留最近 100 条
+      if (log.length > 100) log.splice(0, log.length - 100);
+      localStorage.setItem(ERROR_LOG_KEY, JSON.stringify(log));
+      // 发送到 Apps Script
+      const url = 'https://script.google.com/macros/s/AKfycbyDR6xKzyevIhi3e1zgWC8KvnWH2JaB7ni7Eo_Md7SKknRASUOtRt8Hj_02470Z-CmV3w/exec?action=err_report&msg=' + encodeURIComponent(entry.msg) + '&src=' + encodeURIComponent(entry.src) + '&line=' + entry.line + '&ua=' + encodeURIComponent(entry.ua);
+      new Image().src = url;
+    } catch(e) {}
+    if (_origError) _origError.call(window, msg, src, line, col, err);
+    return true;
+  };
+})();
+
+// ═══════════════════════════════════════════════
+// 开发者模式检测（登录后调用 _checkDevMode）
+// ═══════════════════════════════════════════════
+function _checkDevMode(email) {
+  if (!email) { _devMode = false; return; }
+  _devMode = DEV_EMAILS.some(e => email.toLowerCase() === e.toLowerCase());
+
+  // 直接在 body 上插入浮动 DEV 标志，不依赖 DOM ready
+  function _showBadge(color, title) {
+    if (document.getElementById('dev-float-badge')) return;
+    var b = document.createElement('div');
+    b.id = 'dev-float-badge';
+    b.style.cssText = 'position:fixed;bottom:10px;right:10px;z-index:99998;padding:4px 10px;border-radius:4px;font-size:11px;font-family:monospace;cursor:pointer;background:' + (color === 'gold' ? 'var(--amber-dim)' : 'var(--bg3)') + ';color:' + (color === 'gold' ? 'var(--amber)' : 'var(--dim)') + ';border:1px solid ' + (color === 'gold' ? 'var(--amber)' : 'var(--border)');
+    b.textContent = _devMode ? '🛠 DEV' : '🐛 ' + email;
+    b.title = title || '';
+    b.onclick = _devMode ? _toggleDevPanel : null;
+    document.body.appendChild(b);
+  }
+
+  if (_devMode) {
+    _showBadge('gold', 'Ctrl+Shift+D 打开控制台');
+    // 同时更新 header 中的 dev-badge（如果存在）
+    var hdrBadge = document.getElementById('dev-badge');
+    if (hdrBadge) hdrBadge.style.display = 'inline-block';
+  } else {
+    _showBadge('dim', '非开发者账号');
+    var hdrBadge = document.getElementById('dev-badge');
+    if (hdrBadge) { hdrBadge.style.display = 'inline-block'; hdrBadge.style.opacity = '0.3'; hdrBadge.title = email; }
+  }
+
+  // 快捷键
+  document.addEventListener('keydown', function(e) {
+    if (e.ctrlKey && e.shiftKey && e.key === 'D') {
+      e.preventDefault();
+      _toggleDevPanel();
+    }
+  });
+}
+
+function _toggleDevPanel() {
+  if (!_devMode) return;
+  let panel = document.getElementById('dev-panel');
+  if (panel) { panel.remove(); return; }
+
+  // 先渲染面板骨架
+  panel = document.createElement('div');
+  panel.id = 'dev-panel';
+  panel.innerHTML =
+    '<div style="position:fixed;top:50px;right:10px;width:440px;max-height:85vh;background:var(--bg2);border:1px solid var(--amber);border-radius:8px;z-index:99999;padding:16px;overflow-y:auto;font-size:11px;font-family:var(--mono);color:var(--text);box-shadow:0 8px 32px rgba(0,0,0,.5)">'
+    + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><b style="color:var(--amber);font-size:14px">🛠 开发者控制台</b><button onclick="document.getElementById(\'dev-panel\').remove()" style="background:none;border:none;color:var(--dim);cursor:pointer;font-size:16px">✕</button></div>'
+    + '<div style="margin-bottom:10px"><b>系统信息</b><br>UA: ' + esc(navigator.userAgent.slice(0,80)) + '<br>屏幕: ' + screen.width + '×' + screen.height + ' @' + window.devicePixelRatio + 'x<br>在线: ' + (navigator.onLine ? '✅' : '❌') + ' | Token: ' + (token ? '✅' : '❌') + ' | Electron: ' + (!!window.electronAPI ? '✅' : '❌') + '<br>本地错误: <span id="dev-err-local">...</span> 条 | 远程错误: <span id="dev-err-remote">加载中...</span></div>'
+    + '<div style="margin-bottom:10px"><b>远程错误日志（所有用户）</b> <button id="dev-refresh-btn" onclick="_devRefreshErrors()" style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:2px 8px;border-radius:4px;cursor:pointer;font-size:10px;transition:all .15s" onmousedown="this.style.background=\'var(--amber-dim)\';this.style.color=\'var(--amber)\'" onmouseup="this.style.background=\'\';this.style.color=\'\'">🔄 刷新</button> <button onclick="_devTestError()" style="background:var(--bg3);border:1px solid var(--red);color:var(--red);padding:2px 8px;border-radius:4px;cursor:pointer;font-size:10px">🧪 测试</button><br><div id="dev-err-list" style="max-height:300px;overflow-y:auto">加载中...</div></div>'
+    + '<div style="margin-bottom:10px"><b>快捷操作</b><br>'
+    + '<button onclick="if(confirm(\'只清空本地错误日志，不会影响笔记/账本/游戏数据。确认？\')){localStorage.removeItem(\'' + ERROR_LOG_KEY + '\');_devRefreshErrors();}" style="background:var(--bg3);border:1px solid var(--border);color:var(--amber);padding:4px 8px;border-radius:4px;cursor:pointer;font-size:11px;margin-right:4px">🧹 清空本地错误日志</button>'
+    + '<button onclick="_devClearRemoteErrors()" style="background:var(--bg3);border:1px solid var(--border);color:var(--amber);padding:4px 8px;border-radius:4px;cursor:pointer;font-size:11px">🧹 清空远程错误</button>'
+    + '</div>'
+    + '<div style="color:var(--dim);text-align:center;margin-top:8px">Ctrl+Shift+D 开关此面板</div>'
+    + '</div>';
+  document.body.appendChild(panel);
+
+  // 异步加载远程错误
+  _devRefreshErrors();
+}
+
+// 刷新远程错误
+function _devRefreshErrors() {
+  const btn = document.getElementById('dev-refresh-btn');
+  if (btn) { btn.textContent = '⏳ 刷新中...'; btn.disabled = true; }
+  const APPSCRIPT = 'https://script.google.com/macros/s/AKfycbyDR6xKzyevIhi3e1zgWC8KvnWH2JaB7ni7Eo_Md7SKknRASUOtRt8Hj_02470Z-CmV3w/exec';
+  // 更新本地计数
+  const localLog = JSON.parse(localStorage.getItem(ERROR_LOG_KEY) || '[]');
+  const localEl = document.getElementById('dev-err-local');
+  if (localEl) localEl.textContent = localLog.length;
+
+  // 拉取远程
+  fetch(APPSCRIPT + '?action=err_list')
+    .then(r => r.json())
+    .then(log => {
+      const el = document.getElementById('dev-err-remote');
+      const list = document.getElementById('dev-err-list');
+      if (el) el.textContent = Array.isArray(log) ? log.length : 0;
+      if (list) {
+        if (!Array.isArray(log) || log.length === 0) {
+          list.innerHTML = '<span style="color:var(--green)">无远程错误 ✅</span>';
+          return;
+        }
+        const recent = log.slice(-20).reverse();
+        list.innerHTML = recent.map((e, i) =>
+          '<div style="margin:3px 0;padding:4px 6px;background:var(--bg3);border-radius:4px;border-left:2px solid var(--red)">'
+          + '<span style="color:var(--red)">' + esc(e.msg || '') + '</span><br>'
+          + '<span style="color:var(--dim)">' + esc(e.src || '') + ':' + (e.line || 0)
+          + ' | ' + (e.ts ? new Date(e.ts).toLocaleString() : '')
+          + ' | UA: ' + esc((e.ua || '').slice(0, 40)) + '</span>'
+          + '</div>'
+        ).join('');
+      }
+      if (btn) { btn.textContent = '🔄 刷新 ✓'; btn.disabled = false; setTimeout(() => { if(btn) btn.textContent = '🔄 刷新'; }, 1500); }
+    })
+    .catch(() => {
+      const el = document.getElementById('dev-err-remote');
+      const list = document.getElementById('dev-err-list');
+      if (el) el.textContent = '❌';
+      if (list) list.innerHTML = '<span style="color:var(--red)">无法连接远程</span>';
+      if (btn) { btn.textContent = '🔄 刷新 ✗'; btn.disabled = false; setTimeout(() => { if(btn) btn.textContent = '🔄 刷新'; }, 2000); }
+    });
+}
+
+// 发送测试错误
+function _devTestError() {
+  var btn = document.querySelector('#dev-panel button');
+  var url = 'https://script.google.com/macros/s/AKfycbyDR6xKzyevIhi3e1zgWC8KvnWH2JaB7ni7Eo_Md7SKknRASUOtRt8Hj_02470Z-CmV3w/exec?action=err_report&msg=DEV测试错误&src=dev-panel&line=0&ua=' + encodeURIComponent(navigator.userAgent.slice(0,60));
+  new Image().src = url;
+  // 也触发本地的 error handler
+  setTimeout(() => { throw new Error('DEV测试错误 - 验证上报链路'); }, 100);
+}
+
+// 清空远程错误
+function _devClearRemoteErrors() {
+  const APPSCRIPT = 'https://script.google.com/macros/s/AKfycbyDR6xKzyevIhi3e1zgWC8KvnWH2JaB7ni7Eo_Md7SKknRASUOtRt8Hj_02470Z-CmV3w/exec';
+  if (!confirm('确认清空所有远程错误日志？')) return;
+  fetch(APPSCRIPT + '?action=err_clear').then(() => _devRefreshErrors()).catch(() => {});
+}
+
+// ═══════════════════════════════════════════════
 // 共享状态
 // ═══════════════════════════════════════════════
 let token = null;
@@ -117,8 +273,11 @@ function uid() {
 }
 
 function fmtDate(ts) {
-  return new Date(ts).toLocaleDateString('zh-CN', {
+  const d = new Date(ts);
+  return d.toLocaleDateString('zh-CN', {
     year: 'numeric', month: 'short', day: 'numeric'
+  }) + ' ' + d.toLocaleTimeString('zh-CN', {
+    hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
   });
 }
 
@@ -362,6 +521,9 @@ function updateResSelect() {
 document.addEventListener('DOMContentLoaded', () => {
   updateResSelect();
   if (typeof _initSidebarState === 'function') _initSidebarState();
+  // 兜底：从 localStorage 读取邮箱检测开发者
+  const savedEmail = localStorage.getItem('omnia_email');
+  if (savedEmail && typeof _checkDevMode === 'function') _checkDevMode(savedEmail);
   const el = document.getElementById('update-status');
   if (el) {
     el.addEventListener('click', function() {
