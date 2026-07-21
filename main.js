@@ -206,17 +206,28 @@ function createWindow() {
   })
 
   // ★ 关闭前先让渲染进程完成保存
+  let quitTimeout = null;
   mainWindow.on('close', (e) => {
     if (!forceQuit) {
       e.preventDefault()
       mainWindow.webContents.send('save-before-quit')
-      // 安全超时：5秒后强制退出
-      setTimeout(() => {
+      // 安全超时：10秒后强制退出
+      quitTimeout = setTimeout(() => {
         if (!forceQuit) {
           forceQuit = true
-          mainWindow.destroy()
+          mainWindow.close()
         }
-      }, 5000)
+      }, 10000)
+    }
+  })
+
+  // 渲染进程保存完毕 → 可以安全退出
+  const { ipcMain } = require('electron')
+  ipcMain.on('quit-ready', () => {
+    if (!forceQuit) {
+      forceQuit = true
+      clearTimeout(quitTimeout)
+      mainWindow.close()
     }
   })
 

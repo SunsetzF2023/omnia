@@ -605,7 +605,7 @@ const G24 = {
 // ══════════════════════════════════════════════════
 const MS = {
   board:[], rows:0, cols:0, mines:0, revealed:0, flags:0, over:false, first:true, active:false,
-  _cellS:0,
+  _cellS:0, _timer:0, _timerId:null, _playerName:'', _leaderboard:[], _lbPage:0,
 
   get cfg() {
     const diffs = [
@@ -614,7 +614,7 @@ const MS = {
       { rows:30, cols:16, mines:99, cs:26, fs:11 },
     ];
     const d = diffs[gDiff] || diffs[0];
-    const cell = _fitCell(d.cs, d.cols, d.rows, 30, 100);
+    const cell = _fitCell(d.cs, d.cols, d.rows, 30, 110);
     const ratio = cell / d.cs;
     return { rows: d.rows, cols: d.cols, mines: d.mines, cs: cell, fs: Math.max(9, Math.round(d.fs * ratio)) };
   },
@@ -625,15 +625,34 @@ const MS = {
     MS.active = true;
     const c=MS.cfg; MS.rows=c.rows; MS.cols=c.cols; MS.mines=c.mines; MS._cellS=c.cs;
     MS.board=[]; MS.revealed=0; MS.flags=0; MS.over=false; MS.first=true;
+    MS._timer=0; MS._timerId=null; MS._playerName='';
     for (let r=0;r<MS.rows;r++) { MS.board[r]=[]; for (let co=0;co<MS.cols;co++) MS.board[r][co]={mine:false,revealed:false,flag:false,adj:0}; }
     MS._render();
+    MS._fetchLB();
     document.addEventListener('keydown', MS._key);
     document.addEventListener('contextmenu', MS._ctx);
     window.addEventListener('resize', MS._onResize);
   },
 
-  deactivate() { document.removeEventListener('keydown',MS._key); document.removeEventListener('contextmenu',MS._ctx); window.removeEventListener('resize',MS._onResize); MS.active=false; },
+  deactivate() { MS._stopTimer(); document.removeEventListener('keydown',MS._key); document.removeEventListener('contextmenu',MS._ctx); window.removeEventListener('resize',MS._onResize); MS.active=false; },
 
+  _startTimer() {
+    if (MS._timerId) return;
+    MS._timerId = setInterval(() => { MS._timer++; MS._updateTimer(); }, 1000);
+  },
+  _stopTimer() { clearInterval(MS._timerId); MS._timerId = null; },
+  _updateTimer() {
+    const el = document.getElementById('ms-timer');
+    if (el) el.textContent = String(Math.min(999, MS._timer)).padStart(3, '0');
+  },
+
+  _randName() {
+    const a=['Swift','Storm','Shadow','Nova','Blaze','Frost','Ace','Neon','Zen','Hawk'];
+    const n=['Sweep','Clear','Flag','Mine','Grid','Cell','Click','Scan','Edge','Path'];
+    return a[Math.floor(Math.random()*a.length)]+n[Math.floor(Math.random()*n.length)];
+  },
+
+  // ── 渲染 ──
   _render() {
     const view = document.getElementById('game-view');
     if (!view||!MS.active) return;
@@ -642,9 +661,11 @@ const MS = {
       '<div class="ms-topbar">'
       + '<div class="ms-counter" id="ms-mines">'+String(MS.mines-MS.flags).padStart(3,'0')+'</div>'
       + '<span class="ms-face" id="ms-face" onclick="MS.init()">😊</span>'
-      + '<button class="ms-new-btn" onclick="MS.init()">新游戏</button></div>'
+      + '<div class="ms-counter" id="ms-timer">000</div>'
+      + '<button class="ms-new-btn" onclick="MS.init()" style="margin-left:8px">新游戏</button></div>'
       + '<div class="ms-grid" id="ms-grid" style="grid-template-columns:repeat('+MS.cols+','+c.cs+'px);"></div>'
-      + '<div class="gm-hint">左键翻开 | 右键 / F 插旗</div>';
+      + '<div class="ms-lb-panel" id="ms-lb"></div>'
+      + '<div class="gm-hint">左键翻开 | 右键/F 插旗 | 双击数字自动翻开</div>';
     const grid = document.getElementById('ms-grid');
     for (let r=0;r<MS.rows;r++) for (let co=0;co<MS.cols;co++) {
       const cell = document.createElement('div');
@@ -652,70 +673,206 @@ const MS = {
       cell.style.width=c.cs+'px'; cell.style.height=c.cs+'px'; cell.style.fontSize=c.fs+'px';
       cell.dataset.r=r; cell.dataset.c=co;
       cell.onclick = () => MS.reveal(r,co);
+      cell.ondblclick = () => MS._chord(r,co);
       cell.oncontextmenu = () => { MS.toggleFlag(r,co); return false; };
       grid.appendChild(cell);
     }
+    MS._renderLB();
   },
 
+  // ── 布雷（首次点击安全区 3×3，周围不放雷） ──
   _placeMines(sr,sc) {
-    const cand=[]; for (let r=0;r<MS.rows;r++) for (let co=0;co<MS.cols;co++) if (Math.abs(r-sr)>1||Math.abs(co-sc)>1) cand.push({r,co});
-    for (let i=cand.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[cand[i],cand[j]]=[cand[j],cand[i]];}
-    for (let i=0;i<Math.min(MS.mines,cand.length);i++) MS.board[cand[i].r][cand[i].co].mine=true;
+    const safe = new Set();
+    for (let dr=-1;dr<=1;dr++) for (let dc=-1;dc<=1;dc++) {
+      const nr=sr+dr, nc=sc+dc;
+      if (nr>=0&&nr<MS.rows&&nc>=0&&nc<MS.cols) safe.add(nr*MS.cols+nc);
+    }
+    // 收集所有不在安全区的格子
+    const cand=[];
     for (let r=0;r<MS.rows;r++) for (let co=0;co<MS.cols;co++) {
-      if (MS.board[r][co].mine) continue;
-      let a=0; for (let dr=-1;dr<=1;dr++) for (let dc=-1;dc<=1;dc++) { const nr=r+dr,nc=co+dc; if (nr>=0&&nr<MS.rows&&nc>=0&&nc<MS.cols&&MS.board[nr][nc].mine) a++; }
+      if (!safe.has(r*MS.cols+co)) cand.push(r*MS.cols+co);
+    }
+    // Fisher-Yates 洗牌
+    for (let i=cand.length-1;i>0;i--) {
+      const j=Math.floor(Math.random()*(i+1));
+      [cand[i],cand[j]]=[cand[j],cand[i]];
+    }
+    // 放置地雷
+    const toPlace = Math.min(MS.mines, cand.length);
+    for (let i=0;i<toPlace;i++) {
+      const idx = cand[i];
+      const r = Math.floor(idx / MS.cols), co = idx % MS.cols;
+      MS.board[r][co].mine = true;
+    }
+    // 计算邻雷数
+    for (let r=0;r<MS.rows;r++) for (let co=0;co<MS.cols;co++) {
+      if (MS.board[r][co].mine) { MS.board[r][co].adj = -1; continue; }
+      let a=0;
+      for (let dr=-1;dr<=1;dr++) for (let dc=-1;dc<=1;dc++) {
+        if (dr===0&&dc===0) continue;
+        const nr=r+dr, nc=co+dc;
+        if (nr>=0&&nr<MS.rows&&nc>=0&&nc<MS.cols&&MS.board[nr][nc].mine) a++;
+      }
       MS.board[r][co].adj=a;
     }
   },
 
   _getCell(r,c) { const grid=document.getElementById('ms-grid'); return grid?grid.children[r*MS.cols+c]:null; },
 
+  // ── 左键翻开 ──
   reveal(r,c) {
-    if (MS.over||!MS.active||MS.board[r][c].revealed||MS.board[r][c].flag) return;
-    if (MS.first) { MS._placeMines(r,c); MS.first=false; }
+    if (MS.over||!MS.active) return;
     const b=MS.board[r][c];
+    if (!b||b.revealed||b.flag) return;
+    if (MS.first) { MS._placeMines(r,c); MS.first=false; MS._startTimer(); }
     if (b.mine) {
-      b.revealed=true; MS.over=true;
-      for (let rr=0;rr<MS.rows;rr++) for (let cc=0;cc<MS.cols;cc++) if (MS.board[rr][cc].mine) { const el=MS._getCell(rr,cc); if(el){el.classList.add('revealed','mine');el.textContent='💥';} }
+      b.revealed=true; MS.over=true; MS._stopTimer();
+      // 显示所有地雷
+      for (let rr=0;rr<MS.rows;rr++) for (let cc=0;cc<MS.cols;cc++) {
+        if (!MS.board[rr][cc].mine) continue;
+        const el=MS._getCell(rr,cc); if(!el) continue;
+        if (rr===r&&cc===c) { el.classList.add('revealed','mine-hit'); el.textContent='💥'; }
+        else if (!MS.board[rr][cc].flag) { el.classList.add('revealed','mine'); el.textContent='💣'; }
+      }
+      // 错误标记
+      for (let rr=0;rr<MS.rows;rr++) for (let cc=0;cc<MS.cols;cc++) {
+        if (MS.board[rr][cc].flag && !MS.board[rr][cc].mine) {
+          const el=MS._getCell(rr,cc); if(el){el.textContent='❌';el.classList.add('revealed','wrong');}
+        }
+      }
       const face=document.getElementById('ms-face'); if(face)face.textContent='😵';
+      MS._showGameOver();
       return;
     }
     MS._flood(r,c);
     MS._checkWin();
   },
 
+  // ── 泛洪展开 ──
   _flood(r,c) {
-    const b=MS.board[r][c]; if (b.revealed||b.flag||b.mine) return;
+    if (r<0||r>=MS.rows||c<0||c>=MS.cols) return;
+    const b=MS.board[r][c];
+    if (!b||b.revealed||b.flag||b.mine) return;
     b.revealed=true; MS.revealed++;
     const el=MS._getCell(r,c); if(!el) return;
     el.classList.add('revealed');
-    if (b.adj>0) { const nc=['','n1','n2','n3','n4','n5','n6','n7','n8']; el.innerHTML='<span class="'+nc[b.adj]+'">'+b.adj+'</span>'; }
-    else { if (r>0) MS._flood(r-1,c); if (r<MS.rows-1) MS._flood(r+1,c); if (c>0) MS._flood(r,c-1); if (c<MS.cols-1) MS._flood(r,c+1);
-      if (r>0&&c>0) MS._flood(r-1,c-1); if (r>0&&c<MS.cols-1) MS._flood(r-1,c+1); if (r<MS.rows-1&&c>0) MS._flood(r+1,c-1); if (r<MS.rows-1&&c<MS.cols-1) MS._flood(r+1,c+1); }
+    if (b.adj>0) {
+      const nc=['','n1','n2','n3','n4','n5','n6','n7','n8'];
+      el.innerHTML='<span class="'+nc[b.adj]+'">'+b.adj+'</span>';
+    } else {
+      for (let dr=-1;dr<=1;dr++) for (let dc=-1;dc<=1;dc++) {
+        if (dr===0&&dc===0) continue;
+        MS._flood(r+dr,c+dc);
+      }
+    }
   },
 
+  // ── 右键标旗 ──
   toggleFlag(r,c) {
-    if (MS.over||!MS.active||MS.board[r][c].revealed) return;
-    const b=MS.board[r][c]; b.flag=!b.flag; MS.flags+=b.flag?1:-1;
+    if (MS.over||!MS.active) return;
+    const b=MS.board[r][c]; if (!b||b.revealed) return;
+    b.flag=!b.flag; MS.flags+=b.flag?1:-1;
     const el=MS._getCell(r,c); if(el){el.textContent=b.flag?'🚩':''; if(b.flag)el.classList.add('flag');else el.classList.remove('flag');}
     const mc=document.getElementById('ms-mines'); if(mc)mc.textContent=String(Math.max(0,MS.mines-MS.flags)).padStart(3,'0');
+    if (!MS.first) MS._checkWin();
   },
 
-  _hasConflict(r,c) {
-    const v=SD.board[r][c]; if (v===0) return false;
-    for (let i=0;i<9;i++) { if (i!==c&&SD.board[r][i]===v) return true; if (i!==r&&SD.board[i][c]===v) return true; }
-    const br=Math.floor(r/3)*3, bc=Math.floor(c/3)*3;
-    for (let rr=br;rr<br+3;rr++) for (let cc=bc;cc<bc+3;cc++) if ((rr!==r||cc!==c)&&SD.board[rr][cc]===v) return true;
-    return false;
+  // ── 双击数字自动翻开（和弦 Chord） ──
+  _chord(r,c) {
+    if (MS.over||!MS.active) return;
+    const b=MS.board[r][c]; if (!b||!b.revealed||b.adj<=0) return;
+    // 数周围旗子
+    let flagCount=0;
+    for (let dr=-1;dr<=1;dr++) for (let dc=-1;dc<=1;dc++) {
+      if (dr===0&&dc===0) continue;
+      const nr=r+dr, nc=c+dc;
+      if (nr>=0&&nr<MS.rows&&nc>=0&&nc<MS.cols&&MS.board[nr][nc].flag) flagCount++;
+    }
+    if (flagCount!==b.adj) return; // 旗数不匹配，不操作
+    // 翻开周围未标记的格子
+    for (let dr=-1;dr<=1;dr++) for (let dc=-1;dc<=1;dc++) {
+      if (dr===0&&dc===0) continue;
+      const nr=r+dr, nc=c+dc;
+      if (nr>=0&&nr<MS.rows&&nc>=0&&nc<MS.cols) MS.reveal(nr,nc);
+    }
   },
 
+  // ── 胜利判定 ──
   _checkWin() {
-    let unrevealed=0; for (let r=0;r<MS.rows;r++) for (let c=0;c<MS.cols;c++) if (!MS.board[r][c].revealed) unrevealed++;
-    if (unrevealed===MS.mines) { MS.over=true; const face=document.getElementById('ms-face'); if(face)face.textContent='😎';
-      for (let r=0;r<MS.rows;r++) for (let c=0;c<MS.cols;c++) if (MS.board[r][c].mine&&!MS.board[r][c].flag) { MS.board[r][c].flag=true; const el=MS._getCell(r,c); if(el)el.textContent='🚩'; } }
+    let unrevealed=0;
+    for (let r=0;r<MS.rows;r++) for (let c=0;c<MS.cols;c++) if (!MS.board[r][c].revealed) unrevealed++;
+    if (unrevealed!==MS.mines) return;
+    MS.over=true; MS._stopTimer();
+    const face=document.getElementById('ms-face'); if(face)face.textContent='😎';
+    // 自动标旗剩余地雷
+    for (let r=0;r<MS.rows;r++) for (let c=0;c<MS.cols;c++) {
+      if (MS.board[r][c].mine&&!MS.board[r][c].flag) {
+        MS.board[r][c].flag=true;
+        const el=MS._getCell(r,c); if(el)el.textContent='🚩';
+      }
+    }
+    MS._showGameOver();
   },
 
-  _key(e) { if (e.key==='f'||e.key==='F') { e.preventDefault(); /* handled by context menu or direct */ } },
+  // ── 游戏结束弹框 ──
+  _showGameOver() {
+    setTimeout(() => {
+      const wrapper = document.getElementById('ms-lb');
+      if (!wrapper) return;
+      const won = !MS.board.some(row => row.some(c => c.mine && c.revealed && !c.flag));
+      const timeStr = MS._timer + 's';
+      let html = '<div class="ms-go-wrap">';
+      html += '<div class="ms-go-title">' + (won ? '😎 恭喜通关！' : '😵 Game Over') + '</div>';
+      html += '<div class="ms-go-time">⏱ ' + timeStr + ' | 🚩 ' + MS.mines + ' 雷 | ' + MS.rows + '×' + MS.cols + '</div>';
+      if (won) {
+        html += '<input id="ms-name-input" style="margin:6px 0;padding:4px 8px;background:var(--bg);border:1px solid var(--amber);border-radius:4px;color:var(--fg);font-size:12px;text-align:center;font-family:var(--mono)" value="' + MS._randName() + '" maxlength="16">';
+        html += '<button onclick="MS._saveLB()" style="padding:4px 12px;background:var(--amber-dim);border:1px solid var(--amber);color:var(--amber);border-radius:4px;cursor:pointer;font-size:12px;font-family:var(--mono)">📋 提交成绩</button>';
+      }
+      html += '<button onclick="MS.init()" style="margin-left:6px;padding:4px 12px;background:var(--bg2);border:1px solid var(--border);color:var(--text);border-radius:4px;cursor:pointer;font-size:12px;font-family:var(--mono)">新游戏</button>';
+      html += '</div>';
+      wrapper.innerHTML = html;
+    }, 400);
+  },
+
+  // ── 排行榜（按时间，越短越好） ──
+  _fetchLB() {
+    const key = 'ms_lb_' + gDiff;
+    MS._leaderboard = JSON.parse(localStorage.getItem(key) || '[]');
+    MS._renderLB();
+  },
+  _saveLB() {
+    const input = document.getElementById('ms-name-input');
+    const name = (input?.value||'').trim() || MS._randName();
+    const key = 'ms_lb_' + gDiff;
+    const lb = JSON.parse(localStorage.getItem(key) || '[]');
+    // 同名保留最佳成绩
+    const exist = lb.findIndex(e => e.name === name);
+    const entry = { name, time: MS._timer, rows: MS.rows, cols: MS.cols, ts: Date.now() };
+    if (exist>=0) { if (MS._timer < lb[exist].time) lb[exist] = entry; }
+    else lb.push(entry);
+    lb.sort((a,b) => a.time - b.time);
+    MS._leaderboard = lb.slice(0, 50);
+    localStorage.setItem(key, JSON.stringify(MS._leaderboard));
+    // 提交远程
+    try { new Image().src = APPSCRIPT + '?action=lb_submit&size=ms' + gDiff + '&name=' + encodeURIComponent(name) + '&score=' + MS._timer; } catch(e){}
+    MS._renderLB();
+  },
+  _renderLB() {
+    const el = document.getElementById('ms-lb');
+    if (!el) return;
+    const lb = MS._leaderboard;
+    if (!lb.length) { el.innerHTML = '<div style="color:var(--dim);font-size:11px;margin-top:8px">🏅 暂无记录</div>'; return; }
+    const diffs = ['简单','中等','困难'];
+    let html = '<div style="font-size:12px;font-weight:700;color:var(--teal-t);margin:8px 0 4px">🏅 ' + diffs[gDiff] + ' 排行榜 · 最快通关</div>';
+    lb.slice(0, 10).forEach((e,i) => {
+      const m = ['🥇','🥈','🥉'][i] || (i+1);
+      html += '<div style="font-size:11px;color:var(--dim);display:flex;justify-content:space-between;padding:1px 0;border-bottom:1px solid var(--border)"><span>' + m + ' ' + esc(e.name) + '</span><span style="color:var(--green);font-family:var(--mono)">' + e.time + 's</span></div>';
+    });
+    el.innerHTML = html;
+  },
+
+  // ── 键盘 / 右键 ──
+  _key(e) { if (e.key==='f'||e.key==='F') { e.preventDefault(); } },
   _ctx(e) { e.preventDefault(); },
 
   _resize() {

@@ -149,7 +149,7 @@ function scheduleSave() {
   clearTimeout(_cbSaveTimer);
   setSyncStatus('⏳ 待保存');
   showSaveStatus('saving', '待保存...');
-  _cbSaveTimer = setTimeout(() => _executeCmdbookSave(), 1500);
+  _cbSaveTimer = setTimeout(() => _executeCmdbookSave(), 500);
 }
 
 /**
@@ -168,6 +168,11 @@ async function _executeCmdbookSave() {
 
   try {
     const body = JSON.stringify(entries);
+    // 先写本地备份（防止 Drive 保存失败丢失数据）
+    localStorage.setItem('omnia_offline_entries', body);
+    if (window.electronAPI && window.electronAPI.saveOfflineBackup) {
+      window.electronAPI.saveOfflineBackup(body);
+    }
 
     if (driveFileId) {
       const res = await fetch(
