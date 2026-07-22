@@ -586,7 +586,7 @@ const G24 = {
 
   _fetchRemoteLB() {
     const size = G24._remoteSize(), mode = G24.mode;
-    fetch(APPSCRIPT + '?action=lb_get&size=' + size)
+    fetch(APPSCRIPT + '?action=lb_get&size=' + size + '&_=' + Date.now(), { cache: 'no-store' })
       .then(r => r.json())
       .then(data => {
         if (!Array.isArray(data) || !data.length) return;
@@ -629,8 +629,9 @@ const G24 = {
     G24.leaderboard = lb.slice(0, 10);
     const key = G24._lbKey();
     localStorage.setItem(key, JSON.stringify(G24.leaderboard));
-    // ★ 提交到全球排行榜
+    // ★ 提交到全球排行榜，随后刷新
     G24._submitRemote(G24.playerName, G24.score, now);
+    setTimeout(() => G24._fetchRemoteLB(), 1500);
   },
 
   _submitRemote(name, score, ts) {
