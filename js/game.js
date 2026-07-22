@@ -577,18 +577,24 @@ const G24 = {
     G24._fetchRemoteLB();
   },
 
+  _remoteSize() {
+    const n = G24.cfg.n;
+    if (G24.mode === 'test') return 'test_' + n;
+    if (G24.mode === 'memory') return 'memory_' + n;
+    return '' + n;
+  },
+
   _fetchRemoteLB() {
-    if (G24.mode !== 'classic') return; // 障碍/记忆模式仅本地排行
-    const size = G24.cfg.n;
+    const size = G24._remoteSize(), mode = G24.mode;
     fetch(APPSCRIPT + '?action=lb_get&size=' + size)
       .then(r => r.json())
       .then(data => {
         if (!Array.isArray(data) || !data.length) return;
-        if (G24.cfg.n !== size || G24.mode !== 'classic') return; // 已切换模式，丢弃过期数据
+        if (G24._remoteSize() !== size || G24.mode !== mode) return;
         G24._mergeLB(data);
         G24._renderLeaderboard();
       })
-      .catch(() => {}); // 网络不通时静默降级
+      .catch(() => {});
   },
 
   _mergeLB(remote) {
@@ -623,15 +629,15 @@ const G24 = {
     G24.leaderboard = lb.slice(0, 10);
     const key = G24._lbKey();
     localStorage.setItem(key, JSON.stringify(G24.leaderboard));
-    // ★ 提交到全球排行榜（仅经典模式）
-    if (G24.mode === 'classic') G24._submitRemote(G24.playerName, G24.score, now);
+    // ★ 提交到全球排行榜
+    G24._submitRemote(G24.playerName, G24.score, now);
   },
 
   _submitRemote(name, score, ts) {
     // 用 Image beacon 替代 fetch no-cors，永不阻塞主线程
     try {
       const img = new Image();
-      img.src = APPSCRIPT + '?action=lb_submit&name=' + encodeURIComponent(name) + '&score=' + score + '&size=' + G24.cfg.n + '&ts=' + encodeURIComponent(ts || '');
+      img.src = APPSCRIPT + '?action=lb_submit&name=' + encodeURIComponent(name) + '&score=' + score + '&size=' + G24._remoteSize() + '&ts=' + encodeURIComponent(ts || '');
     } catch(e) {}
   },
 
