@@ -101,12 +101,27 @@ function _fitCell(maxCell, cols, rows, padW, padH) {
 }
 
 // ══════════════════════════════════════════════════
+//  2048 障碍模式 — 十字形障碍物生成
+// ══════════════════════════════════════════════════
+function _g24CrossObstacles(n) {
+  const s = new Set();
+  const mid = Math.floor(n / 2);
+  const r0 = n % 2 === 1 ? mid : mid - 1;
+  const r1 = n % 2 === 1 ? mid : mid;
+  for (let r = 0; r < n; r++)
+    for (let c = 0; c < n; c++)
+      if ((r < r0 || r > r1) && (c < r0 || c > r1)) s.add(r + ',' + c);
+  return s;
+}
+
+// ══════════════════════════════════════════════════
 //  2048
 // ══════════════════════════════════════════════════
 const G24 = {
   tiles: [], score: 0, best: 0, over: false, won: false,
   nextId: 1, moving: false, elMap: {}, active: false,
   leaderboard: [], playerName: '', _history: [], _undoLeft: 5,
+  mode: 'classic', _obstacles: new Set(),
 
   get cfg() {
     const designs = [
@@ -128,6 +143,21 @@ const G24 = {
     return { n: d.n, cell, gap: Math.max(3, Math.round(d.gap * ratio)), font: Math.round(d.font * ratio) };
   },
 
+  // ── 障碍模式辅助 ────────────────────────────
+  _isObstacle(r, c) { return G24.mode === 'test' && G24._obstacles.has(r + ',' + c); },
+  _obstacleCount() { return G24._obstacles.size; },
+
+  _lbKey() {
+    if (G24.mode === 'test') return '2048_test_lb_' + G24.cfg.n;
+    if (G24.mode === 'memory') return '2048_memory_lb_' + G24.cfg.n;
+    return '2048_lb_' + G24.cfg.n;
+  },
+  _bestKey() {
+    if (G24.mode === 'test') return '2048_test_best_' + G24.cfg.n;
+    if (G24.mode === 'memory') return '2048_memory_best_' + G24.cfg.n;
+    return '2048_best';
+  },
+
   init() {
     if (gCurr !== '2048') return;
     G24.deactivate();
@@ -136,7 +166,9 @@ const G24 = {
     G24.nextId = 1; G24.moving = false; G24.elMap = {}; G24._history = []; G24._undoLeft = 5;
     G24.playerName = ''; // 重置，等游戏结束再取名
     G24._scored = false;  // 防止重复弹框
-    G24.best = parseInt(localStorage.getItem('2048_best') || '0');
+    G24.best = parseInt(localStorage.getItem(G24._bestKey()) || '0');
+    if (G24.mode === 'test') G24._obstacles = _g24CrossObstacles(G24.cfg.n);
+    else G24._obstacles = new Set();
     G24._render();
     G24._initLeaderboard();
     G24._spawn(); G24._spawn();
@@ -182,6 +214,8 @@ const G24 = {
     G24._updateUI();
   },
 
+  _switchMode(mode) { if (G24.mode === mode) return; G24.mode = mode; G24.init(); },
+
   deactivate() { document.removeEventListener('keydown', G24._key); window.removeEventListener('resize', G24._onResize); const g = document.getElementById('g24-grid'); if (g) { g.removeEventListener('touchstart', G24._touchStart); g.removeEventListener('touchend', G24._touchEnd); } G24.active = false; },
 
   _at(r,c) { return G24.tiles.find(t => t.row===r && t.col===c); },
@@ -189,7 +223,7 @@ const G24 = {
   _spawn(anim) {
     const cfg = G24.cfg;
     const empty = [];
-    for (let r=0; r<cfg.n; r++) for (let c=0; c<cfg.n; c++) if (!G24._at(r,c)) empty.push({r,c});
+    for (let r=0; r<cfg.n; r++) for (let c=0; c<cfg.n; c++) if (!G24._at(r,c) && !G24._isObstacle(r,c)) empty.push({r,c});
     if (!empty.length) return null;
     const {r,c} = empty[Math.floor(Math.random()*empty.length)];
     const t = { id: G24.nextId++, val: Math.random()<0.9?2:4, row:r, col:c, isNew:!!anim };
@@ -202,9 +236,19 @@ const G24 = {
     if (!view || !G24.active) return;
     const cfg = G24.cfg;
     const gw = cfg.n * cfg.cell + (cfg.n-1) * cfg.gap + 14;
+    const hintText = G24.mode === 'test'
+      ? '🧱 障碍模式：十字形障碍物 | 四个角为灰色石块，无法移动'
+      : (G24.mode === 'memory'
+      ? '🧠 记忆模式：仅最左列真实，其余为乱码 | 移到左列验货！'
+      : '↑↓←→ / WASD / 触屏滑动 | 合并到 2048 获胜');
     view.innerHTML =
       '<div class="g2048-header">'
       + '<div class="g2048-title">2<span style="color:var(--amber)">0</span>4<span style="color:var(--amber)">8</span></div>'
+      + '<div class="g2048-mode-btns">'
+      + '<button class="g2048-mode-btn'+(G24.mode==='classic'?' active':'')+'" onclick="G24._switchMode(\'classic\')">经典</button>'
+      + '<button class="g2048-mode-btn'+(G24.mode==='test'?' active':'')+'" onclick="G24._switchMode(\'test\')">障碍</button>'
+      + '<button class="g2048-mode-btn'+(G24.mode==='memory'?' active':'')+'" onclick="G24._switchMode(\'memory\')">记忆</button>'
+      + '</div>'
       + '<div class="g2048-stat"><div class="g2048-stat-label">分数</div><div class="g2048-stat-val" id="g24-score">0</div></div>'
       + '<div class="g2048-stat"><div class="g2048-stat-label">最佳</div><div class="g2048-stat-val" id="g24-best">0</div></div>'
       + '<button class="g2048-new-btn" onclick="G24.init()">新游戏</button>'
@@ -214,12 +258,23 @@ const G24 = {
       + '<div class="g2048-wrap"><div id="g24-particles"></div><div class="g2048-grid" id="g24-grid" style="grid-template-columns:repeat('+cfg.n+','+cfg.cell+'px);grid-template-rows:repeat('+cfg.n+','+cfg.cell+'px);gap:'+cfg.gap+'px;width:'+gw+'px;height:'+gw+'px;"></div>'
       + '<div class="g2048-msg" id="g24-msg"></div></div>'
       + '<div class="g2048-lb" id="g24-lb"></div></div>'
-      + '<div class="gm-hint">↑↓←→ / WASD / 触屏滑动 | 合并到 2048 获胜</div>';
-    // 背景格
+      + '<div class="gm-hint">'+hintText+'</div>';
+    // 背景格：测试模式下障碍格子加特殊 class
     const grid = document.getElementById('g24-grid');
     for (let r=0; r<cfg.n; r++) for (let c=0; c<cfg.n; c++) {
-      const cell = document.createElement('div'); cell.className='g2048-cell'; grid.appendChild(cell);
+      const cell = document.createElement('div');
+      cell.className = 'g2048-cell' + (G24._isObstacle(r,c) ? ' g2048-obstacle' : '');
+      grid.appendChild(cell);
     }
+  },
+
+  // 记忆模式：显示用的虚假值（col>0 时乱码）
+  _displayVal(t) {
+    if (G24.mode !== 'memory' || t.col === 0) return t.val;
+    // 基于 tile id 的确定性乱码——同一方块每次渲染显示相同假数字
+    const fake = ((t.id * 173 + t.val * 97) % 13);
+    const vals = [2,4,8,16,32,64,128,256,512,1024,2048,4096,8192];
+    return vals[fake];
   },
 
   _syncDOM(anim) {
@@ -231,13 +286,15 @@ const G24 = {
     Object.keys(G24.elMap).forEach(id => { if (!ids.has(+id)) { G24.elMap[id].remove(); delete G24.elMap[id]; } });
     G24.tiles.forEach(t => {
       const tx = t.col * (cfg.cell+cfg.gap), ty = t.row * (cfg.cell+cfg.gap);
+      const dv = G24._displayVal(t); // 记忆模式可能显示假值
+      const isFake = G24.mode === 'memory' && t.col > 0;
       let el = G24.elMap[t.id];
       if (!el) {
         el = document.createElement('div');
-        el.className = 'g2048-tile t'+t.val;
-        el.textContent = t.val;
+        el.className = 'g2048-tile t'+dv + (isFake ? ' obfuscated' : '');
+        el.textContent = dv;
         el.style.width = el.style.height = cfg.cell+'px';
-        el.style.fontSize = t.val>=1024 ? Math.max(14,cfg.font-6)+'px' : cfg.font+'px';
+        el.style.fontSize = dv>=1024 ? Math.max(14,cfg.font-6)+'px' : cfg.font+'px';
         G24.elMap[t.id] = el; grid.appendChild(el);
         if (t.isNew && anim) {
           el.style.transform = 'translate('+tx+'px,'+ty+'px) scale(0)';
@@ -251,11 +308,11 @@ const G24 = {
         }
       } else {
         if (!t._freeze) {
-          el.className = 'g2048-tile t'+t.val;
-          el.textContent = t.val;
+          el.className = 'g2048-tile t'+dv + (isFake ? ' obfuscated' : '');
+          el.textContent = dv;
         }
         el.style.width = el.style.height = cfg.cell+'px';
-        el.style.fontSize = t.val>=1024 ? Math.max(14,cfg.font-6)+'px' : cfg.font+'px';
+        el.style.fontSize = dv>=1024 ? Math.max(14,cfg.font-6)+'px' : cfg.font+'px';
         el.style.transition = anim ? 'transform .15s ease-in-out' : 'none';
         el.style.transform = 'translate('+tx+'px,'+ty+'px) scale(1)';
         if (t._pop && anim) {
@@ -267,27 +324,64 @@ const G24 = {
     G24.tiles.forEach(t=>{t.isNew=false;});
   },
 
-  _slide(arr) {
+  _slide(arr, segLen) {
     let f = arr.filter(v=>v!==0);
     for (let i=0; i<f.length-1; i++) {
       if (f[i].val===f[i+1].val) { f[i]={val:f[i].val*2,id:f[i].id,mergedFrom:f[i+1].id}; G24.score+=f[i].val; f[i+1]=0; }
     }
-    f=f.filter(v=>v!==0); while (f.length<G24.cfg.n) f.push(0); return f;
+    f=f.filter(v=>v!==0); const len=segLen!==undefined?segLen:G24.cfg.n; while (f.length<len) f.push(0); return f;
+  },
+
+  // ── 障碍模式：障碍物感知的行列提取 ──────────
+  _lineExtract(fixed, axis, dir) {
+    const n = G24.cfg.n, arr = [];
+    for (let i = 0; i < n; i++) {
+      const r = (axis === 'row') ? fixed : (dir === 'fwd' ? i : n - 1 - i);
+      const c = (axis === 'col') ? fixed : (dir === 'fwd' ? i : n - 1 - i);
+      if (G24._isObstacle(r, c)) { arr.push(null); }
+      else { const t = G24._at(r, c); arr.push(t ? {val: t.val, id: t.id} : 0); }
+    }
+    return arr;
+  },
+
+  _slideLine(arr) {
+    const n = arr.length, result = new Array(n).fill(0);
+    let segStart = 0;
+    for (let i = 0; i <= n; i++) {
+      if (i < n && arr[i] !== null) continue;
+      if (i > segStart) {
+        const seg = []; for (let j = segStart; j < i; j++) seg.push(arr[j]);
+        const slid = G24._slide(seg, i - segStart);
+        for (let j = 0; j < slid.length; j++) result[segStart + j] = slid[j];
+      }
+      if (i < n) result[i] = null;
+      segStart = i + 1;
+    }
+    return result;
   },
 
   move(dir) {
     if (G24.over||G24.moving||!G24.active) return;
     const n=G24.cfg.n, oldPos={}, oldVal={};
     G24.tiles.forEach(t=>{oldPos[t.id]={row:t.row,col:t.col};oldVal[t.id]=t.val;});
-    let rows=[];
-    if (dir==='left') { for (let r=0;r<n;r++) { const a=[]; for (let c=0;c<n;c++) { const t=G24._at(r,c); a.push(t?{val:t.val,id:t.id}:0); } rows.push({r,arr:G24._slide(a)}); } }
-    else if (dir==='right') { for (let r=0;r<n;r++) { const a=[]; for (let c=n-1;c>=0;c--) { const t=G24._at(r,c); a.push(t?{val:t.val,id:t.id}:0); } rows.push({r,arr:G24._slide(a).reverse()}); } }
-    else if (dir==='up') { for (let c=0;c<n;c++) { const a=[]; for (let r=0;r<n;r++) { const t=G24._at(r,c); a.push(t?{val:t.val,id:t.id}:0); } rows.push({c,arr:G24._slide(a)}); } }
-    else if (dir==='down') { for (let c=0;c<n;c++) { const a=[]; for (let r=n-1;r>=0;r--) { const t=G24._at(r,c); a.push(t?{val:t.val,id:t.id}:0); } rows.push({c,arr:G24._slide(a).reverse()}); } }
+    let rows=[], isTest=G24.mode==='test';
+    if (!isTest) {
+      // 经典/记忆模式：无障碍物
+      if (dir==='left') { for (let r=0;r<n;r++) { const a=[]; for (let c=0;c<n;c++) { const t=G24._at(r,c); a.push(t?{val:t.val,id:t.id}:0); } rows.push({r,arr:G24._slide(a)}); } }
+      else if (dir==='right') { for (let r=0;r<n;r++) { const a=[]; for (let c=n-1;c>=0;c--) { const t=G24._at(r,c); a.push(t?{val:t.val,id:t.id}:0); } rows.push({r,arr:G24._slide(a).reverse()}); } }
+      else if (dir==='up') { for (let c=0;c<n;c++) { const a=[]; for (let r=0;r<n;r++) { const t=G24._at(r,c); a.push(t?{val:t.val,id:t.id}:0); } rows.push({c,arr:G24._slide(a)}); } }
+      else if (dir==='down') { for (let c=0;c<n;c++) { const a=[]; for (let r=n-1;r>=0;r--) { const t=G24._at(r,c); a.push(t?{val:t.val,id:t.id}:0); } rows.push({c,arr:G24._slide(a).reverse()}); } }
+    } else {
+      // 测试模式：障碍物感知滑动
+      if (dir==='left') { for (let r=0;r<n;r++) { const line=G24._lineExtract(r,'row','fwd'); rows.push({r,arr:G24._slideLine(line)}); } }
+      else if (dir==='right') { for (let r=0;r<n;r++) { const line=G24._lineExtract(r,'row','rev'); const slid=G24._slideLine(line); const mapped=new Array(n).fill(0); for(let i=0;i<n;i++) mapped[n-1-i]=slid[i]; rows.push({r,arr:mapped}); } }
+      else if (dir==='up') { for (let c=0;c<n;c++) { const line=G24._lineExtract(c,'col','fwd'); rows.push({c,arr:G24._slideLine(line)}); } }
+      else if (dir==='down') { for (let c=0;c<n;c++) { const line=G24._lineExtract(c,'col','rev'); const slid=G24._slideLine(line); const mapped=new Array(n).fill(0); for(let i=0;i<n;i++) mapped[n-1-i]=slid[i]; rows.push({c,arr:mapped}); } }
+    }
     const nt=[], mg=new Set(), mergeEvents=[], mergedSet=new Set(), mergeTarget={};
     rows.forEach(row=>{
-      if (dir==='left'||dir==='right') { const r=row.r; row.arr.forEach((it,ci)=>{ if(it===0)return; const t={id:it.id,val:it.val,row:r,col:ci,isNew:false}; nt.push(t); if(it.mergedFrom){mg.add(it.mergedFrom);mergeEvents.push({val:it.val,row:r,col:ci});mergeTarget[it.mergedFrom]={row:r,col:ci};mergedSet.add(it.id);} if(oldPos[it.id]&&oldPos[it.id].row===r&&oldPos[it.id].col===ci) t.unmoved=true; }); }
-      else { const c=row.c; row.arr.forEach((it,ri)=>{ if(it===0)return; const t={id:it.id,val:it.val,row:ri,col:c,isNew:false}; nt.push(t); if(it.mergedFrom){mg.add(it.mergedFrom);mergeEvents.push({val:it.val,row:ri,col:c});mergeTarget[it.mergedFrom]={row:ri,col:c};mergedSet.add(it.id);} if(oldPos[it.id]&&oldPos[it.id].row===ri&&oldPos[it.id].col===c) t.unmoved=true; }); }
+      if (dir==='left'||dir==='right') { const r=row.r; row.arr.forEach((it,ci)=>{ if(it===0||it===null)return; const t={id:it.id,val:it.val,row:r,col:ci,isNew:false}; nt.push(t); if(it.mergedFrom){mg.add(it.mergedFrom);mergeEvents.push({val:it.val,row:r,col:ci});mergeTarget[it.mergedFrom]={row:r,col:ci};mergedSet.add(it.id);} if(oldPos[it.id]&&oldPos[it.id].row===r&&oldPos[it.id].col===ci) t.unmoved=true; }); }
+      else { const c=row.c; row.arr.forEach((it,ri)=>{ if(it===0||it===null)return; const t={id:it.id,val:it.val,row:ri,col:c,isNew:false}; nt.push(t); if(it.mergedFrom){mg.add(it.mergedFrom);mergeEvents.push({val:it.val,row:ri,col:c});mergeTarget[it.mergedFrom]={row:ri,col:c};mergedSet.add(it.id);} if(oldPos[it.id]&&oldPos[it.id].row===ri&&oldPos[it.id].col===c) t.unmoved=true; }); }
     });
     if (nt.every(t=>t.unmoved)&&mg.size===0) return;
     // ★ 撤销：保存移动前状态
@@ -323,9 +417,17 @@ const G24 = {
   _check() {
     const n=G24.cfg.n;
     if (!G24.won && G24.tiles.some(t=>t.val===2048)) G24.won=true;
-    if (G24.tiles.length < n*n) return;
-    for (let r=0;r<n;r++) for (let c=0;c<n-1;c++) { const a=G24._at(r,c),b=G24._at(r,c+1); if(!a||!b||a.val===b.val) return; }
-    for (let r=0;r<n-1;r++) for (let c=0;c<n;c++) { const a=G24._at(r,c),b=G24._at(r+1,c); if(!a||!b||a.val===b.val) return; }
+    const isTest=G24.mode==='test';
+    const capacity=isTest ? n*n - G24._obstacleCount() : n*n;
+    if (G24.tiles.length < capacity) return;
+    for (let r=0;r<n;r++) for (let c=0;c<n-1;c++) {
+      if (isTest && (G24._isObstacle(r,c)||G24._isObstacle(r,c+1))) continue;
+      const a=G24._at(r,c),b=G24._at(r,c+1); if(!a||!b||a.val===b.val) return;
+    }
+    for (let r=0;r<n-1;r++) for (let c=0;c<n;c++) {
+      if (isTest && (G24._isObstacle(r,c)||G24._isObstacle(r+1,c))) continue;
+      const a=G24._at(r,c),b=G24._at(r+1,c); if(!a||!b||a.val===b.val) return;
+    }
     G24.over=true; G24._history=[]; G24._undoLeft=0;  // Game Over 后清空撤销历史
   },
 
@@ -402,7 +504,7 @@ const G24 = {
   _onResize() { clearTimeout(G24._rt); G24._rt = setTimeout(() => G24._resize(), 120); },
 
   _updateUI() {
-    if (G24.score>G24.best){G24.best=G24.score;localStorage.setItem('2048_best',G24.best);}
+    if (G24.score>G24.best){G24.best=G24.score;localStorage.setItem(G24._bestKey(),G24.best);}
     const s=document.getElementById('g24-score'), b=document.getElementById('g24-best'), m=document.getElementById('g24-msg');
     if(s)s.textContent=G24.score; if(b)b.textContent=G24.best;
     // ── Game Over / Win 遮罩 ──
@@ -461,28 +563,28 @@ const G24 = {
 
   // ── 排行榜 ──────────────────────────────────────
   _initLeaderboard() {
-    const key = '2048_lb_' + G24.cfg.n;
+    G24.leaderboard = [];
+    const key = G24._lbKey();
     const saved = localStorage.getItem(key);
     if (saved) { try { G24.leaderboard = JSON.parse(saved); } catch(_){} }
-    if (!Array.isArray(G24.leaderboard)) G24.leaderboard = [];
     // ★ 清除旧版 AI 假数据
     if (G24.leaderboard.length > 0 && G24.leaderboard.some(e => 'isMe' in e)) {
       G24.leaderboard = [];
       localStorage.removeItem(key);
     }
-    G24._lbPage = 0;
     G24._renderLeaderboard();
     // 异步拉取全球排行榜
     G24._fetchRemoteLB();
   },
 
   _fetchRemoteLB() {
+    if (G24.mode !== 'classic') return; // 障碍/记忆模式仅本地排行
     const size = G24.cfg.n;
     fetch(APPSCRIPT + '?action=lb_get&size=' + size)
       .then(r => r.json())
       .then(data => {
         if (!Array.isArray(data) || !data.length) return;
-        if (G24.cfg.n !== size) return; // 难度已切换，丢弃过期数据
+        if (G24.cfg.n !== size || G24.mode !== 'classic') return; // 已切换模式，丢弃过期数据
         G24._mergeLB(data);
         G24._renderLeaderboard();
       })
@@ -501,8 +603,8 @@ const G24 = {
     G24.leaderboard = [...map.entries()]
       .map(([name, obj]) => ({ name, score: obj.score, ts: obj.ts }))
       .sort((a, b) => b.score - a.score)
-      .slice(0, 50);
-    const key = '2048_lb_' + G24.cfg.n;
+      .slice(0, 10);
+    const key = G24._lbKey();
     localStorage.setItem(key, JSON.stringify(G24.leaderboard));
   },
 
@@ -518,11 +620,11 @@ const G24 = {
       lb.push(entry);
     }
     lb.sort((a, b) => b.score - a.score);
-    G24.leaderboard = lb.slice(0, 50);
-    const key = '2048_lb_' + G24.cfg.n;
+    G24.leaderboard = lb.slice(0, 10);
+    const key = G24._lbKey();
     localStorage.setItem(key, JSON.stringify(G24.leaderboard));
-    // ★ 提交到全球排行榜
-    G24._submitRemote(G24.playerName, G24.score, now);
+    // ★ 提交到全球排行榜（仅经典模式）
+    if (G24.mode === 'classic') G24._submitRemote(G24.playerName, G24.score, now);
   },
 
   _submitRemote(name, score, ts) {
@@ -536,39 +638,28 @@ const G24 = {
   _renderLeaderboard() {
     const lb = document.getElementById('g24-lb');
     if (!lb) return;
-    if (!G24.leaderboard.length) { lb.innerHTML = ''; return; }
-    const PAGE = 10, total = Math.ceil(G24.leaderboard.length / PAGE);
-    if (G24._lbPage >= total) G24._lbPage = total - 1;
-    if (G24._lbPage < 0) G24._lbPage = 0;
-    const start = G24._lbPage * PAGE;
-    const pageData = G24.leaderboard.slice(start, start + PAGE);
-    const medals = ['🥇','🥈','🥉'];
-    let html = '<div class="g2048-lb-title">🏆 ' + G24.cfg.n + '×' + G24.cfg.n + ' 排行榜</div>';
-    if (total > 1) {
-      html += '<div class="g2048-lb-pager">'
-        + '<button onclick="G24._lbPagePrev()" ' + (G24._lbPage === 0 ? 'disabled' : '') + '>◀</button>'
-        + '<span>' + (G24._lbPage + 1) + '/' + total + '</span>'
-        + '<button onclick="G24._lbPageNext()" ' + (G24._lbPage >= total - 1 ? 'disabled' : '') + '>▶</button>'
-        + '</div>';
+    const modeLabel = G24.mode === 'test' ? ' · 障碍' : (G24.mode === 'memory' ? ' · 记忆' : '');
+    if (!G24.leaderboard.length) {
+      lb.innerHTML = '<div class="g2048-lb-title">🏆 ' + G24.cfg.n + '×' + G24.cfg.n + modeLabel + ' 排行榜</div>'
+        + '<div style="color:var(--dim);font-size:12px;text-align:center;padding:20px 0;">暂无数据</div>';
+      return;
     }
-    html += pageData.map((e, i) => {
-      const rank = start + i;
-      const rankClass = rank < 3 ? ' r' + (rank + 1) : '';
+    const medals = ['🥇','🥈','🥉'];
+    let html = '<div class="g2048-lb-title">🏆 TOP10 ' + G24.cfg.n + '×' + G24.cfg.n + modeLabel + ' 排行榜</div>';
+    html += G24.leaderboard.slice(0, 10).map((e, i) => {
+      const rankClass = i < 3 ? ' r' + (i + 1) : '';
       const isMe = e.name === G24.playerName;
       const hasTs = !!e.ts;
       const click = hasTs ? ' onclick="G24._lbTooltip(event,\'' + e.ts + '\')"' : '';
       const cursor = hasTs ? ' style="cursor:pointer"' : '';
       return '<div class="g2048-lb-row">'
-        + '<span class="g2048-lb-rank' + rankClass + '">' + (medals[rank] || (rank + 1)) + '</span>'
+        + '<span class="g2048-lb-rank' + rankClass + '">' + (medals[i] || (i + 1)) + '</span>'
         + '<span class="g2048-lb-name' + (isMe ? ' is-me' : '') + '"' + cursor + click + '>' + e.name + '</span>'
         + '<span class="g2048-lb-score' + (isMe ? ' is-me' : '') + '">' + e.score.toLocaleString() + '</span>'
         + '</div>';
     }).join('');
     lb.innerHTML = html;
   },
-
-  _lbPagePrev() { if (G24._lbPage > 0) { G24._lbPage--; G24._renderLeaderboard(); } },
-  _lbPageNext() { const total = Math.ceil((G24.leaderboard || []).length / 10); if (G24._lbPage < total - 1) { G24._lbPage++; G24._renderLeaderboard(); } },
 
   _lbTooltip(e, ts) {
     const old = document.getElementById('g24-lb-tip');
@@ -851,7 +942,7 @@ const MS = {
     if (exist>=0) { if (MS._timer < lb[exist].time) lb[exist] = entry; }
     else lb.push(entry);
     lb.sort((a,b) => a.time - b.time);
-    MS._leaderboard = lb.slice(0, 50);
+    MS._leaderboard = lb.slice(0, 10);
     localStorage.setItem(key, JSON.stringify(MS._leaderboard));
     // 提交远程
     try { new Image().src = APPSCRIPT + '?action=lb_submit&size=ms' + gDiff + '&name=' + encodeURIComponent(name) + '&score=' + MS._timer; } catch(e){}
