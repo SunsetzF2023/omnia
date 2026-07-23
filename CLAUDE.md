@@ -6,6 +6,9 @@
 Electron 桌面应用，包含 cmd.book（命令笔记）、账本（记账）、游戏中心（2048/扫雷/数独）。
 Google OAuth 登录，数据存储于 Google Drive appDataFolder。
 
+**此外包含 `world/` 目录** — 天星界玄幻世界观 wiki。修改 world/ 内容后必须立即同步到 GitHub。
+详见 → `world/WORKFLOW.md`
+
 ## 技术栈
 - Electron 31 + vanilla JS（无框架）
 - 内联 CSS（Omnia 暗色主题设计系统）
