@@ -573,6 +573,133 @@ canvas.ldg-chart{width:100%!important;max-height:200px;}
 .tetris-submit,.tetris-restart{background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:6px 12px;border-radius:6px;font-size:11px;cursor:pointer;font-family:var(--mono);transition:all .15s;}
 .tetris-submit:hover{border-color:var(--amber);color:var(--amber);}
 .tetris-restart:hover{border-color:var(--teal);color:var(--teal-t);}
+
+/* ═══════════════ 宗门模拟器 ═══════════════ */
+/* 创建界面 */
+.sct-create{display:flex;align-items:center;justify-content:center;height:100%;padding:20px;}
+.sct-create-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:32px 40px;max-width:580px;width:100%;}
+.sct-create-title{text-align:center;font-size:22px;color:var(--amber);letter-spacing:.1em;margin-bottom:24px;font-weight:700;}
+.sct-create-field{margin-bottom:16px;}
+.sct-create-label{font-size:12px;color:var(--dim);margin-bottom:8px;letter-spacing:.06em;}
+.sct-input{flex:1;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:6px;font-family:var(--mono);font-size:14px;outline:none;user-select:text;}
+.sct-input:focus{border-color:var(--amber);}
+.sct-continent-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;}
+.sct-continent-card{padding:10px 8px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;cursor:pointer;text-align:center;transition:all .15s;font-size:11px;color:var(--dim);}
+.sct-continent-card:hover{border-color:var(--teal);color:var(--teal-t);}
+.sct-continent-card.selected{background:var(--teal-dim);border-color:var(--teal);color:var(--teal-t);}
+.sct-continent-card .cc-name{font-weight:600;margin-bottom:2px;font-size:13px;}
+.sct-continent-card .cc-desc{font-size:10px;opacity:.7;}
+.sct-continent-card .cc-bonus{font-size:10px;color:var(--green-t);margin-top:2px;}
+
+/* 主界面 */
+.sct-main{display:none;flex:1;flex-direction:column;overflow:hidden;}
+.sct-topbar{display:flex;align-items:center;justify-content:space-between;padding:8px 16px;background:var(--bg2);border-bottom:1px solid var(--border);flex-shrink:0;flex-wrap:wrap;gap:4px;}
+.sct-topbar-left{display:flex;align-items:center;gap:10px;}
+.sct-sect-name{font-size:15px;color:var(--amber);font-weight:700;letter-spacing:.06em;}
+.sct-continent-tag{padding:2px 8px;background:var(--bg3);border:1px solid var(--border);border-radius:3px;font-size:10px;color:var(--dim);}
+.sct-topbar-resources{display:flex;gap:14px;flex-wrap:wrap;}
+.sct-resource{display:flex;align-items:center;gap:3px;font-size:11px;color:var(--text);}
+.sct-res-icon{font-size:13px;}
+
+/* 双栏布局 */
+.sct-body{display:flex;flex:1;overflow:hidden;}
+.sct-disciple-panel{flex:1;display:flex;flex-direction:column;overflow:hidden;border-right:1px solid var(--border);min-width:0;}
+.sct-panel-header{display:flex;justify-content:space-between;align-items:center;padding:8px 14px;font-size:12px;color:var(--dim);border-bottom:1px solid var(--border);letter-spacing:.08em;background:var(--bg2);}
+.sct-recruit-limit{font-size:10px;color:var(--amber);}
+.sct-disciple-grid{flex:1;overflow-y:auto;padding:8px;display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px;align-content:start;}
+.sct-disciple-grid::-webkit-scrollbar{width:3px;}
+.sct-disciple-grid::-webkit-scrollbar-thumb{background:var(--border);}
+
+/* 弟子卡片 */
+.sct-disciple-card{background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:10px;cursor:pointer;transition:all .12s;font-size:11px;position:relative;}
+.sct-disciple-card:hover{background:var(--bg3);}
+.sct-disciple-card.selected{border-color:var(--teal);box-shadow:0 0 0 1px var(--teal-dim);}
+.sct-disciple-card .dc-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;}
+.sct-disciple-card .dc-name{font-size:13px;font-weight:600;}
+.sct-disciple-card .dc-quality{padding:1px 6px;border-radius:3px;font-size:9px;font-weight:600;color:var(--text);}
+.sct-disciple-card .dc-cultivation{font-size:10px;color:var(--dim);margin-bottom:2px;}
+.sct-disciple-card .dc-stats{display:flex;gap:10px;font-size:10px;color:var(--dim);margin-bottom:4px;}
+.sct-disciple-card .dc-task{font-size:10px;padding:2px 8px;border-radius:3px;display:inline-block;}
+.sct-disciple-card .dc-task.cultivate{background:var(--green-dim);color:var(--green-t);}
+.sct-disciple-card .dc-task.gather{background:var(--teal-dim);color:var(--teal-t);}
+.sct-disciple-card .dc-task.adventure{background:var(--amber-dim);color:var(--amber);}
+.sct-disciple-card .dc-task.market{background:var(--bg3);color:var(--text);}
+.sct-disciple-card .dc-task.none{background:transparent;color:var(--dim);border:1px dashed var(--border);}
+.sct-disciple-card .dc-loyalty{font-size:10px;color:var(--dim);margin-top:2px;}
+/* 品质左边框 */
+.sct-disciple-card.q-mortal{border-left:2px solid var(--dim);}
+.sct-disciple-card.q-fine{border-left:2px solid var(--green);}
+.sct-disciple-card.q-superior{border-left:2px solid var(--teal);}
+.sct-disciple-card.q-elite{border-left:2px solid var(--amber);}
+.sct-disciple-card.q-celestial{border-left:2px solid var(--red);box-shadow:0 0 8px rgba(248,81,73,.12);}
+
+/* Task select in card */
+.sct-task-select{background:var(--bg3);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:10px;padding:3px 6px;border-radius:3px;outline:none;margin-top:4px;cursor:pointer;}
+.sct-task-select:focus{border-color:var(--teal);}
+
+/* 右侧操作面板 */
+.sct-action-panel{width:260px;min-width:260px;display:flex;flex-direction:column;overflow:hidden;background:var(--bg2);}
+.sct-actions{padding:10px 12px;border-bottom:1px solid var(--border);display:flex;flex-direction:column;gap:6px;}
+.sct-btn{width:100%;padding:8px 14px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--mono);font-size:12px;cursor:pointer;text-align:left;transition:all .12s;}
+.sct-btn:hover{border-color:var(--green);color:var(--green-t);}
+.sct-btn:disabled{opacity:.4;cursor:not-allowed;}
+.sct-btn-primary{width:100%;padding:10px 14px;background:var(--green-dim);border:1px solid var(--green);border-radius:6px;color:var(--green-t);font-family:var(--mono);font-size:14px;cursor:pointer;font-weight:600;letter-spacing:.04em;transition:all .12s;}
+.sct-btn-primary:hover{background:#1e5c28;}
+.sct-btn-primary:disabled{opacity:.4;cursor:not-allowed;}
+.sct-cost{font-size:10px;color:var(--dim);}
+.sct-task-hint{font-size:10px;color:var(--dim);padding:6px 12px;text-align:center;}
+
+/* 事件日志 */
+.sct-log{flex:1;overflow-y:auto;padding:8px 12px;font-size:11px;color:var(--dim);line-height:1.7;}
+.sct-log::-webkit-scrollbar{width:3px;}
+.sct-log::-webkit-scrollbar-thumb{background:var(--border);}
+.sct-log-msg{margin-bottom:3px;padding:3px 0;border-bottom:1px solid rgba(48,54,61,.3);}
+.sct-log-msg.good{color:var(--green-t);}
+.sct-log-msg.bad{color:var(--red);}
+.sct-log-msg.info{color:var(--teal-t);}
+.sct-log-msg.event{color:var(--amber);}
+.sct-log-empty{text-align:center;padding:20px;color:var(--dim);font-size:11px;opacity:.5;}
+
+/* Modal */
+.sct-modal-overlay{position:absolute;inset:0;background:rgba(0,0,0,.75);z-index:500;display:none;align-items:center;justify-content:center;}
+.sct-modal-overlay.open{display:flex;}
+.sct-modal-box{background:var(--bg2);border:1px solid var(--border);border-radius:12px;width:500px;max-width:90%;max-height:85vh;overflow-y:auto;padding:24px;position:relative;}
+.sct-modal-box h2{font-size:16px;color:var(--amber);text-align:center;margin-bottom:16px;letter-spacing:.08em;}
+.sct-modal-close{position:absolute;top:10px;right:14px;font-size:18px;cursor:pointer;color:var(--dim);transition:color .12s;}
+.sct-modal-close:hover{color:var(--red);}
+
+/* 招募结果 */
+.sct-recruit-results{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-bottom:16px;}
+.sct-recruit-card{width:80px;padding:10px 6px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;text-align:center;font-size:10px;transition:all .15s;}
+.sct-recruit-card .rr-name{font-size:11px;font-weight:600;margin-bottom:2px;}
+.sct-recruit-card .rr-quality{margin-top:4px;font-size:10px;}
+.sct-recruit-card .rr-stats{font-size:9px;color:var(--dim);margin-top:3px;line-height:1.4;}
+.sct-recruit-card .rr-btn{padding:2px 8px;margin-top:6px;border-radius:3px;border:1px solid var(--border);background:var(--bg2);color:var(--text);font-size:10px;cursor:pointer;font-family:var(--mono);transition:all .12s;}
+.sct-recruit-card .rr-btn:hover{border-color:var(--green);color:var(--green-t);}
+.sct-recruit-card .rr-btn.reject:hover{border-color:var(--red);color:var(--red);}
+.sct-recruit-card .rr-done{font-size:9px;color:var(--dim);margin-top:6px;}
+
+/* 保底条 */
+.sct-pity-wrap{display:flex;align-items:center;gap:6px;font-size:10px;color:var(--dim);margin:8px 0;}
+.sct-pity-bar{flex:1;height:3px;background:var(--bg3);border-radius:2px;overflow:hidden;}
+.sct-pity-fill{height:100%;background:var(--amber);transition:width .3s;}
+
+/* 藏经阁 */
+.sct-tech-list{display:flex;flex-direction:column;gap:8px;}
+.sct-tech-card{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;}
+.sct-tech-card .tch-name{font-size:13px;font-weight:600;}
+.sct-tech-card .tch-info{font-size:10px;color:var(--dim);margin-top:2px;}
+.sct-tech-card .tch-grade{padding:2px 8px;border-radius:3px;font-size:10px;}
+.sct-tech-card .tch-grade.mortal{background:var(--bg3);color:var(--dim);}
+.sct-tech-card .tch-grade.yellow{background:var(--green-dim);color:var(--green-t);}
+.sct-tech-card .tch-grade.xuan{background:var(--teal-dim);color:var(--teal-t);}
+
+/* 建筑 */
+.sct-build-list{display:flex;flex-direction:column;gap:8px;}
+.sct-build-card{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;}
+.sct-build-card .tb-name{font-size:13px;font-weight:600;}
+.sct-build-card .tb-info{font-size:10px;color:var(--dim);margin-top:2px;}
+.sct-build-card .tb-lv{font-size:10px;color:var(--teal-t);}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js" defer></script>
 </head>
@@ -741,9 +868,65 @@ canvas.ldg-chart{width:100%!important;max-height:200px;}
       </div>
     </div>
 
-    <!-- 日历占位 -->
+    <!-- 宗门模拟器 -->
     <div class="module" id="mod-calendar">
-      <div class="placeholder"><div class="ph-icon">📅</div><div class="ph-title">日历</div><div class="ph-desc">日程安排、事件提醒</div><div class="ph-badge">即将上线</div></div>
+      <!-- 创建界面 -->
+      <div class="sct-create" id="sct-create-screen">
+        <div class="sct-create-card">
+          <div class="sct-create-title">⛩ 创 建 宗 门</div>
+          <div class="sct-create-field">
+            <div class="sct-create-label">宗门名称</div>
+            <div style="display:flex;gap:8px">
+              <input class="sct-input" id="sct-name-input" maxlength="10" placeholder="输入宗门名称...">
+              <button class="t-btn" onclick="SECT._randomSectName()">🎲 随机</button>
+            </div>
+          </div>
+          <div class="sct-create-field">
+            <div class="sct-create-label">选择所在洲</div>
+            <div class="sct-continent-grid" id="sct-continent-grid"></div>
+          </div>
+          <button class="sct-btn-primary" id="sct-create-btn" onclick="SECT._startGame()" style="width:100%;margin-top:8px">⛩ 开宗立派</button>
+        </div>
+      </div>
+      <!-- 主游戏界面 -->
+      <div class="sct-main" id="sct-main-screen">
+        <div class="sct-topbar">
+          <div class="sct-topbar-left">
+            <span class="sct-sect-name" id="sct-name-display"></span>
+            <span class="sct-continent-tag" id="sct-continent-display"></span>
+            <span style="font-size:11px;color:var(--teal-t)" id="sct-level-display"></span>
+          </div>
+          <div class="sct-topbar-resources">
+            <div class="sct-resource"><span class="sct-res-icon">💎</span>灵石 <b id="sct-stones">0</b></div>
+            <div class="sct-resource"><span class="sct-res-icon">⭐</span>声望 <b id="sct-rep">0</b></div>
+            <div class="sct-resource"><span class="sct-res-icon">📅</span>第 <b id="sct-turn">1</b> 回合 (<b id="sct-year">1</b>年)</div>
+            <div class="sct-resource"><span class="sct-res-icon">⚡</span>行动点 <b id="sct-ap">3</b></div>
+          </div>
+        </div>
+        <div class="sct-body">
+          <div class="sct-disciple-panel">
+            <div class="sct-panel-header">
+              <span>📋 弟子</span>
+              <span class="sct-recruit-limit" id="sct-recruit-limit"></span>
+            </div>
+            <div class="sct-disciple-grid" id="sct-disciple-grid"></div>
+          </div>
+          <div class="sct-action-panel">
+            <div class="sct-actions">
+              <button class="sct-btn" onclick="SECT._openRecruit()">🔍 招募弟子 <span class="sct-cost">80💎 2⚡</span></button>
+              <button class="sct-btn" onclick="SECT._openTechniques()">📜 藏经阁 <span class="sct-cost">1⚡</span></button>
+              <button class="sct-btn" onclick="SECT._openBuildings()">🏗 宗门建设 <span class="sct-cost">2⚡</span></button>
+              <button class="sct-btn-primary" onclick="SECT._nextTurn()">▶ 下一回合</button>
+            </div>
+            <div class="sct-task-hint">💡 在弟子卡片上选择任务后，点击下一回合结算</div>
+            <div class="sct-log" id="sct-log"></div>
+          </div>
+        </div>
+      </div>
+      <!-- Modal -->
+      <div class="sct-modal-overlay" id="sct-modal" onclick="SECT._modalBgClick(event)">
+        <div class="sct-modal-box" id="sct-modal-box"></div>
+      </div>
     </div>
     <!-- 今日看点占位 -->
     <div class="module" id="mod-news">
@@ -851,6 +1034,7 @@ canvas.ldg-chart{width:100%!important;max-height:200px;}
 <script src="js/ledger.js"></script>
 <script src="js/inbox.js"></script>
 <script src="js/game.js"></script>
+<script src="js/sect.js"></script>
 
 <!-- ★ 关闭前自动保存（IPC） -->
 <script>

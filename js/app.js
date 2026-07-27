@@ -308,6 +308,7 @@ function switchTab(id) {
   const activeMod = document.querySelector('.module.active');
   const prevId = activeMod ? activeMod.id.replace('mod-', '') : '';
   if (prevId === 'game' && id !== 'game' && typeof deactivateGame === 'function') deactivateGame();
+  if (prevId === 'calendar' && id !== 'calendar' && typeof SECT !== 'undefined' && typeof SECT.deactivate === 'function') SECT.deactivate();
   document.querySelectorAll('.tab').forEach((t, i) =>
     t.classList.toggle('active', ids[i] === id)
   );
@@ -315,6 +316,7 @@ function switchTab(id) {
     m.classList.toggle('active', m.id === 'mod-' + id)
   );
   if (id === 'game' && typeof activateGame === 'function') activateGame();
+  if (id === 'calendar' && typeof SECT !== 'undefined' && typeof SECT.activate === 'function') SECT.activate();
   if (id === 'ledger') {
     if (typeof ldgRenderList === 'function') ldgRenderList();
     if (typeof ldgRenderOverview === 'function') ldgRenderOverview();

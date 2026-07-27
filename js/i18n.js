@@ -13,7 +13,7 @@ const I18N = {
     signInBtn: '使用 Google 账号登录',
     tabCmdbook: 'cmd.book',
     tabLedger: '账本',
-    tabCalendar: '日历',
+    tabCalendar: '宗门',
     tabStock: '股票',
     tabNews: '今日看点',
 	    tabGame: '游戏',
@@ -110,7 +110,7 @@ const I18N = {
     signInBtn: '使用 Google 帳號登入',
     tabCmdbook: 'cmd.book',
     tabLedger: '帳本',
-    tabCalendar: '日曆',
+    tabCalendar: '宗門',
     tabStock: '股票',
     tabNews: '今日看點',
 	    tabGame: '遊戲',
@@ -207,7 +207,7 @@ const I18N = {
     signInBtn: 'Sign in with Google',
     tabCmdbook: 'cmd.book',
     tabLedger: 'Ledger',
-    tabCalendar: 'Calendar',
+    tabCalendar: 'Sect',
     tabStock: 'Stocks',
     tabNews: "Today's Feed",
 	    tabGame: "Games",
@@ -419,13 +419,11 @@ function applyLang() {
 
   const noteEl = document.getElementById('ldg-note'); if(noteEl) noteEl.placeholder = L.ldgNotePH;
 
-  // placeholders — 目前只有 2 个：日历、今日看点
+  // placeholders — 目前只有 1 个：今日看点（日历已替换为宗门模拟器）
   const phTitles = document.querySelectorAll('.ph-title');
   const phDescs = document.querySelectorAll('.ph-desc');
-  if(phTitles[0]) phTitles[0].textContent = L.phCalTitle;
-  if(phDescs[0]) phDescs[0].textContent = L.phCalDesc;
-  if(phTitles[1]) phTitles[1].textContent = L.phNewsTitle;
-  if(phDescs[1]) phDescs[1].textContent = L.phNewsDesc;
+  if(phTitles[0]) phTitles[0].textContent = L.phNewsTitle;
+  if(phDescs[0]) phDescs[0].textContent = L.phNewsDesc;
   document.querySelectorAll('.ph-badge').forEach(el => el.textContent = L.phSoon);
 
   document.querySelectorAll('.lang-btn').forEach(b =>
