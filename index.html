@@ -591,76 +591,115 @@ canvas.ldg-chart{width:100%!important;max-height:200px;}
 .sct-continent-card .cc-desc{font-size:10px;opacity:.7;}
 .sct-continent-card .cc-bonus{font-size:10px;color:var(--green-t);margin-top:2px;}
 
-/* 主界面 */
+/* ═══ 三栏工作台 ═══ */
 .sct-main{display:none;flex:1;flex-direction:column;overflow:hidden;}
-.sct-topbar{display:flex;align-items:center;justify-content:space-between;padding:8px 16px;background:var(--bg2);border-bottom:1px solid var(--border);flex-shrink:0;flex-wrap:wrap;gap:4px;}
-.sct-topbar-left{display:flex;align-items:center;gap:10px;}
-.sct-sect-name{font-size:15px;color:var(--amber);font-weight:700;letter-spacing:.06em;}
-.sct-continent-tag{padding:2px 8px;background:var(--bg3);border:1px solid var(--border);border-radius:3px;font-size:10px;color:var(--dim);}
-.sct-topbar-resources{display:flex;gap:14px;flex-wrap:wrap;}
-.sct-resource{display:flex;align-items:center;gap:3px;font-size:11px;color:var(--text);}
-.sct-res-icon{font-size:13px;}
+.sct-topbar{display:flex;align-items:center;justify-content:space-between;padding:5px 14px;background:var(--bg2);border-bottom:1px solid var(--border);flex-shrink:0;gap:8px;}
+.sct-topbar-left{display:flex;align-items:center;gap:8px;}
+.sct-sect-name{font-size:14px;color:var(--amber);font-weight:700;letter-spacing:.05em;}
+.sct-continent-tag{padding:1px 6px;background:var(--bg3);border:1px solid var(--border);border-radius:2px;font-size:9px;color:var(--dim);}
+.sct-lv{font-size:10px;color:var(--teal-t);}
+.sct-topbar-resources{display:flex;gap:14px;font-size:11px;color:var(--text);}
+.sct-res b{font-weight:600;}
 
-/* 双栏布局 */
-.sct-body{display:flex;flex:1;overflow:hidden;}
-.sct-disciple-panel{flex:1;display:flex;flex-direction:column;overflow:hidden;border-right:1px solid var(--border);min-width:0;}
-.sct-panel-header{display:flex;justify-content:space-between;align-items:center;padding:8px 14px;font-size:12px;color:var(--dim);border-bottom:1px solid var(--border);letter-spacing:.08em;background:var(--bg2);}
-.sct-recruit-limit{font-size:10px;color:var(--amber);}
-.sct-disciple-grid{flex:1;overflow-y:auto;padding:8px;display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px;align-content:start;}
-.sct-disciple-grid::-webkit-scrollbar{width:3px;}
-.sct-disciple-grid::-webkit-scrollbar-thumb{background:var(--border);}
+/* ── 三栏网格 ── */
+.sct-body{display:grid;grid-template-columns:320px 1fr 360px;flex:1;overflow:hidden;gap:0;background:var(--bg);}
+.sct-body>div{border-right:1px solid var(--border);overflow:hidden;display:flex;flex-direction:column;}
+.sct-body>div:last-child{border-right:none;}
+
+/* 面板通用 */
+.sct-panel{display:flex;flex-direction:column;overflow:hidden;border-bottom:1px solid var(--border);}
+.sct-panel:last-child{border-bottom:none;flex:1;}
+.sct-panel-head{padding:5px 10px;font-size:10px;color:var(--dim);letter-spacing:.05em;background:var(--bg2);border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-shrink:0;}
+.sct-recruit-limit{font-size:9px;color:var(--amber);}
+.sct-empty-hint{text-align:center;padding:24px 16px;color:var(--dim);font-size:11px;line-height:1.8;opacity:.4;}
+
+/* ── 左栏 ── */
+.sct-left{background:var(--bg2);}
+.sct-sect-stats{padding:6px 10px;font-size:10px;line-height:1.9;color:var(--dim);display:grid;grid-template-columns:1fr 1fr;gap:1px 6px;}
+.sct-sect-stats b{color:var(--text);}
+.sct-sect-panel{flex:0 0 auto;}
+
+.sct-disciple-list{flex:1;overflow-y:auto;padding:4px 6px;}
+.sct-disciple-list::-webkit-scrollbar{width:3px;}
+.sct-disciple-list::-webkit-scrollbar-thumb{background:var(--border);}
 
 /* 弟子卡片 */
-.sct-disciple-card{background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:10px;cursor:pointer;transition:all .12s;font-size:11px;position:relative;}
-.sct-disciple-card:hover{background:var(--bg3);}
-.sct-disciple-card.selected{border-color:var(--teal);box-shadow:0 0 0 1px var(--teal-dim);}
-.sct-disciple-card .dc-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;}
-.sct-disciple-card .dc-name{font-size:13px;font-weight:600;}
-.sct-disciple-card .dc-quality{padding:1px 6px;border-radius:3px;font-size:9px;font-weight:600;color:var(--text);}
-.sct-disciple-card .dc-cultivation{font-size:10px;color:var(--dim);margin-bottom:2px;}
-.sct-disciple-card .dc-stats{display:flex;gap:10px;font-size:10px;color:var(--dim);margin-bottom:4px;}
-.sct-disciple-card .dc-task{font-size:10px;padding:2px 8px;border-radius:3px;display:inline-block;}
-.sct-disciple-card .dc-task.cultivate{background:var(--green-dim);color:var(--green-t);}
-.sct-disciple-card .dc-task.gather{background:var(--teal-dim);color:var(--teal-t);}
-.sct-disciple-card .dc-task.adventure{background:var(--amber-dim);color:var(--amber);}
-.sct-disciple-card .dc-task.market{background:var(--bg3);color:var(--text);}
-.sct-disciple-card .dc-task.none{background:transparent;color:var(--dim);border:1px dashed var(--border);}
-.sct-disciple-card .dc-loyalty{font-size:10px;color:var(--dim);margin-top:2px;}
-/* 品质左边框 */
-.sct-disciple-card.q-mortal{border-left:2px solid var(--dim);}
-.sct-disciple-card.q-fine{border-left:2px solid var(--green);}
-.sct-disciple-card.q-superior{border-left:2px solid var(--teal);}
-.sct-disciple-card.q-elite{border-left:2px solid var(--amber);}
-.sct-disciple-card.q-celestial{border-left:2px solid var(--red);box-shadow:0 0 8px rgba(248,81,73,.12);}
+.sct-disc-card{background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:6px 8px;margin-bottom:5px;cursor:pointer;display:grid;grid-template-columns:auto 1fr;grid-template-rows:auto auto auto;gap:1px 8px;align-items:center;transition:all .1s;}
+.sct-disc-card:hover{border-color:var(--teal);}
+.sct-disc-card .dc-realm{grid-row:1/4;grid-column:1;width:32px;height:32px;border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:700;text-align:center;line-height:1.2;border:1px solid var(--border);background:var(--bg3);color:var(--dim);}
+.sct-disc-card .dc-realm.fine{background:var(--green-dim);color:var(--green-t);border-color:var(--green);}
+.sct-disc-card .dc-realm.superior{background:var(--teal-dim);color:var(--teal-t);border-color:var(--teal);}
+.sct-disc-card .dc-realm.elite{background:var(--amber-dim);color:var(--amber);border-color:var(--amber);}
+.sct-disc-card .dc-realm.celestial{background:rgba(248,81,73,.15);color:var(--red);border-color:var(--red);}
+.sct-disc-card .dc-name-row{grid-column:2;display:flex;align-items:center;gap:4px;}
+.sct-disc-card .dc-name{font-size:12px;font-weight:700;}
+.sct-disc-card .dc-quality{padding:0 4px;border-radius:2px;font-size:8px;font-weight:600;}
+.sct-disc-card .dc-stats-row{grid-column:2;display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:2px;font-size:8px;color:var(--dim);}
+.sct-disc-card .dc-stat b{color:var(--text);}
+.sct-disc-card .dc-task-row{grid-column:2;display:flex;align-items:center;gap:4px;font-size:9px;}
+.sct-disc-card .dc-bg{font-size:7px;color:var(--amber);}
+.sct-disc-card.q-mortal{border-left:2px solid var(--dim);}
+.sct-disc-card.q-fine{border-left:2px solid var(--green);}
+.sct-disc-card.q-superior{border-left:2px solid var(--teal);}
+.sct-disc-card.q-elite{border-left:2px solid var(--amber);}
+.sct-disc-card.q-celestial{border-left:2px solid var(--red);}
 
-/* Task select in card */
-.sct-task-select{background:var(--bg3);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:10px;padding:3px 6px;border-radius:3px;outline:none;margin-top:4px;cursor:pointer;}
+.sct-task-select{background:var(--bg3);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:8px;padding:1px 4px;border-radius:2px;outline:none;cursor:pointer;max-width:90px;}
 .sct-task-select:focus{border-color:var(--teal);}
 
-/* 右侧操作面板 */
-.sct-action-panel{width:260px;min-width:260px;display:flex;flex-direction:column;overflow:hidden;background:var(--bg2);}
-.sct-actions{padding:10px 12px;border-bottom:1px solid var(--border);display:flex;flex-direction:column;gap:6px;}
-.sct-btn{width:100%;padding:8px 14px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--mono);font-size:12px;cursor:pointer;text-align:left;transition:all .12s;}
+/* ── 中栏 ── */
+.sct-center{background:var(--bg);}
+.sct-loc-list{flex:0 0 auto;max-height:200px;overflow-y:auto;font-size:10px;}
+.sct-loc-list::-webkit-scrollbar{width:2px;}
+.sct-loc-list::-webkit-scrollbar-thumb{background:var(--border);}
+.sct-loc-item{display:flex;align-items:center;gap:8px;padding:5px 10px;cursor:pointer;color:var(--text);border-bottom:1px solid rgba(48,54,61,.25);transition:background .1s;}
+.sct-loc-item:hover{background:var(--bg3);}
+.sct-loc-detail{flex:1;overflow-y:auto;padding:10px 12px;font-size:11px;line-height:1.7;}
+.sct-loc-detail::-webkit-scrollbar{width:3px;}
+.sct-loc-detail::-webkit-scrollbar-thumb{background:var(--border);}
+
+/* ── 右栏 ── */
+.sct-right{background:var(--bg2);}
+.sct-act-panel{flex:0 0 auto;}
+.sct-actions{padding:6px 10px;display:flex;flex-direction:column;gap:4px;}
+.sct-btn{display:flex;justify-content:space-between;align-items:center;padding:6px 10px;background:var(--bg3);border:1px solid var(--border);border-radius:4px;color:var(--text);font-family:var(--mono);font-size:11px;cursor:pointer;transition:all .1s;}
 .sct-btn:hover{border-color:var(--green);color:var(--green-t);}
 .sct-btn:disabled{opacity:.4;cursor:not-allowed;}
-.sct-btn-primary{width:100%;padding:10px 14px;background:var(--green-dim);border:1px solid var(--green);border-radius:6px;color:var(--green-t);font-family:var(--mono);font-size:14px;cursor:pointer;font-weight:600;letter-spacing:.04em;transition:all .12s;}
-.sct-btn-primary:hover{background:#1e5c28;}
-.sct-btn-primary:disabled{opacity:.4;cursor:not-allowed;}
-.sct-cost{font-size:10px;color:var(--dim);}
-.sct-task-hint{font-size:10px;color:var(--dim);padding:6px 12px;text-align:center;}
+.sct-btn span{font-size:9px;color:var(--dim);}
+.sct-btn-turn{width:100%;padding:9px;margin-top:4px;background:var(--green-dim);border:1px solid var(--green);border-radius:4px;color:var(--green-t);font-family:var(--mono);font-size:14px;cursor:pointer;font-weight:700;letter-spacing:.06em;transition:all .1s;}
+.sct-btn-turn:hover{background:#1d5a27;}
+.sct-btn-turn:disabled{opacity:.4;cursor:not-allowed;}
 
-/* 事件日志 */
-.sct-log{flex:1;overflow-y:auto;padding:8px 12px;font-size:11px;color:var(--dim);line-height:1.7;}
-.sct-log::-webkit-scrollbar{width:3px;}
+.sct-combat-log{flex:0 0 auto;max-height:120px;overflow-y:auto;padding:3px 0;font-size:9px;color:var(--dim);}
+.sct-combat-log::-webkit-scrollbar{width:2px;}
+.sct-combat-log::-webkit-scrollbar-thumb{background:var(--border);}
+.sct-combat-msg{padding:3px 10px;border-bottom:1px solid rgba(48,54,61,.2);line-height:1.5;}
+.sct-combat-msg.win{color:var(--green-t);}
+.sct-combat-msg.lose{color:var(--red);}
+.sct-combat-msg.draw{color:var(--amber);}
+.sct-combat-empty{text-align:center;padding:10px;color:var(--dim);font-size:9px;opacity:.4;}
+
+.sct-log{flex:1;overflow-y:auto;padding:3px 0;font-size:9px;color:var(--dim);line-height:1.6;}
+.sct-log::-webkit-scrollbar{width:2px;}
 .sct-log::-webkit-scrollbar-thumb{background:var(--border);}
-.sct-log-msg{margin-bottom:3px;padding:3px 0;border-bottom:1px solid rgba(48,54,61,.3);}
+.sct-log-msg{padding:3px 10px;border-bottom:1px solid rgba(48,54,61,.2);}
 .sct-log-msg.good{color:var(--green-t);}
 .sct-log-msg.bad{color:var(--red);}
 .sct-log-msg.info{color:var(--teal-t);}
 .sct-log-msg.event{color:var(--amber);}
-.sct-log-empty{text-align:center;padding:20px;color:var(--dim);font-size:11px;opacity:.5;}
+
+#sct-event-panel{max-height:110px;overflow-y:auto;font-size:9px;}
+#sct-event-panel::-webkit-scrollbar{width:2px;}
+#sct-event-panel::-webkit-scrollbar-thumb{background:var(--border);}
+.sct-event-item{display:flex;align-items:center;gap:6px;padding:4px 10px;cursor:pointer;color:var(--text);font-size:9px;border-bottom:1px solid rgba(48,54,61,.2);transition:background .1s;}
+.sct-event-item:hover{background:var(--bg3);}
+.sct-loc-action:hover{background:var(--bg2)!important;}
+.sct-loc-action input[type=radio]{margin:0;}
 
 /* Modal */
+.sct-btn-primary{width:100%;padding:10px 14px;background:var(--green-dim);border:1px solid var(--green);border-radius:6px;color:var(--green-t);font-family:var(--mono);font-size:14px;cursor:pointer;font-weight:600;letter-spacing:.04em;transition:all .12s;}
+.sct-btn-primary:hover{background:#1e5c28;}
+.sct-btn-primary:disabled{opacity:.4;cursor:not-allowed;}/* Modal */
 .sct-modal-overlay{position:absolute;inset:0;background:rgba(0,0,0,.75);z-index:500;display:none;align-items:center;justify-content:center;}
 .sct-modal-overlay.open{display:flex;}
 .sct-modal-box{background:var(--bg2);border:1px solid var(--border);border-radius:12px;width:500px;max-width:90%;max-height:85vh;overflow-y:auto;padding:24px;position:relative;}
@@ -888,38 +927,81 @@ canvas.ldg-chart{width:100%!important;max-height:200px;}
           <button class="sct-btn-primary" id="sct-create-btn" onclick="SECT._startGame()" style="width:100%;margin-top:8px">⛩ 开宗立派</button>
         </div>
       </div>
-      <!-- 主游戏界面 -->
+      <!-- 主游戏界面 — 三栏工作台 -->
       <div class="sct-main" id="sct-main-screen">
         <div class="sct-topbar">
           <div class="sct-topbar-left">
             <span class="sct-sect-name" id="sct-name-display"></span>
             <span class="sct-continent-tag" id="sct-continent-display"></span>
-            <span style="font-size:11px;color:var(--teal-t)" id="sct-level-display"></span>
+            <span class="sct-lv" id="sct-level-display"></span>
           </div>
           <div class="sct-topbar-resources">
-            <div class="sct-resource"><span class="sct-res-icon">💎</span>灵石 <b id="sct-stones">0</b></div>
-            <div class="sct-resource"><span class="sct-res-icon">⭐</span>声望 <b id="sct-rep">0</b></div>
-            <div class="sct-resource"><span class="sct-res-icon">📅</span>第 <b id="sct-turn">1</b> 回合 (<b id="sct-year">1</b>年)</div>
-            <div class="sct-resource"><span class="sct-res-icon">⚡</span>行动点 <b id="sct-ap">3</b></div>
+            <span class="sct-res"><b>💎</b> <b id="sct-stones">0</b></span>
+            <span class="sct-res"><b>⭐</b> <b id="sct-rep">0</b></span>
+            <span class="sct-res"><b>📅</b> <b id="sct-turn">1</b>回</span>
+            <span class="sct-res"><b>⚡</b> <b id="sct-ap">3</b>AP</span>
           </div>
         </div>
+
         <div class="sct-body">
-          <div class="sct-disciple-panel">
-            <div class="sct-panel-header">
-              <span>📋 弟子</span>
-              <span class="sct-recruit-limit" id="sct-recruit-limit"></span>
+          <!-- ═══ 左栏：宗门与弟子 ═══ -->
+          <div class="sct-left">
+            <div class="sct-panel sct-sect-panel">
+              <div class="sct-panel-head">⛩ 宗门数据</div>
+              <div id="sct-sect-stats" class="sct-sect-stats"></div>
             </div>
-            <div class="sct-disciple-grid" id="sct-disciple-grid"></div>
+            <div class="sct-panel" style="flex:0 0 auto">
+              <div class="sct-panel-head" style="color:var(--red)">💀 血刀门威胁</div>
+              <div id="sct-bloodblade-status" style="padding:4px 10px;font-size:10px;color:var(--dim)"></div>
+              <div style="display:flex;gap:3px;padding:2px 8px 5px">
+                <button class="t-btn" style="font-size:9px;padding:2px 6px" onclick="SECT._scoutBloodBlade()">🔍探查 1⚡</button>
+                <button class="t-btn" style="font-size:9px;padding:2px 6px" onclick="SECT._payBloodBlade()">💰供奉</button>
+                <button class="t-btn danger" style="font-size:9px;padding:2px 6px" onclick="SECT._sacrificeToBloodBlade()">💀血食</button>
+              </div>
+            </div>
+            <div class="sct-panel sct-disc-section">
+              <div class="sct-panel-head">
+                <span>📋 弟子</span>
+                <span class="sct-recruit-limit" id="sct-recruit-limit"></span>
+              </div>
+              <div id="sct-disciple-list" class="sct-disciple-list"></div>
+            </div>
           </div>
-          <div class="sct-action-panel">
-            <div class="sct-actions">
-              <button class="sct-btn" onclick="SECT._openRecruit()">🔍 招募弟子 <span class="sct-cost">80💎 2⚡</span></button>
-              <button class="sct-btn" onclick="SECT._openTechniques()">📜 藏经阁 <span class="sct-cost">1⚡</span></button>
-              <button class="sct-btn" onclick="SECT._openBuildings()">🏗 宗门建设 <span class="sct-cost">2⚡</span></button>
-              <button class="sct-btn-primary" onclick="SECT._nextTurn()">▶ 下一回合</button>
+
+          <!-- ═══ 中栏：据点与战略 ═══ -->
+          <div class="sct-center">
+            <div class="sct-panel sct-loc-panel">
+              <div class="sct-panel-head">🌍 周边据点 <span style="font-size:10px;cursor:pointer;opacity:.5" onclick="SECT._refreshLocations();SECT._renderLocations()" title="刷新">↻</span></div>
+              <div id="sct-location-panel" class="sct-loc-list"></div>
             </div>
-            <div class="sct-task-hint">💡 在弟子卡片上选择任务后，点击下一回合结算</div>
-            <div class="sct-log" id="sct-log"></div>
+            <div class="sct-panel sct-detail-panel">
+              <div class="sct-panel-head">📋 据点详情</div>
+              <div id="sct-loc-detail" class="sct-loc-detail">
+                <div class="sct-empty-hint">← 点击左侧据点卡片<br>可派遣弟子执行任务</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ═══ 右栏：决策与战报 ═══ -->
+          <div class="sct-right">
+            <div class="sct-panel sct-act-panel">
+              <div class="sct-panel-head">⚡ 宗门决策</div>
+              <div class="sct-actions">
+                <button class="sct-btn" onclick="SECT._openRecruit()">🔍 招募弟子<span>80💎 2⚡</span></button>
+                <button class="sct-btn" onclick="SECT._openTechniques()">📜 藏经阁<span>1⚡</span></button>
+                <button class="sct-btn" onclick="SECT._openBuildings()">🏗 宗门建设<span>2⚡</span></button>
+                <div id="sct-event-panel"></div>
+                <button class="sct-btn-turn" onclick="SECT._nextTurn()">▶ 下一回合</button>
+              </div>
+            </div>
+            <div class="sct-panel sct-combat-panel">
+              <div class="sct-panel-head">⚔ 战斗日志</div>
+              <div id="sct-combat-log" class="sct-combat-log"></div>
+            </div>
+            <div class="sct-panel sct-log-panel">
+              <div class="sct-panel-head">📜 宗门日志</div>
+              <div id="sct-log" class="sct-log"></div>
+            </div>
           </div>
         </div>
       </div>
