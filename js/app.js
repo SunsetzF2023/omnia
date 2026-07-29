@@ -303,12 +303,12 @@ function setSyncStatus(html) {
 // 标签切换
 // ═══════════════════════════════════════════════
 function switchTab(id) {
-  const ids = ['cmdbook','ledger','calendar','news','game'];
+  const ids = ['cmdbook','ledger','sect','news','game'];
   // 游戏模块激活/停用
   const activeMod = document.querySelector('.module.active');
   const prevId = activeMod ? activeMod.id.replace('mod-', '') : '';
   if (prevId === 'game' && id !== 'game' && typeof deactivateGame === 'function') deactivateGame();
-  if (prevId === 'calendar' && id !== 'calendar' && typeof SECT !== 'undefined' && typeof SECT.deactivate === 'function') SECT.deactivate();
+  if (prevId === 'sect' && id !== 'sect' && typeof SECT !== 'undefined' && typeof SECT.deactivate === 'function') SECT.deactivate();
   document.querySelectorAll('.tab').forEach((t, i) =>
     t.classList.toggle('active', ids[i] === id)
   );
@@ -316,7 +316,7 @@ function switchTab(id) {
     m.classList.toggle('active', m.id === 'mod-' + id)
   );
   if (id === 'game' && typeof activateGame === 'function') activateGame();
-  if (id === 'calendar' && typeof SECT !== 'undefined' && typeof SECT.activate === 'function') SECT.activate();
+  if (id === 'sect' && typeof SECT !== 'undefined' && typeof SECT.activate === 'function') SECT.activate();
   if (id === 'ledger') {
     if (typeof ldgRenderList === 'function') ldgRenderList();
     if (typeof ldgRenderOverview === 'function') ldgRenderOverview();

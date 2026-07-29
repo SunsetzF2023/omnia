@@ -335,7 +335,7 @@ function applyLang() {
   // tabs — preserve onclick handlers (innerHTML would destroy them)
   const tabEls = document.querySelectorAll('.tab');
   const tabKeys = ['tabCmdbook','tabLedger','tabCalendar','tabNews','tabGame'];
-  const tabIds  = ['cmdbook','ledger','calendar','news','game'];
+  const tabIds  = ['cmdbook','ledger','sect','news','game'];
   tabEls.forEach((el,i) => {
     if(tabKeys[i]) {
       const wasActive = el.classList.contains('active');

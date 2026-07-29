@@ -148,6 +148,39 @@ function _fitCell(maxCell, cols, rows, padW, padH) {
 ### 文件被占用无法删除
 Omnia 进程可能仍在运行。先 `Stop-Process -Name Omnia -Force` 再操作文件。
 
+## AI 协作 / 工作流建议（每次新 session 请优先阅读）
+
+### 可用 Skills（`.claude/skills/`）
+本项目 `.claude/skills/` 下已包含两类技能，处理对应场景时应先查阅对应 `SKILL.md`：
+
+**Superpowers 系列**（来自 https://github.com/obra/superpowers ，流程/工程方法论）：
+- `using-superpowers` — 技能使用总纲，任何任务开始前先看这个判断是否有适用技能
+- `brainstorming` — 需求不清晰/开始新功能前先头脑风暴
+- `writing-plans` / `executing-plans` — 制定与执行开发计划
+- `systematic-debugging` — **修 bug 前必读**，避免头痛医头
+- `test-driven-development` — 先写测试再实现
+- `requesting-code-review` / `receiving-code-review` — code review 流程
+- `subagent-driven-development` / `dispatching-parallel-agents` — 拆解任务给子任务/并行执行
+- `using-git-worktrees` — 多分支并行开发
+- `finishing-a-development-branch` — 收尾合并分支
+- `verification-before-completion` — **任何"完成"声明前必须验证**（跑测试/实际运行确认，而非假设代码正确）
+- `writing-skills` — 如何编写新技能文档
+
+**设计/UI 系列**：`design`、`design-system`、`banner-design`、`brand`、`slides`、`ui-styling`、`ui-ux-pro-max`、`world-building.md`（天星界世界观协作规范）。
+
+若本地找不到某个 skill，可从 https://github.com/obra/superpowers 重新获取（也已缓存于 `C:\Users\<user>\.claude\plugins\cache\claude-plugins-official\superpowers\`）。
+
+### 运行与测试
+- **执行 `npm start` 前必须先检查是否有旧的 Electron/本地服务进程在运行**（占用端口 3000 会导致启动报错，如 "port already in use" 或残留 `electron.exe` 进程）。检测到旧进程时，先向用户确认是否关闭，再 `Stop-Process` 结束旧进程，然后重新 `npm start`。
+- 不要在用户不知情的情况下静默 kill 进程或重启服务。
+
+### 代码检查习惯
+- 大范围审查代码时，优先用 `node --check` 做语法快速扫描，再针对最近改动（`git diff`）重点复核逻辑一致性（例如：新功能提示文案 vs 实际是否有对应结算逻辑）。
+- 修改 tab / 模块 id 命名时（如 `calendar` → `sect`），必须搜索确认 `index.html`、`app.js`、`i18n.js` 三处的 id 全部同步更新。
+
+### 发布注意
+- 详见下方"发布流程"与"已知陷阱"章节，尤其是版本号 bump、exe 命名连字符问题。
+
 ## 安全规范
 - 绝不在代码中硬编码 API Key / Token / 密码，一律用环境变量读取
 - 绝不把 .env 或任何密钥文件的内容打印到终端、日志或提交信息里

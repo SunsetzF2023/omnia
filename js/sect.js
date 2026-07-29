@@ -18,51 +18,103 @@ const SECT_CONTINENTS = [
 
 // ── 资质品阶 ──────────────────────────────────
 const SECT_QUALITIES = [
-  { key: 'mortal',   name: '凡品', tier: 1, prob: 0.60, color: 'var(--dim)',   statRange: [8, 25] },
-  { key: 'fine',     name: '良品', tier: 2, prob: 0.28, color: 'var(--green)',  statRange: [20, 45] },
-  { key: 'superior', name: '上品', tier: 3, prob: 0.09, color: 'var(--teal)',   statRange: [35, 65] },
-  { key: 'elite',    name: '极品', tier: 4, prob: 0.025,color: 'var(--amber)',  statRange: [55, 85] },
-  { key: 'celestial',name: '天品', tier: 5, prob: 0.005,color: 'var(--red)',    statRange: [75, 100] },
+  { key: 'mortal',   name: '凡品', tier: 1, prob: 0.55, color: 'var(--dim)',   statRange: [8, 25] },
+  { key: 'fine',     name: '良品', tier: 2, prob: 0.27, color: 'var(--green)',  statRange: [20, 45] },
+  { key: 'superior', name: '上品', tier: 3, prob: 0.12, color: 'var(--teal)',   statRange: [35, 65] },
+  { key: 'elite',    name: '极品', tier: 4, prob: 0.05, color: 'var(--amber)',  statRange: [55, 85] },
+  { key: 'celestial',name: '天品', tier: 5, prob: 0.01, color: 'var(--red)',    statRange: [75, 100] },
 ];
 
-// ── 武道境界（天星界九洲体系） ──────────────────
+// ── 武道境界（天星界九洲体系，world/realms/武道境界.md） ──────────
+// 共十三境：武仆→武者→武师→大武师→武宗→大武宗→武王→武君→武圣→武帝→武尊→武皇→武神
 // 突破条件: 修为值达到 cost 即可尝试突破
 // cost=-1 表示已达当前版本上限
 const SECT_REALMS = [
-  { name: '武仆',     idx: 0, cost: 0,    atk: 2,  def: 1,  spd: 2,   desc: '入门淬体，武道之始' },
-  { name: '武者',     idx: 1, cost: 100,  atk: 6,  def: 4,  spd: 4,   desc: '内劲初成，可称武者' },
-  { name: '武师',     idx: 2, cost: 250,  atk: 14, def: 10, spd: 7,   desc: '劲力贯通，登堂入室' },
-  { name: '大武师',   idx: 3, cost: 500,  atk: 30, def: 22, spd: 11,  desc: '内力外放，威压四方' },
-  { name: '武宗',     idx: 4, cost: 1000, atk: 60, def: 45, spd: 17,  desc: '开宗立派之资' },
-  { name: '大武宗',   idx: 5, cost: 2500, atk: 120,def: 90, spd: 25,  desc: '宗门支柱，一方豪强' },
-  { name: '武王',     idx: 6, cost: 6000, atk: 250,def: 180,spd: 36,  desc: '劈山断水，脱离凡俗' },
-  { name: '武君',     idx: 7, cost: -1,   atk: 500,def: 380,spd: 50,  desc: '君临一方，万民景仰（传说）' },
+  { name: '武仆',     idx: 0,  cost: 0,     atk: 2,   def: 1,    spd: 2,   desc: '入门淬体，武道之始' },
+  { name: '武者',     idx: 1,  cost: 100,   atk: 6,   def: 4,    spd: 4,   desc: '内劲初成，可称武者' },
+  { name: '武师',     idx: 2,  cost: 250,   atk: 14,  def: 10,   spd: 7,   desc: '劲力贯通，登堂入室' },
+  { name: '大武师',   idx: 3,  cost: 500,   atk: 30,  def: 22,   spd: 11,  desc: '内力外放，威压四方' },
+  { name: '武宗',     idx: 4,  cost: 1000,  atk: 60,  def: 45,   spd: 17,  desc: '开宗立派之资' },
+  { name: '大武宗',   idx: 5,  cost: 2500,  atk: 120, def: 90,   spd: 25,  desc: '宗门支柱，一方豪强' },
+  { name: '武王',     idx: 6,  cost: 6000,  atk: 250, def: 180,  spd: 36,  desc: '劈山断水，脱离凡俗' },
+  { name: '武君',     idx: 7,  cost: 15000, atk: 500, def: 380,  spd: 50,  desc: '君临一方，万民景仰' },
+  { name: '武圣',     idx: 8,  cost: 40000, atk: 1000,def: 750,  spd: 70,  desc: '增寿一万载，踏入圣境' },
+  { name: '武帝',     idx: 9,  cost: 100000,atk: 2000,def: 1500, spd: 95,  desc: '可建立不朽王朝（传说）' },
+  { name: '武尊',     idx: 10, cost: 250000,atk: 4000,def: 3000, spd: 130, desc: '破碎虚空，称至尊（传说）' },
+  { name: '武皇',     idx: 11, cost: 600000,atk: 8000,def: 6000, spd: 170, desc: '武尊之上（远古神话）' },
+  { name: '武神',     idx: 12, cost: -1,    atk: 16000,def:12000,spd:220, desc: '飞升上界，需渡无上天劫（远古神话）' },
+];
+
+// ── 功法品阶（world/concepts/物品品阶.md: 8品×3等=24级，此处用8品） ──
+const SECT_TECH_GRADES = [
+  { key: 'mortal',     name: '凡品', tier: 1, mult: 1,    color: 'var(--dim)' },
+  { key: 'human',      name: '人品', tier: 2, mult: 2,    color: 'var(--green-t)' },
+  { key: 'yellow',     name: '黄品', tier: 3, mult: 4,    color: 'var(--teal-t)' },
+  { key: 'xuan',       name: '玄品', tier: 4, mult: 8,    color: 'var(--amber)' },
+  { key: 'earth',      name: '地品', tier: 5, mult: 16,   color: 'var(--red)' },
+  { key: 'heaven',     name: '天品', tier: 6, mult: 32,   color: '#c084fc' },
+  { key: 'emperor',    name: '帝品', tier: 7, mult: 64,   color: '#fbbf24' },
+  { key: 'divine',     name: '神品', tier: 8, mult: 128,  color: '#f0abfc' },
 ];
 
 // ── 功法库（type: 攻击系/防御系/辅助系/隐匿系/逃遁系） ──
 const SECT_TECHNIQUES = [
-  { id: 't_breathe',  name: '吐纳术',   grade: '人阶', gradeKey: 'mortal', type: '辅助系', cost: 0,   reqLv: 0,  reqBuilding: null,   effect: { cultivate: 10 },                         combat: {} },
-  { id: 't_tough',    name: '淬体诀',   grade: '人阶', gradeKey: 'mortal', type: '防御系', cost: 50,  reqLv: 0,  reqBuilding: null,   effect: { physique: 5 },                           combat: { def: 8, hp: 15 } },
-  { id: 't_sword',    name: '基础剑法', grade: '人阶', gradeKey: 'mortal', type: '攻击系', cost: 50,  reqLv: 0,  reqBuilding: null,   effect: { adventure: 8 },                          combat: { atk: 10, critRate: 0.03 } },
-  { id: 't_gather',   name: '采气术',   grade: '人阶', gradeKey: 'mortal', type: '辅助系', cost: 80,  reqLv: 0,  reqBuilding: null,   effect: { gather: 12 },                            combat: {} },
-  { id: 't_charm',    name: '言辩之术', grade: '人阶', gradeKey: 'mortal', type: '辅助系', cost: 60,  reqLv: 0,  reqBuilding: null,   effect: { market: 10 },                            combat: {} },
-  { id: 't_hide',     name: '敛息术',   grade: '人阶', gradeKey: 'mortal', type: '隐匿系', cost: 70,  reqLv: 0,  reqBuilding: null,   effect: { adventure: 6 },                          combat: { spd: 8, critRate: 0.05 } },
-  { id: 't_escape',   name: '云踪步',   grade: '人阶', gradeKey: 'mortal', type: '逃遁系', cost: 70,  reqLv: 0,  reqBuilding: null,   effect: { adventure: 6 },                          combat: { spd: 12, def: 3 } },
-  { id: 't_meditate', name: '静心诀',   grade: '黄阶', gradeKey: 'yellow', type: '辅助系', cost: 200, reqLv: 3,  reqBuilding: 'library', effect: { cultivate: 20 },                         combat: { def: 5, hp: 10 } },
-  { id: 't_fire',     name: '烈焰掌',   grade: '黄阶', gradeKey: 'yellow', type: '攻击系', cost: 200, reqLv: 3,  reqBuilding: 'library', effect: { adventure: 18 },                         combat: { atk: 22, critRate: 0.06, critDmg: 0.3 } },
-  { id: 't_iron',     name: '铁布衫',   grade: '黄阶', gradeKey: 'yellow', type: '防御系', cost: 200, reqLv: 3,  reqBuilding: 'library', effect: { physique: 12 },                          combat: { def: 18, hp: 35 } },
-  { id: 't_cloud',    name: '云游步',   grade: '黄阶', gradeKey: 'yellow', type: '逃遁系', cost: 250, reqLv: 3,  reqBuilding: 'library', effect: { adventure: 12, cultivate: 5 },              combat: { spd: 20, def: 8 } },
-  { id: 't_trade',    name: '商贾经',   grade: '黄阶', gradeKey: 'yellow', type: '辅助系', cost: 250, reqLv: 3,  reqBuilding: 'library', effect: { market: 18 },                            combat: {} },
+  { id: 't_breathe',  name: '吐纳术',   grade: '凡品', gradeKey: 'mortal', type: '辅助系', cost: 0,   reqLv: 0,  reqBuilding: null,   effect: { cultivate: 10 },                         combat: {}, continent: null },
+  { id: 't_tough',    name: '淬体诀',   grade: '凡品', gradeKey: 'mortal', type: '防御系', cost: 50,  reqLv: 0,  reqBuilding: null,   effect: { physique: 5 },                           combat: { def: 8, hp: 15, skillType: 'defend', skillPower: 0.15 }, continent: null },
+  { id: 't_sword',    name: '基础剑法', grade: '凡品', gradeKey: 'mortal', type: '攻击系', cost: 50,  reqLv: 0,  reqBuilding: null,   effect: { adventure: 8 },                          combat: { atk: 10, critRate: 0.03, skillType: 'attack', skillPower: 1.0, weaponType: 'sword' }, continent: null },
+  { id: 't_gather',   name: '采气术',   grade: '凡品', gradeKey: 'mortal', type: '辅助系', cost: 80,  reqLv: 0,  reqBuilding: null,   effect: { gather: 12 },                            combat: {}, continent: null },
+  { id: 't_charm',    name: '言辩之术', grade: '凡品', gradeKey: 'mortal', type: '辅助系', cost: 60,  reqLv: 0,  reqBuilding: null,   effect: { market: 10 },                            combat: {}, continent: null },
+  { id: 't_hide',     name: '敛息术',   grade: '凡品', gradeKey: 'mortal', type: '隐匿系', cost: 70,  reqLv: 0,  reqBuilding: null,   effect: { adventure: 6 },                          combat: { spd: 8, critRate: 0.05, skillType: 'assassin', skillPower: 1.2 }, continent: null },
+  { id: 't_escape',   name: '云踪步',   grade: '凡品', gradeKey: 'mortal', type: '逃遁系', cost: 70,  reqLv: 0,  reqBuilding: null,   effect: { adventure: 6 },                          combat: { spd: 12, def: 3, skillType: 'dodge', skillPower: 0.1 }, continent: null },
+  { id: 't_meditate', name: '静心诀',   grade: '黄品', gradeKey: 'yellow', type: '辅助系', cost: 200, reqLv: 3,  reqBuilding: 'library', effect: { cultivate: 20 },                         combat: { def: 5, hp: 10 }, continent: 'east' },
+  { id: 't_fire',     name: '烈焰掌',   grade: '黄品', gradeKey: 'yellow', type: '攻击系', cost: 200, reqLv: 3,  reqBuilding: 'library', effect: { adventure: 18 },                         combat: { atk: 22, critRate: 0.06, critDmg: 0.3, skillType: 'attack', skillPower: 1.3 }, continent: 'west' },
+  { id: 't_iron',     name: '铁布衫',   grade: '黄品', gradeKey: 'yellow', type: '防御系', cost: 200, reqLv: 3,  reqBuilding: 'library', effect: { physique: 12 },                          combat: { def: 18, hp: 35, skillType: 'defend', skillPower: 0.25 }, continent: 'north' },
+  { id: 't_cloud',    name: '云游步',   grade: '黄品', gradeKey: 'yellow', type: '逃遁系', cost: 250, reqLv: 3,  reqBuilding: 'library', effect: { adventure: 12, cultivate: 5 },              combat: { spd: 20, def: 8, skillType: 'dodge', skillPower: 0.15 }, continent: 'cloud' },
+  { id: 't_trade',    name: '商贾经',   grade: '黄品', gradeKey: 'yellow', type: '辅助系', cost: 250, reqLv: 3,  reqBuilding: 'library', effect: { market: 18 },                            combat: {}, continent: 'emperor' },
+  // 玄品（reqLv: 6, library Lv2）
+  { id: 't_thunder',  name: '雷霆万钧', grade: '玄品', gradeKey: 'xuan',   type: '攻击系', cost: 800, reqLv: 6,  reqBuilding: 'library', effect: { adventure: 35 },                         combat: { atk: 50, critRate: 0.10, critDmg: 0.5, skillType: 'aoe', skillPower: 0.7, weaponType: 'sword' }, continent: 'south' },
+  { id: 't_vajra',    name: '金刚不坏', grade: '玄品', gradeKey: 'xuan',   type: '防御系', cost: 800, reqLv: 6,  reqBuilding: 'library', effect: { physique: 25 },                          combat: { def: 45, hp: 80, skillType: 'defend', skillPower: 0.35 }, continent: 'north' },
+  { id: 't_spirit',   name: '聚灵诀',   grade: '玄品', gradeKey: 'xuan',   type: '辅助系', cost: 900, reqLv: 6,  reqBuilding: 'library', effect: { cultivate: 40 },                         combat: {}, continent: 'cloud' },
+  // 地品（reqLv: 10, library Lv3）
+  { id: 't_dragon',   name: '龙啸九天', grade: '地品', gradeKey: 'earth',  type: '攻击系', cost: 3000, reqLv: 10, reqBuilding: 'library', effect: { adventure: 70 },                        combat: { atk: 110, critRate: 0.15, critDmg: 0.8, skillType: 'aoe', skillPower: 1.0, weaponType: 'sword' }, continent: 'center' },
+  { id: 't_aegis',    name: '天罡护体', grade: '地品', gradeKey: 'earth',  type: '防御系', cost: 3000, reqLv: 10, reqBuilding: 'library', effect: { physique: 50 },                         combat: { def: 100, hp: 180, skillType: 'defend', skillPower: 0.45 }, continent: 'center' },
 ];
 
 // ── 建筑 ──────────────────────────────────────
 const SECT_BUILDINGS = [
-  { id: 'library',  name: '藏经阁',   cost: 500,  desc: '解锁黄阶功法购买',       maxLv: 3, effect: '解锁高阶功法' },
+  { id: 'library',  name: '藏经阁',   cost: 500,  desc: '解锁黄品/玄品/地品功法购买',       maxLv: 3, effect: '解锁高阶功法' },
   { id: 'alchemy',  name: '炼丹房',   cost: 800,  desc: '提升弟子修炼速度 +15%',  maxLv: 3, effect: '修炼加成' },
   { id: 'arena',    name: '演武场',   cost: 600,  desc: '提升历练成功率',         maxLv: 3, effect: '历练加成' },
   { id: 'treasury', name: '藏灵阁',   cost: 400,  desc: '灵石存储上限+，每回合额外产出', maxLv: 5, effect: '灵石加成' },
   { id: 'formation',name: '护山大阵', cost: 1000, desc: '降低弟子叛离与伤亡概率',  maxLv: 3, effect: '安全加成' },
 ];
+
+// ── 炼丹/锻造配方（GDD §8, world/concepts/修炼流派.md） ──
+// type: alchemy(丹修) / forge(器修) / talisman(符修)
+// gradeKey matches SECT_TECH_GRADES for item quality
+const SECT_CRAFT_RECIPES = [
+  // 炼丹
+  { id: 'p_qi',      name: '聚气丹',   type: 'alchemy',  cost: 50,   reqBld: 'alchemy', reqLv: 0,  gradeKey: 'mortal',  effect: { cultivate: 15 }, desc: '修炼加速+15%', successRate: 0.85 },
+  { id: 'p_spirit',  name: '凝神丹',   type: 'alchemy',  cost: 200,  reqBld: 'alchemy', reqLv: 3,  gradeKey: 'yellow',  effect: { cultivate: 30 }, desc: '修炼加速+30%', successRate: 0.70 },
+  { id: 'p_body',    name: '淬体丹',   type: 'alchemy',  cost: 150,  reqBld: 'alchemy', reqLv: 2,  gradeKey: 'yellow',  effect: { physique: 10 }, desc: '体魄+10（永久）', successRate: 0.75 },
+  { id: 'p_demon',   name: '镇魔丹',   type: 'alchemy',  cost: 300,  reqBld: 'alchemy', reqLv: 5,  gradeKey: 'xuan',    effect: { innerDemon: -20 }, desc: '心魔-20', successRate: 0.60 },
+  { id: 'p_break',   name: '破境丹',   type: 'alchemy',  cost: 1000, reqBld: 'alchemy', reqLv: 8,  gradeKey: 'earth',   effect: { breakthrough: true }, desc: '突破成功率+30%', successRate: 0.45 },
+  // 锻造
+  { id: 'w_sword',   name: '寒铁剑',   type: 'forge',    cost: 100,  reqBld: 'arena',   reqLv: 1,  gradeKey: 'mortal',  effect: { atk: 15 }, weaponType: 'sword', desc: '攻击+15（剑类功法加成）', successRate: 0.80 },
+  { id: 'w_armor',   name: '玄铁甲',   type: 'forge',    cost: 150,  reqBld: 'arena',   reqLv: 2,  gradeKey: 'yellow',  effect: { def: 20, hp: 30 }, desc: '防御+20 生命+30', successRate: 0.70 },
+  { id: 'w_blade',   name: '斩灵刀',   type: 'forge',    cost: 500,  reqBld: 'arena',   reqLv: 5,  gradeKey: 'xuan',    effect: { atk: 60, critRate: 0.08 }, weaponType: 'sword', desc: '攻击+60 暴击+8%（剑类功法加成）', successRate: 0.55 },
+  { id: 'w_aegis',   name: '天罡盾',   type: 'forge',    cost: 800,  reqBld: 'arena',   reqLv: 8,  gradeKey: 'earth',   effect: { def: 80, hp: 120 }, desc: '防御+80 生命+120', successRate: 0.40 },
+  // 符篆
+  { id: 't_heal',    name: '回春符',   type: 'talisman', cost: 80,   reqBld: 'library', reqLv: 1,  gradeKey: 'mortal',  effect: { heal: 30 }, desc: '治疗30（战斗中可用）', successRate: 0.85 },
+  { id: 't_rage',    name: '狂暴符',   type: 'talisman', cost: 120,  reqBld: 'library', reqLv: 3,  gradeKey: 'yellow',  effect: { atk: 25, turns: 3 }, desc: '战斗中攻击+25（3回合）', successRate: 0.70 },
+];
+
+// craftingRoll: 基础成功率 + 弟子悟性加成 - 品阶惩罚
+function _craftingRoll(baseRate, discGrade, recipeGradeTier) {
+  const gradePenalty = (recipeGradeTier - 1) * 0.08;
+  const compBonus = Math.floor((discGrade || 50) / 25) * 0.03;
+  return Math.max(0.1, Math.min(0.95, baseRate + compBonus - gradePenalty));
+}
 
 // ── 任务类型 ──────────────────────────────────
 const SECT_TASKS = [
@@ -70,6 +122,90 @@ const SECT_TASKS = [
   { key: 'gather',    name: '采集资源', icon: '⛏', desc: '产出灵石和材料' },
   { key: 'adventure', name: '历练',     icon: '⚔', desc: '获取功法/装备，伴随风险' },
   { key: 'market',    name: '坊市摆摊', icon: '🏪', desc: '稳定灵石收入+微增声望' },
+  { key: 'visit',     name: '拜访宗门', icon: '🏛', desc: '外交关系+情报，可能触发联姻/结盟/冲突' },
+];
+
+// ── 弟子状态（GDD §4.3） ──────────────────────
+const SECT_DISC_STATUS = ['正常', '受伤', '闭关', '走火入魔', '失踪', '叛离', '已故'];
+
+// ── 声望系统（GDD §6） ────────────────────────
+// 累计声望决定称号，当前声望用于升级消耗
+// source: combat(战斗) / diplomacy(外交) / commerce(商业) / virtue(善举) / infamy(恶名)
+const SECT_REP_TIERS = [
+  { min: 0,    title: '无名小卒',  desc: '江湖中无人知晓你的存在' },
+  { min: 15,   title: '初露锋芒',  desc: '附近开始有人提起你的名字' },
+  { min: 40,   title: '小有名气',  desc: '你的事迹在同洲传开' },
+  { min: 80,   title: '名动一方',  desc: '各方势力开始关注你' },
+  { min: 150,  title: '威震四方',  desc: '你的名号令人敬畏' },
+  { min: 250,  title: '一方霸主',  desc: '你已是此洲举足轻重的存在' },
+  { min: 400,  title: '名震九洲',  desc: '九洲皆知你的宗门之名' },
+  { min: 600,  title: '武林传说',  desc: '你的事迹将被编入话本传唱' },
+];
+
+// ── 悬赏任务（声望系统，觅长生风格） ──────────
+// type: combat(战斗) / escort(护送) / gather(采集) / subdue(剿灭)
+// reqRep: 所需累计声望
+// reward: { stones, rep, item? }
+const SECT_BOUNTIES = [
+  { id: 'b_bandit',   type: 'combat',  name: '清剿山匪',     desc: '附近山头匪患猖獗，劫掠过往散修。', reqRep: 0,   difficulty: 1,
+    reward: { stones: [40, 70], rep: 3, source: 'combat' },
+    resolve: (s, d) => {
+      const npc = _pickNPC('bandit'); npc.name = '山匪头目';
+      const result = s._executeCombat([s._deriveCombatStats(d)], [npc], 'adventure', '山匪头目');
+      return result.myWon;
+    } },
+  { id: 'b_beast',    type: 'combat',  name: '猎杀妖兽',     desc: '一头妖兽在官道伤人，附近散修悬赏猎杀。', reqRep: 15,  difficulty: 2,
+    reward: { stones: [60, 100], rep: 5, source: 'combat' },
+    resolve: (s, d) => {
+      const npc = _pickNPC('beast'); npc.name = '凶恶妖兽'; npc.atk += 8; npc.hp += 20; npc.maxHp = npc.hp;
+      const result = s._executeCombat([s._deriveCombatStats(d)], [npc], 'adventure', '凶恶妖兽');
+      return result.myWon;
+    } },
+  { id: 'b_escort',   type: 'escort',  name: '护送商队',     desc: '一支商队需穿越险要山路，寻求修士护送。', reqRep: 15,  difficulty: 1,
+    reward: { stones: [50, 80], rep: 4, source: 'commerce' },
+    resolve: (s, d) => {
+      const r = Math.random();
+      if (r < 0.2) {
+        const npc = _pickNPC('bandit'); npc.name = '劫匪';
+        const result = s._executeCombat([s._deriveCombatStats(d)], [npc], 'adventure', '劫匪');
+        return result.myWon;
+      }
+      return true; // 平安到达
+    } },
+  { id: 'b_herbs',    type: 'gather',  name: '采集灵草',     desc: '炼丹师急需一批灵草，愿出灵石收购。', reqRep: 0,   difficulty: 1,
+    reward: { stones: [30, 55], rep: 2, source: 'commerce' },
+    resolve: (s, d) => {
+      const charm = Math.floor(d.comprehension / 20);
+      return Math.random() + charm * 0.05 > 0.15;
+    } },
+  { id: 'b_rogue',    type: 'combat',  name: '追捕邪修',     desc: '一名邪修在附近为非作歹，各宗门联合悬赏。', reqRep: 40,  difficulty: 3,
+    reward: { stones: [80, 140], rep: 8, source: 'combat' },
+    resolve: (s, d) => {
+      const npc = _pickNPC('rogue'); npc.name = '邪修'; npc.atk += 15; npc.hp += 40; npc.maxHp = npc.hp;
+      const result = s._executeCombat([s._deriveCombatStats(d)], [npc], 'adventure', '邪修');
+      return result.myWon;
+    } },
+  { id: 'b_zombie',   type: 'subdue',  name: '镇压尸变',     desc: '一处古墓发生尸变，僵尸出没威胁周边。', reqRep: 40,  difficulty: 3,
+    reward: { stones: [70, 120], rep: 7, source: 'combat' },
+    resolve: (s, d) => {
+      const npc = _pickNPC('zombie'); npc.name = '古墓僵尸'; npc.atk += 10; npc.hp += 60; npc.maxHp = npc.hp;
+      const result = s._executeCombat([s._deriveCombatStats(d)], [npc], 'adventure', '古墓僵尸');
+      return result.myWon;
+    } },
+  { id: 'b_sentinel', type: 'subdue',  name: '破阵夺宝',     desc: '一处上古遗迹的守阵傀儡苏醒，击败可入内取宝。', reqRep: 80,  difficulty: 4,
+    reward: { stones: [100, 180], rep: 10, source: 'combat' },
+    resolve: (s, d) => {
+      const npc = _pickNPC('sentinel'); npc.name = '守阵傀儡'; npc.atk += 20; npc.hp += 80; npc.maxHp = npc.hp;
+      const result = s._executeCombat([s._deriveCombatStats(d)], [npc], 'adventure', '守阵傀儡');
+      return result.myWon;
+    } },
+  { id: 'b_elite',    type: 'combat',  name: '斩杀魔修',     desc: '一名魔修突破至高境界，为祸一方，急求高手斩杀。', reqRep: 150, difficulty: 5,
+    reward: { stones: [150, 250], rep: 15, source: 'combat' },
+    resolve: (s, d) => {
+      const npc = _pickNPC('eliteDisc'); npc.name = '魔修'; npc.atk += 25; npc.hp += 100; npc.maxHp = npc.hp;
+      const result = s._executeCombat([s._deriveCombatStats(d)], [npc], 'adventure', '魔修');
+      return result.myWon;
+    } },
 ];
 
 // ── 随机名册 ──────────────────────────────────
@@ -79,85 +215,132 @@ const SECT_GIVEN_F   = ['瑶','雪','灵','月','曦','霜','梦','若','婉','�
 const SECT_SECT_WORDS = ['太虚','玄天','青云','紫霄','无极','苍龙','天罡','灵墟','万剑','丹霞','碧落','星辰','凌霄','混元','九霄','天元','真武','玄武','天道','问道','天枢','玉清','太华','流云','落星','归元','凌波','清风','明月','长虹'];
 
 // ── 随机事件库 ────────────────────────────────
+// cat: cultivation/jianghu/calamity/opportunity/internal
+// chain: { id, delay } — 触发后续连锁事件
 const SECT_EVENTS = [
-  { id: 'ev_wonder',    cat: 'disciple', weight: 12, cond: s => s.disciples.length > 0,
-    text: '夜色深沉，宗门后山突然灵光冲天——一名弟子在修炼中出现了顿悟之兆，周身气劲翻涌，天地灵气疯狂向其汇聚。此等机缘，稍纵即逝。',
+  // ═══ 修炼类 ═══
+  { id: 'ev_wonder',    cat: 'cultivation', weight: 8, cond: s => s.disciples.length > 0,
+    text: '夜色深沉，宗门后山灵光骤现。一名弟子修炼时周身气劲翻涌，天地灵气疯狂汇聚——此乃顿悟之兆，稍纵即逝。',
     choices: [
-      { text: '倾注灵石为其护法 (-20灵石)', effect: s => { s.spiritStones -= 20; const d = _pickRandomDisc(s); if (d) { d.cultivation += _randInt(12, 25); d.loyalty += 3; s._addLog('good', d.name + ' 在你的护持下顿悟成功，修为大进！'); } } },
-      { text: '远远观望，不打扰他', effect: s => { const d = _pickRandomDisc(s); if (d) { d.cultivation += _randInt(4, 12); s._addLog('info', d.name + ' 自行参悟，略有收获便渐渐平息。'); } } },
-      { text: '命其压制修为，勿贪功冒进', effect: s => { const d = _pickRandomDisc(s); if (d) { d.cultivation += 2; d.innerDemon = Math.max(0, d.innerDemon - 10); d.loyalty += 8; s._addLog('info', d.name + ' 虽压制了突破欲望，但根基更加扎实，对你心怀感激。'); } } },
+      { text: '倾注灵石护法 (-20灵石)', effect: s => { s.spiritStones -= 20; const d = _pickRandomDisc(s); if (d) { d.cultivation += _randInt(15, 30); d.loyalty += 3; s._addLog('good', d.name + ' 在护法下顿悟成功，修为大进。'); } } },
+      { text: '远远观望，不加干涉', effect: s => { const d = _pickRandomDisc(s); if (d) { if (Math.random() < 0.6) { d.cultivation += _randInt(5, 15); s._addLog('info', d.name + ' 自行参悟，略有所得。'); } else { d.innerDemon += _randInt(3, 8); s._addLog('bad', d.name + ' 顿悟中断，气机逆行，心魔微增。'); } } } },
+      { text: '命其压制，稳固根基', effect: s => { const d = _pickRandomDisc(s); if (d) { d.cultivation += 3; d.innerDemon = Math.max(0, d.innerDemon - 8); d.loyalty += 6; s._addLog('info', d.name + ' 压制突破冲动，根基更稳。'); } } },
     ]},
-  { id: 'ev_demon',     cat: 'disciple', weight: 8, cond: s => s.disciples.some(d => d.loyalty < 55),
-    text: '深夜，一名弟子修炼时突然发出一声惨嚎——心魔趁虚而入，周身黑气缭绕，眼中一片赤红。若放任不管，轻则修为尽废，重则走火入魔、危及同门。',
+  { id: 'ev_demon',     cat: 'cultivation', weight: 6, cond: s => s.disciples.some(d => d.innerDemon >= 30 || d.loyalty < 50),
+    text: '深夜，一名弟子修炼时发出惨嚎——心魔趁虚而入，周身黑气缭绕，双目赤红。若放任不管，轻则修为尽废，重则走火入魔、伤及同门。',
     choices: [
-      { text: '亲自出手镇压心魔', effect: s => { const d = _pickDiscByLoyalty(s, true); if (d) { d.loyalty += 15; d.innerDemon = Math.max(0, d.innerDemon - 25); s._addLog('good', '你以强横修为镇压了' + d.name + '的心魔，弟子感激涕零。'); } } },
-      { text: '赐下清心丹一枚 (-15灵石)', effect: s => { s.spiritStones -= 15; const d = _pickDiscByLoyalty(s, true); if (d) { d.innerDemon = Math.max(0, d.innerDemon - 15); s._addLog('info', d.name + ' 服下丹药后渐渐平静。'); } } },
-      { text: '任其自行挣扎', effect: s => { const d = _pickDiscByLoyalty(s, true); if (d) { d.innerDemon += 10; d.loyalty -= 12; if (d.innerDemon > 80) { d.cultivation = Math.max(0, d.cultivation - 20); s._addLog('bad', d.name + ' 心魔失控，修为大损！'); } else { s._addLog('bad', d.name + ' 心魔加深，对你心生怨恨...'); } } } },
+      { text: '亲自出手镇压', effect: s => { const d = _pickDiscByLoyalty(s, true); if (d) { d.loyalty += 12; d.innerDemon = Math.max(0, d.innerDemon - 25); s._addLog('good', '你以强横修为镇压了' + d.name + '的心魔。'); } } },
+      { text: '赐下清心丹 (-15灵石)', effect: s => { s.spiritStones -= 15; const d = _pickDiscByLoyalty(s, true); if (d) { d.innerDemon = Math.max(0, d.innerDemon - 15); s._addLog('info', d.name + ' 服下丹药后渐渐平复。'); } } },
+      { text: '任其自行挣扎', effect: s => { const d = _pickDiscByLoyalty(s, true); if (d) { d.innerDemon += 12; d.loyalty -= 10; if (d.innerDemon > 80) { d.cultivation = Math.max(0, d.cultivation - 25); d.status = '走火入魔'; s._addLog('bad', d.name + ' 心魔彻底失控，走火入魔！'); } else { s._addLog('bad', d.name + ' 心魔加深，对你心生怨念。'); } } }, chain: { id: 'ev_demon_after', delay: _randInt(3, 6) } },
     ]},
-  { id: 'ev_merchant',  cat: 'sect', weight: 18, cond: s => true,
-    text: '一支来自中洲的商队沿着山道迤逦而来，车马上满载着各洲奇珍——西洲的异兽材料、南洲的灵药、苍洲的兵刃。商队首领笑呵呵地拱手行礼，想与你做一笔买卖。',
+  { id: 'ev_demon_after', cat: 'cultivation', weight: 0, cond: s => s.disciples.some(d => d.status === '走火入魔'),
+    text: '那名走火入魔的弟子情况愈发不稳。夜间时常传来低沉嘶吼，其他弟子人心惶惶，修炼也受到了影响。',
     choices: [
-      { text: '设宴款待，做大买卖 (-30灵石)', effect: s => { s.spiritStones -= 30; const gain = _randInt(55, 100); s.spiritStones += gain; s.reputation += 3; s._addLog('good', '宾主尽欢。商队留下了大量物资，净赚 ' + gain + ' 灵石，声名远播。'); } },
+      { text: '耗灵石疗伤 (-50灵石)', effect: s => { s.spiritStones -= 50; const d = s.disciples.find(dd => dd.status === '走火入魔'); if (d) { d.status = '正常'; d.innerDemon = 20; d.loyalty += 15; s._addLog('good', '耗费大量灵石，终于将' + d.name + '从魔障中拉回。'); } } },
+      { text: '逐出宗门，免祸同门', effect: s => { const d = s.disciples.find(dd => dd.status === '走火入魔'); if (d) { _removeDisc(s, d); s.reputation -= 3; s._addLog('bad', d.name + ' 被逐出宗门。江湖传言你冷血无情，声望-3。'); } } },
+    ]},
+  // ═══ 机缘类 ═══
+  { id: 'ev_merchant',  cat: 'opportunity', weight: 6, cond: s => s.turn > 2,
+    text: '一支商队沿山道而来，车马上满载各洲奇珍。商队首领拱手行礼，想与宗门做一笔买卖。',
+    choices: [
+      { text: '设宴款待，做大买卖 (-30灵石)', effect: s => { s.spiritStones -= 30; const gain = _randInt(55, 100); s.spiritStones += gain; s.reputation += 2; s._addLog('good', '宾主尽欢，净赚 ' + gain + ' 灵石。'); } },
       { text: '以物易物，小做交易', effect: s => { const gain = _randInt(15, 45); s.spiritStones += gain; s._addLog('info', '与商队交易，获利 ' + gain + ' 灵石。'); } },
-      { text: '婉拒交易，专注宗门事务', effect: s => { s._addLog('info', '商队并未强求，继续赶路。你省下了一笔开支。'); } },
+      { text: '婉拒交易', effect: s => { s._addLog('info', '商队继续赶路。'); } },
     ]},
-  { id: 'ev_spirit',    cat: 'sect', weight: 10, cond: s => s.disciples.length > 0,
-    text: '轰——！宗门地底的灵脉突然剧烈震颤，一道乳白色的灵气柱破土而出，直冲天际！附近的飞禽走兽纷纷躁动不安。这是一次罕见的灵脉喷涌。',
+  { id: 'ev_spirit',    cat: 'opportunity', weight: 5, cond: s => s.disciples.length > 0 && s.turn > 3,
+    text: '宗门地底灵脉突然剧烈震颤，一道乳白色灵气柱破土而出，直冲天际。附近飞禽走兽躁动不安——这是一次罕见的灵脉喷涌。',
     choices: [
-      { text: '派所有空闲弟子全力开采', effect: s => { const gain = _randInt(40, 80); s.spiritStones += gain; s._addLog('good', '灵石大丰收！弟子们忙了一整天，获得 ' + gain + ' 灵石。'); } },
-      { text: '设阵将灵气导入宗门（永久加成）', effect: s => { s.spiritStones -= 20; s.flags.spiritBuff = (s.flags.spiritBuff || 0) + 5; s._addLog('good', '灵脉被成功稳固！全宗弟子修炼速度永久 +5%。'); } },
-      { text: '谨慎应对，只取地表灵石', effect: s => { const gain = _randInt(15, 30); s.spiritStones += gain; s._addLog('info', '安全第一。收获 ' + gain + ' 灵石，灵脉也未受损。'); } },
+      { text: '全力开采灵石', effect: s => { const gain = _randInt(40, 80); s.spiritStones += gain; s._addLog('good', '灵石大丰收，获得 ' + gain + ' 灵石。'); }, chain: { id: 'ev_spirit_after', delay: _randInt(3, 7) } },
+      { text: '设阵导入宗门（永久加成 -20灵石）', effect: s => { s.spiritStones -= 20; s.flags.spiritBuff = (s.flags.spiritBuff || 0) + 5; s._addLog('good', '灵脉被成功稳固，全宗修炼速度永久+5%。'); } },
+      { text: '谨慎取石，不贪功', effect: s => { const gain = _randInt(15, 30); s.spiritStones += gain; s._addLog('info', '安全第一。收获 ' + gain + ' 灵石。'); } },
     ]},
-  { id: 'ev_challenge', cat: 'diplomacy', weight: 7, cond: s => s.disciples.length >= 2 && s.turn > 6,
-    text: '东洲「天煞宗」遣使送来一封战书。信中言语倨傲：久闻贵宗之名，不知门下弟子有几分真功夫？三日后，我宗将派人登门切磋——若不敢应战，就昭告九洲，贵宗不过是徒有虚名耳。',
+  { id: 'ev_spirit_after', cat: 'jianghu', weight: 0, cond: s => s.turn > 6,
+    text: '灵脉喷涌的异象引来了不速之客。一队来历不明的修士出现在宗门外围，声称此灵脉本属他们先祖所有，要求交出开采权。',
     choices: [
-      { text: '接下战书！命最强弟子应战', effect: s => { const d = _pickStrongestDisc(s); if (d && d.realmIdx >= 1) { s.reputation += 12; d.cultivation += 10; d.loyalty += 5; s._addCombatLog(d.name + ' 🏛 天煞宗使者 — 三招制敌！', 'win', 'diplomacy'); s._addLog('good', d.name + ' 三招之内击败来敌！天煞宗使者灰头土脸地离去。声望+12'); } else { s.reputation -= 8; if (d) d.loyalty -= 5; s._addCombatLog('应战弟子 🏛 天煞宗 — 惨败', 'lose', 'diplomacy'); s._addLog('bad', '弟子修为不足，惨败而归。宗门颜面扫地...'); } } },
-      { text: '婉拒切磋，称近期宗门闭关', effect: s => { s.reputation -= 2; s._addLog('bad', '江湖上开始流传贵宗怯战的闲话。声望-2'); } },
-      { text: '在战书中回敬一封措辞强硬的信', effect: s => { if (s.reputation >= 15) { s.reputation += 3; s._addLog('info', '对方被你的气势震慑，未敢再来挑衅。声望+3'); } else { s.reputation -= 1; s._addLog('info', '对方嗤之以鼻，但暂时没有进一步行动。'); } } },
+      { text: '据理力争，拒绝无理要求', effect: s => { if (s.reputation >= 15) { s.reputation += 3; s._addLog('good', '你以理服人，对方无言以对悻悻离去。声望+3。'); } else { const d = _pickRandomDisc(s); if (d) d.loyalty -= 3; s._addLog('info', '对方暂时退去，但放话不会善罢甘休。'); } } },
+      { text: '分出灵石以息事宁人 (-30灵石)', effect: s => { s.spiritStones -= 30; s._addLog('info', '你给了对方一些灵石。他们收下后离去。'); } },
+      { text: '武力驱逐', effect: s => { const d = _pickStrongestDisc(s); if (d) { const cs = s._deriveCombatStats(d); const enemy = _pickNPC('rivalDisc'); const result = s._executeCombat([cs], [enemy], 'duel', '不速之客'); if (result.myWon) { s.reputation += 2; s._addLog('good', d.name + ' 击退来犯者。'); } else { s.reputation -= 4; s._addLog('bad', d.name + ' 不敌，对方扬长而去，声望-4。'); } } } },
     ]},
-  { id: 'ev_disciple',  cat: 'disciple', weight: 15, cond: s => s.disciples.length < s._maxDisc() && s.spiritStones >= 20,
-    text: '清晨，一位身披斗篷的年轻人在宗门石阶前长跪不起。自称是散修之后，家族没落，一路乞讨至此。愿投身门下，为奴为仆在所不惜——只求一个修炼的机会。',
+  // ═══ 江湖类 ═══
+  { id: 'ev_challenge', cat: 'jianghu', weight: 5, cond: s => s.disciples.length >= 2 && s.turn > 6 && s.reputation >= 5,
+    text: '一封战书由飞剑送至宗门门前。信上字迹狂傲：久闻贵宗之名，三日后遣弟子登门讨教——若不敢应战，便昭告四方，贵宗徒有虚名。',
+    choices: [
+      { text: '接下战书，命最强弟子应战', effect: s => { const d = _pickStrongestDisc(s); if (d) { const cs = s._deriveCombatStats(d); const npc = _pickNPC(d.realmIdx >= 3 ? 'eliteDisc' : 'rivalDisc'); const result = s._executeCombat([cs], [npc], 'duel', '来犯弟子'); if (result.myWon) { s.reputation += 8; d.cultivation += 8; d.loyalty += 5; s._addLog('good', d.name + ' 击败来犯者！战书传遍江湖，声望+8。'); } else { s.reputation -= 6; d.loyalty -= 5; d.cultivation = Math.max(0, d.cultivation - 10); s._addLog('bad', d.name + ' 不敌对手，宗门颜面受损。声望-6。'); } } }, chain: { id: 'ev_challenge_after', delay: _randInt(4, 8) } },
+      { text: '婉拒切磋，称宗门闭关', effect: s => { s.reputation -= 4; s._addLog('bad', '江湖传言贵宗怯战。声望-4。'); } },
+      { text: '回信以强硬措辞回应', effect: s => { if (s.reputation >= 20) { s.reputation += 2; s._addLog('info', '对方被气势震慑，暂未再来。'); } else { s.reputation -= 2; s._addLog('bad', '对方嗤之以鼻，反增轻蔑。'); } } },
+    ]},
+  { id: 'ev_challenge_after', cat: 'jianghu', weight: 0, cond: s => s.turn > 10,
+    text: '上次切磋之事在江湖上传开了。几家附近的势力对此各有反应——有人暗中示好，也有人觉得你宗门好欺负。',
+    choices: [
+      { text: '接纳暗中示好的势力', effect: s => { s.spiritStones += _randInt(20, 40); s.reputation += 3; s._addLog('good', '一家小势力送来投名状和灵石，表示愿与你交好。声望+3。'); } },
+      { text: '保持距离，不结盟友', effect: s => { s._addLog('info', '你婉拒了对方的示好。江湖路远，孰敌孰友尚难论定。'); } },
+    ]},
+  { id: 'ev_disciple',  cat: 'internal', weight: 4, cond: s => s.disciples.length < s._maxDisc() && s.spiritStones >= 20,
+    text: '清晨，一位身披斗篷的年轻人在宗门石阶前长跪不起。自称散修之后，家族没落，一路乞讨至此。愿投身门下，只求一个修炼的机会。',
     choices: [
       { text: '收入门下为记名弟子 (-20灵石)', effect: s => { s.spiritStones -= 20; _createDisciple(s, _randInt(15, 55)); s._addLog('good', '年轻人含泪叩首。愿你不负宗门栽培之恩。'); } },
       { text: '赠些盘缠，请其离开', effect: s => { s.spiritStones -= 5; s.reputation += 1; s._addLog('info', '你取了些碎灵石递给他。年轻人沉默良久，转身离去。'); } },
       { text: '婉言谢绝', effect: s => { s._addLog('info', '宗门资源有限，不能来者不拒。年轻人黯然离去。'); } },
     ]},
-  { id: 'ev_disaster',  cat: 'sect', weight: 7, cond: s => s.turn > 4,
-    text: '暴雨连下七日，山洪裹挟着巨石冲入宗门驻地。四处一片狼藉，几处偏殿的墙壁已经开裂。弟子们望着满目疮痍，面色凝重。',
+  // ═══ 天灾类 ═══
+  { id: 'ev_disaster',  cat: 'calamity', weight: 5, cond: s => s.turn > 4,
+    text: '暴雨连下七日，山洪裹挟巨石冲入宗门驻地。偏殿墙壁开裂，药圃被淹，弟子们望着满目疮痍面色凝重。',
     choices: [
-      { text: '拨出灵石全力抢修 (-40灵石)', effect: s => { s.spiritStones = Math.max(0, s.spiritStones - 40); s._addLog('info', '昼夜不休地抢修了三天。宗门恢复如初，根基稳固。'); } },
-      { text: '组织弟子以劳力自救', effect: s => { s.disciples.forEach(d => { d.cultivation = Math.max(0, d.cultivation - 2); d.loyalty += 3; }); s._addLog('info', '全宗上下齐心协力。虽然修炼略有耽误，但凝聚力更强了。'); } },
+      { text: '拨灵石全力抢修 (-40灵石)', effect: s => { s.spiritStones = Math.max(0, s.spiritStones - 40); s._addLog('info', '昼夜抢修三日，宗门恢复如初。'); } },
+      { text: '组织弟子以劳力自救', effect: s => { s.disciples.forEach(d => { if (d.status === '正常') { d.cultivation = Math.max(0, d.cultivation - 3); d.loyalty += 4; } }); s._addLog('info', '全宗齐心协力。修炼略有耽误，但凝聚力更强。'); } },
+      { text: '只修核心建筑，放弃外围', effect: s => { const t = s.buildings.find(b => b.id === 'treasury'); if (t) { t.lv = Math.max(0, t.lv - 1); s._addLog('bad', '外围建筑受损严重，藏灵阁降了一级。'); } else { s.spiritStones = Math.max(0, s.spiritStones - 15); s._addLog('bad', '外围设施尽毁，损失灵石。'); } } },
     ]},
-  { id: 'ev_hermit',    cat: 'disciple', weight: 4, cond: s => s.reputation >= 20,
-    text: '一个寻常的晌午，一位白须老者不请自来，在宗门院中驻足良久。他自称是中洲游历至此的散修，看你宗门气象虽小却有一股难得的清正之气。临行前，他愿意指点一二。',
+  { id: 'ev_beast',     cat: 'calamity', weight: 4, cond: s => s.turn > 8 && s.disciples.length >= 2,
+    text: '后山密林中传来低沉兽吼，地面发现巨大爪痕。一头妖兽在宗门附近筑了巢，已伤了两名采药弟子。',
+    choices: [
+      { text: '集结弟子围猎妖兽', effect: s => { const team = s.disciples.filter(d => d.status === '正常').sort((a, b) => s._deriveCombatStats(b).cp - s._deriveCombatStats(a).cp).slice(0, 2).map(d => s._deriveCombatStats(d)); if (team.length > 0) { const beast = _pickNPC('bandit'); beast.name = '山林妖兽'; beast.atk += 10; const result = s._executeCombat(team, [beast], 'adventure', '山林妖兽'); if (result.myWon) { s.spiritStones += _randInt(30, 50); s.reputation += 4; s._addLog('good', '妖兽被斩杀！获取兽丹和材料，声望+4。'); } else { const d = _pickRandomDisc(s); if (d) { d.loyalty -= 5; d.cultivation = Math.max(0, d.cultivation - 10); s._addLog('bad', '妖兽凶猛异常，弟子负伤退回。'); } } } } },
+      { text: '设阵驱赶 (-20灵石)', effect: s => { s.spiritStones -= 20; s._addLog('info', '你以阵法驱走了妖兽。虽耗费灵石，但无人伤亡。'); } },
+      { text: '封锁后山，禁止前往', effect: s => { s._addLog('info', '后山列为禁区。弟子安全，但失去采集途径。'); }, chain: { id: 'ev_beast_after', delay: _randInt(6, 12) } },
+    ]},
+  { id: 'ev_beast_after', cat: 'calamity', weight: 0, cond: s => s.turn > 14,
+    text: '后山的妖兽在无人干预下愈发壮大，方圆数里灵气被其吸纳。有弟子报告，那头妖兽似乎已突破到了更高的等阶。',
+    choices: [
+      { text: '倾全宗之力围杀', effect: s => { const team = s.disciples.filter(d => d.status === '正常').sort((a, b) => s._deriveCombatStats(b).cp - s._deriveCombatStats(a).cp).slice(0, s._battleTeamSize()).map(d => s._deriveCombatStats(d)); const beast = _pickNPC('eliteDisc'); beast.name = '进阶妖兽'; beast.atk += 20; beast.hp += 50; beast.maxHp = beast.hp; const result = s._executeCombat(team, [beast], 'adventure', '进阶妖兽'); if (result.myWon) { s.spiritStones += _randInt(60, 100); s.reputation += 8; s._addLog('good', '激战之后妖兽伏诛！获取大量珍稀材料，声望+8。'); } else { s.reputation -= 4; s._addLog('bad', '妖兽太过强大，弟子惨败。后山彻底沦为禁地。'); } } },
+      { text: '举宗迁移，避其锋芒', effect: s => { s.spiritStones = Math.max(0, s.spiritStones - 60); s.reputation -= 6; s._addLog('bad', '你率众迁离原址。耗费大量灵石，声望大损。'); } },
+    ]},
+  { id: 'ev_hermit',    cat: 'opportunity', weight: 2, cond: s => s.reputation >= 25 && s.turn > 10,
+    text: '一位白须老者不请自来，在宗门院中驻足良久。他自称游历至此的散修，观你宗门气象虽小，却有一股难得的清正之气。临行前，愿指点一二。',
     choices: [
       { text: '恭请前辈为全宗讲道 (-50灵石)', effect: s => { s.spiritStones -= 50; s.disciples.forEach(d => { d.cultivation += _randInt(10, 30); d.loyalty += 8; }); s._addLog('good', '老者口若悬河讲了半日。弟子们如痴如醉，不少人当场盘膝参悟！'); } },
       { text: '仅请前辈指点宗主本人', effect: s => { s.flags.spiritBuff = (s.flags.spiritBuff || 0) + 3; s.reputation += 2; s._addLog('good', '老者临别时看了你一眼：不错。修为永久 +3%。'); } },
       { text: '恭敬送别，不敢多扰', effect: s => { s.reputation += 2; s._addLog('info', '老者含笑抚须：后生可畏。飘然而去。'); } },
     ]},
-  { id: 'ev_traitor',   cat: 'disciple', weight: 5, cond: s => s.disciples.some(d => d.loyalty < 35),
-    text: '月黑风高。一名弟子背着鼓鼓囊囊的包袱，蹑手蹑脚地溜出了偏殿——宗门库房的门锁被人撬开了。此人竟然趁夜盗取宗门物资，意图叛逃！',
+  // ═══ 门内类 ═══
+  { id: 'ev_traitor',   cat: 'internal', weight: 3, cond: s => s.disciples.some(d => d.loyalty < 30),
+    text: '月黑风高。一名弟子背着包袱蹑手蹑脚溜出偏殿——库房门锁被撬，此人趁夜盗取宗门物资，意图叛逃。',
     choices: [
-      { text: '亲率弟子连夜追捕', effect: s => { const d = _pickDiscByLoyalty(s, true); if (d) { if (Math.random() < 0.55) { s.spiritStones += _randInt(15, 30); s._addLog('info', '在三十里外截住了' + d.name + '，追回了大部分失窃物资。'); } else { s._addLog('bad', '追出百里，仍被其逃脱。'); d.status = '叛离'; _removeDisc(s, d); } } } },
-      { text: '记下名字，不再追究', effect: s => { const d = _pickDiscByLoyalty(s, true); if (d) { s.spiritStones = Math.max(0, s.spiritStones - _randInt(10, 20)); _removeDisc(s, d); s._addLog('info', '你让弟子取了些灵石赠予' + d.name + '：去吧，好自为之。'); } } },
+      { text: '亲率弟子连夜追捕', effect: s => { const d = _pickDiscByLoyalty(s, true); if (d) { if (Math.random() < 0.6) { s.spiritStones += _randInt(15, 30); d.loyalty = Math.max(0, d.loyalty - 5); s._addLog('info', '在三十里外截住' + d.name + '，追回失物。'); } else { s._addLog('bad', '追出百里仍被其逃脱。'); d.status = '叛离'; _removeDisc(s, d); } } } },
+      { text: '赠银放行，好聚好散', effect: s => { const d = _pickDiscByLoyalty(s, true); if (d) { s.spiritStones = Math.max(0, s.spiritStones - _randInt(10, 20)); _removeDisc(s, d); s._addLog('info', '你取了些灵石递给' + d.name + '：去吧，好自为之。'); } } },
     ]},
-  { id: 'ev_treasure',  cat: 'sect', weight: 8, cond: s => s.turn > 5,
-    text: '一位弟子在打扫藏经阁时，无意中碰落了一本积满灰尘的旧书。书页中夹着一张泛黄的兽皮地图，标注着宗门附近一处前人留下的洞府——不知真假，但值得一探。',
+  { id: 'ev_treasure',  cat: 'opportunity', weight: 4, cond: s => s.turn > 5 && s.disciples.length > 0,
+    text: '弟子在整理藏经阁时，从一本积灰旧书中掉出一张泛黄的兽皮地图。图上标注着宗门附近一处前人洞府——笔迹模糊，但灵气标记仍清晰可辨。',
     choices: [
-      { text: '派遣弟子前往探索', effect: s => { if (Math.random() < 0.6) { const gain = _randInt(40, 100); s.spiritStones += gain; s._addLog('good', '洞府虽已破败，但遗留下了价值 ' + gain + ' 灵石的资源！'); } else { const d = _pickRandomDisc(s); if (d) { d.cultivation = Math.max(0, d.cultivation - 5); s._addLog('bad', '洞府中机关仍在！弟子受了些轻伤。'); } } } },
-      { text: '将地图收好，从长计议', effect: s => { s.flags.treasureMap = true; s._addLog('info', '你将地图藏入密室。或许将来修为更高时再去不迟。'); } },
+      { text: '派遣弟子前往探索', effect: s => { const d = _pickStrongestDisc(s); if (d) { const r = Math.random(); if (r < 0.4) { const gain = _randInt(50, 120); s.spiritStones += gain; s._addLog('good', d.name + ' 在洞府中发现了前人遗藏，价值 ' + gain + ' 灵石！'); } else if (r < 0.7) { d.cultivation += _randInt(10, 25); s._addLog('good', d.name + ' 在洞府中参悟了前人壁画，修为有所精进。'); } else { d.cultivation = Math.max(0, d.cultivation - 8); d.loyalty -= 3; s._addLog('bad', '洞府中机关仍在！' + d.name + ' 受了轻伤，狼狈而回。'); } } } },
+      { text: '将地图收好，从长计议', effect: s => { s.flags.treasureMap = true; s._addLog('info', '你将地图藏入密室。或许修为更高时再探不迟。'); } },
     ]},
-  { id: 'ev_celestial', cat: 'disciple', weight: 2, cond: s => s.reputation >= 30 && s.turn > 15,
-    text: '那一夜，天际忽有流星破空，拖着长长的焰尾落入宗门后山。一道若有若无的气息在呼唤着你——传说中，天降异象往往意味着将有一位惊世之才即将出世...',
+  { id: 'ev_celestial', cat: 'opportunity', weight: 1, cond: s => s.reputation >= 40 && s.turn > 20,
+    text: '那一夜，天际流星破空，焰尾拖出长长轨迹，坠入宗门后山。一道若有若无的气息在呼唤着你——天降异象，往往意味着惊世之才将出世。',
     choices: [
-      { text: '循着气息，深入后山', effect: s => { if (Math.random() < 0.35) { _createDisciple(s, _randInt(75, 100)); s._addLog('good', '你在星光中抱起一个婴儿。天品资质，未来的绝世强者！！'); } else { s.flags.spiritBuff = (s.flags.spiritBuff || 0) + 3; s._addLog('info', '星星碎片散落一地，你虽未寻到预言之子，但带回了一缕浓郁的星辰灵气。'); } } },
-      { text: '站在山巅，静静观望', effect: s => { s.reputation += 2; s._addLog('info', '流星缓缓隐没。天地归于沉寂，但你心中似乎多了些什么。'); } },
+      { text: '循气息深入后山', effect: s => { if (Math.random() < 0.35) { _createDisciple(s, _randInt(75, 100)); s._addLog('good', '你在星光中抱起一个婴儿——天品资质，未来的绝世之才！'); } else { s.flags.spiritBuff = (s.flags.spiritBuff || 0) + 3; s._addLog('info', '星碎片散落一地。虽未寻到预言之子，但带回了一缕星辰灵气。'); } } },
+      { text: '静观其变', effect: s => { s.reputation += 2; s._addLog('info', '流星隐没。天地归于沉寂，但你心中多了些什么。'); } },
     ]},
-  { id: 'ev_rival',     cat: 'diplomacy', weight: 6, cond: s => s.turn > 8 && s.disciples.length >= 2,
-    text: '一名弟子急匆匆来报：附近山头上最近竖起了一面旗帜——一个新的宗门正在悄然建立。这处灵脉本是我宗势力范围的一部分，新宗门的选址显然有些过界了。',
+  { id: 'ev_rival',     cat: 'jianghu', weight: 4, cond: s => s.turn > 8 && s.disciples.length >= 2,
+    text: '弟子来报：附近山头新竖起一面旗帜，一个新宗门正在悄然建立。其选址已越过你宗势力范围的边界，分明是有意试探。',
     choices: [
-      { text: '派弟子前去交涉，表明立场', effect: s => { if (s.reputation >= 15) { s.reputation += 5; s.spiritStones += 20; s._addLog('good', '你的态度不卑不亢。对方退让了部分领地，还送上赔礼。'); } else { s._addLog('info', '对方态度敷衍。看来需要先积累声望才能服人。'); } } },
-      { text: '暂且观望，不打草惊蛇', effect: s => { s._addLog('info', '你让弟子暗中注意那面旗帜的动向。'); } },
+      { text: '派弟子交涉，划清界限', effect: s => { if (s.reputation >= 15) { s.reputation += 4; s.spiritStones += 15; s._addLog('good', '你态度强硬，对方退让领地并送上赔礼。声望+4。'); } else { const d = _pickRandomDisc(s); if (d) d.loyalty -= 3; s._addLog('bad', '对方态度敷衍。声望不足，难以服人。'); } } },
+      { text: '暂且隐忍，暗中观察', effect: s => { s._addLog('info', '你令弟子留意对方动向，暂不出手。'); }, chain: { id: 'ev_rival_after', delay: _randInt(5, 10) } },
+      { text: '以武力驱赶', effect: s => { const d = _pickStrongestDisc(s); if (d) { if (d.realmIdx >= 2) { s.reputation += 2; s._addLog('info', d.name + ' 率人前往，对方见势不妙连夜撤走。但江湖传言你以大欺小。'); } else { d.cultivation = Math.max(0, d.cultivation - 8); d.loyalty -= 5; s.reputation -= 3; s._addLog('bad', '对方实力不弱，' + d.name + ' 未能占到便宜，反损声望。'); } } } },
+    ]},
+  { id: 'ev_rival_after', cat: 'jianghu', weight: 0, cond: s => s.turn > 12,
+    text: '之前那个新宗门不仅没有收敛，反而开始在你地界边缘开采灵矿，甚至招揽了几名对你宗门不满的散修。',
+    choices: [
+      { text: '集结弟子，正式讨伐', effect: s => { const team = s.disciples.filter(d => d.status === '正常').sort((a, b) => s._deriveCombatStats(b).cp - s._deriveCombatStats(a).cp).slice(0, s._battleTeamSize()).map(d => s._deriveCombatStats(d)); if (team.length > 0) { const enemies = [_pickNPC('rivalDisc'), _pickNPC('bandit')]; const result = s._executeCombat(team, enemies, 'duel', '新宗门弟子'); if (result.myWon) { s.reputation += 10; s.spiritStones += _randInt(30, 60); s._addLog('good', '一战而定！新宗门土崩瓦解，缴获灵石，声望+10。'); } else { s.reputation -= 5; s._addLog('bad', '讨伐失败，折损弟子，声望-5。'); } } } },
+      { text: '默认既成事实', effect: s => { s.reputation -= 5; s._addLog('bad', '你的隐忍被视为软弱。附近势力纷纷蚕食你的地界。声望-5。'); } },
     ]},
 ];
 
@@ -387,6 +570,7 @@ function _pickRandomDisc(s) { const arr = s.disciples.filter(d => d.status === '
 function _pickStrongestDisc(s) { const arr = s.disciples.filter(d => d.status === '正常'); return arr.length ? arr.reduce((a, b) => a.cultivation >= b.cultivation ? a : b) : null; }
 function _pickDiscByLoyalty(s, low) { const arr = s.disciples.filter(d => d.status === '正常' && (low ? d.loyalty < 50 : d.loyalty >= 50)); return arr.length ? arr[Math.floor(Math.random() * arr.length)] : _pickRandomDisc(s); }
 function _removeDisc(s, d) { const idx = s.disciples.indexOf(d); if (idx >= 0) s.disciples.splice(idx, 1); }
+function _hasTrait(d, id) { return !!(d.traits && d.traits.some(tt => tt.id === id)); }
 
 function _createDisciple(s, talentOverride) {
   const q = SECT._rollQuality();
@@ -419,10 +603,19 @@ function _createDisciple(s, talentOverride) {
     backstory: backstory.id, backstoryName: backstory.name, traits, task: null,
     techniques: ['t_breathe'], // 个人功法（初始吐纳术人人都会）
     status: '正常', recruitedTurn: s.turn,
+    relations: [], // 人物关系（GDD §4.3）
     _storyStage: 0, _awayTurns: 0,
   };
   s.disciples.push(disc);
   return disc;
+}
+
+// 跨洲功法效率惩罚（GDD §7.3: 非本洲功法效率-20%）
+function _techEff(tech, baseVal, sectContinent) {
+  if (tech.continent && tech.continent !== sectContinent) {
+    return Math.round(baseVal * 0.8);
+  }
+  return baseVal;
 }
 
 function _weightedRandom(items, weightFn) {
@@ -445,6 +638,8 @@ const SECT = {
   continent: '',
   spiritStones: 100,
   reputation: 0,
+  totalReputation: 0,        // 累计声望（不因升级消耗而减少，决定称号）
+  repSources: { combat: 0, diplomacy: 0, commerce: 0, virtue: 0, infamy: 0 },
   turn: 1,
   level: 1,
   disciples: [],
@@ -455,7 +650,9 @@ const SECT = {
   eventLog: [],
   flags: {},
   pendingRecruits: [],       // 五连抽临时结果
+  activeBounties: [],        // 已接取的悬赏任务 [{ id, discId, turn }]
   pendingEvents: [],         // [{ id, type, title, text, choices, expires, discipleId? }]
+  _pendingChains: [],        // [{ id, triggerTurn }] — 连锁事件排期
   combatLog: [],             // [{ turn, attacker, defender, winner, dmg, type }]
   worldLocations: [],        // [{ id, type, name, state, x, y?, dispatchedDisc?, returnTurn? }]
   bloodBlade: {              // 血刀门敌对势力
@@ -479,8 +676,8 @@ const SECT = {
   _rollQuality() {
     this.recruitment.pity++;
     let r = Math.random();
-    // 保底：连续15次未出上品以上，强制上品
-    if (this.recruitment.pity >= 15) {
+    // 保底：连续10次未出上品以上，强制上品（GDD §4.2）
+    if (this.recruitment.pity >= 10) {
       this.recruitment.pity = 0;
       return SECT_QUALITIES.find(q => q.key === 'superior');
     }
@@ -509,8 +706,13 @@ const SECT = {
   },
 
   activate() {
-    if (!this.sectName && !this.load()) {
-      this.view = 'create';
+    if (!this.sectName) {
+      const saved = this.load();
+      if (saved) {
+        this._restoreState(saved);
+      } else {
+        this.view = 'create';
+      }
     }
     this._render();
   },
@@ -527,12 +729,15 @@ const SECT = {
     const data = {
       sectName: this.sectName, continent: this.continent,
       spiritStones: this.spiritStones, reputation: this.reputation,
+      totalReputation: this.totalReputation, repSources: this.repSources,
       turn: this.turn, level: this.level,
       disciples: this.disciples, techniques: this.techniques,
       buildings: this.buildings, recruitment: this.recruitment,
       actionPoints: this.actionPoints,
       eventLog: this.eventLog, flags: this.flags,
       pendingEvents: this.pendingEvents,
+      activeBounties: this.activeBounties || [],
+      _pendingChains: this._pendingChains || [],
       combatLog: this.combatLog,
       worldLocations: this.worldLocations,
       bloodBlade: this.bloodBlade,
@@ -561,6 +766,37 @@ const SECT = {
     this.view = 'main';
     this.selectedDiscId = null;
     this.pendingRecruits = [];
+  },
+
+  // ═══════════════════════════════════════════
+  //  声望系统辅助
+  // ═══════════════════════════════════════════
+  _addReputation(amount, source) {
+    this.reputation += amount;
+    if (amount > 0) this.totalReputation += amount;
+    if (source && this.repSources) {
+      this.repSources[source] = (this.repSources[source] || 0) + amount;
+    }
+  },
+
+  _repTier() {
+    let tier = SECT_REP_TIERS[0];
+    for (const t of SECT_REP_TIERS) {
+      if (this.totalReputation >= t.min) tier = t;
+    }
+    return tier;
+  },
+
+  // 声望折扣：按累计声望等级给购物折扣（觅长生风格）
+  // 无名0% → 初露5% → 小有名气10% → 名动一方15% → 威震四方20% → 一方霸主25% → 名震九洲30%
+  _repDiscount() {
+    const tier = this._repTier();
+    const idx = SECT_REP_TIERS.indexOf(tier);
+    return Math.min(0.30, idx * 0.05);
+  },
+
+  _repDiscountedCost(baseCost) {
+    return Math.max(1, Math.floor(baseCost * (1 - this._repDiscount())));
   },
 
   // ═══════════════════════════════════════════
@@ -635,6 +871,8 @@ const SECT = {
     this.continent = cont.id;
     this.spiritStones = 100;
     this.reputation = 0;
+    this.totalReputation = 0;
+    this.repSources = { combat: 0, diplomacy: 0, commerce: 0, virtue: 0, infamy: 0 };
     this.turn = 1;
     this.level = 1;
     this.disciples = [];
@@ -647,6 +885,8 @@ const SECT = {
     this.selectedDiscId = null;
     this.pendingRecruits = [];
     this.pendingEvents = [];
+    this._pendingChains = [];
+    this.activeBounties = [];
     this.combatLog = [];
     this.worldLocations = [];
     this.bloodBlade = { intel: 0, hostility: 20, members: [], lastActionTurn: 0, revealed: false };
@@ -678,7 +918,7 @@ const SECT = {
     const re = document.getElementById('sct-rep');
     const te = document.getElementById('sct-turn');
     if (se) se.textContent = this.spiritStones;
-    if (re) re.textContent = this.reputation;
+    if (re) re.textContent = this.reputation + ' [' + this._repTier().title + ']';
     if (te) te.textContent = this.turn + ' (' + this._year() + '年)';
     const ape = document.getElementById('sct-ap');
     if (ape) { ape.textContent = this.actionPoints + '/' + this._maxAP(); ape.style.color = this.actionPoints === 0 ? 'var(--red)' : ''; }
@@ -701,9 +941,10 @@ const SECT = {
     const el = document.getElementById('sct-sect-stats');
     if (!el) return;
     const cont = SECT_CONTINENTS.find(c => c.id === this.continent);
+    const tier = this._repTier();
     el.innerHTML = '<span>🏛 <b>' + this.sectName + '</b></span>'
       + '<span>📍 <b>' + (cont?.name || '') + '</b></span>'
-      + '<span>⭐ 声望 <b>' + this.reputation + '</b></span>'
+      + '<span>⭐ <b>' + this.reputation + '</b> <span style="color:var(--amber);font-size:10px">[' + tier.title + ']</span></span>'
       + '<span>📅 回合 <b>' + this.turn + '</b></span>'
       + '<span>👥 弟子 <b>' + this.disciples.filter(d=>d.status==='正常').length + '/' + this._maxDisc() + '</b></span>'
       + '<span>📋 招募 <b>' + this.recruitment.used + '/' + this._recruitLimit() + '</b></span>';
@@ -870,14 +1111,19 @@ const SECT = {
     let def = 3 + Math.floor(d.physique * 0.5) + realm.def;
     let spd = 3 + Math.floor((d.comprehension + d.rootBone) * 0.25) + realm.spd;
     let critRate = 0.05, critDmg = 0.5, hitRate = 0.9, evadeRate = 0.05;
-    const skills = []; // 战斗可用技能名
+    const skills = []; // 结构化技能: { name, skillType, skillPower, weaponType }
 
     (d.techniques || []).forEach(tid => {
       const t = SECT_TECHNIQUES.find(tt => tt.id === tid);
       if (!t) return;
-      // 收集战斗技能名（攻击系、防御系、隐匿系、逃遁系都有战斗技能）
-      if (t.type !== '辅助系' && t.combat && Object.keys(t.combat).length > 0) {
-        skills.push(t.name);
+      // 收集战斗技能（非辅助系且有combat数据）
+      if (t.type !== '辅助系' && t.combat && t.combat.skillType) {
+        skills.push({
+          name: t.name,
+          skillType: t.combat.skillType,
+          skillPower: t.combat.skillPower || 1.0,
+          weaponType: t.combat.weaponType || null,
+        });
       }
       if (!t.combat) return;
       const c = t.combat;
@@ -890,6 +1136,26 @@ const SECT = {
       if (t.type === '隐匿系') { hitRate += 0.05; evadeRate += 0.03; }
       if (t.type === '逃遁系') { evadeRate += 0.05; spd += 3; }
     });
+
+    // 装备加成（炼丹/锻造产物）
+    let weaponType = null;
+    if (d._equipBonus) {
+      if (d._equipBonus.atk) atk += d._equipBonus.atk;
+      if (d._equipBonus.def) def += d._equipBonus.def;
+      if (d._equipBonus.hp)  hp += d._equipBonus.hp;
+      if (d._equipBonus.critRate) critRate += d._equipBonus.critRate;
+      if (d._equipBonus.weaponType) weaponType = d._equipBonus.weaponType;
+    }
+
+    // 武器协同：装备武器类型与功法武器类型匹配时，技能威力+20%
+    if (weaponType) {
+      skills.forEach(s => {
+        if (s.weaponType === weaponType) {
+          s.skillPower *= 1.2;
+          s.weaponSynergy = true;
+        }
+      });
+    }
 
     const cp = atk + def + spd + Math.floor(hp * 0.3);
     return { hp, maxHp: hp, atk, def, spd, critRate, critDmg, hitRate, evadeRate, cp, name: d.name, skills };
@@ -920,30 +1186,83 @@ const SECT = {
         enemies.sort((a, b) => a.hp - b.hp); // 优先打残血
         const target = enemies[0];
 
-        // 选择技能（优先使用功法技能）
-        const skillName = actor.skills && actor.skills.length > 0
-          ? actor.skills[Math.floor(Math.random() * actor.skills.length)]
-          : '普攻';
+        // 选择技能（从结构化技能池中选取，按类型权重）
+        let skill = null;
+        let skillName = '普攻';
+        if (actor.skills && actor.skills.length > 0) {
+          // 攻击系优先40%，防御系25%，隐匿系20%，逃遁系15%
+          const weighted = [];
+          actor.skills.forEach(s => {
+            const w = s.skillType === 'attack' ? 4 : s.skillType === 'aoe' ? 4 : s.skillType === 'assassin' ? 3 : s.skillType === 'defend' ? 2 : 1;
+            for (let i = 0; i < w; i++) weighted.push(s);
+          });
+          skill = weighted[Math.floor(Math.random() * weighted.length)];
+          skillName = skill.name + (skill.weaponSynergy ? ' ⚔' : '');
+        }
 
-        // 命中判定
-        if (Math.random() > actor.hitRate - target.evadeRate) {
-          log.push({ round, actor: actor.name, skill: skillName, target: target.name, hit: false, dmg: 0, crit: false, targetHp: target.hp, targetMaxHp: target.maxHp });
+        // ── 防御系技能：本回合减伤，不攻击 ──
+        if (skill && skill.skillType === 'defend') {
+          actor._defendBuff = skill.skillPower; // 减伤比例
+          log.push({ round, actor: actor.name, skill: skillName, target: actor.name, hit: true, dmg: 0, crit: false, targetHp: actor.hp, targetMaxHp: actor.maxHp, defend: true });
           continue;
         }
 
-        // 暴击判定
-        const isCrit = Math.random() < actor.critRate;
-        // 伤害公式（GDD §12.3）
-        let dmg = Math.max(1, actor.atk - target.def * DEF_COEFF);
+        // ── 逃遁系技能：提升闪避，不攻击 ──
+        if (skill && skill.skillType === 'dodge') {
+          actor._dodgeBuff = skill.skillPower;
+          log.push({ round, actor: actor.name, skill: skillName, target: actor.name, hit: true, dmg: 0, crit: false, targetHp: actor.hp, targetMaxHp: actor.maxHp, dodge: true });
+          continue;
+        }
+
+        // 命中判定（考虑逃遁buff）
+        const evadeBonus = target._dodgeBuff || 0;
+        if (Math.random() > actor.hitRate - (target.evadeRate + evadeBonus)) {
+          log.push({ round, actor: actor.name, skill: skillName, target: target.name, hit: false, dmg: 0, crit: false, targetHp: target.hp, targetMaxHp: target.maxHp });
+          // 消耗闪避buff
+          if (target._dodgeBuff) target._dodgeBuff = 0;
+          continue;
+        }
+
+        // 暴击判定（隐匿系技能暴击率提升）
+        const critBonus = skill && skill.skillType === 'assassin' ? 0.15 : 0;
+        const isCrit = Math.random() < (actor.critRate + critBonus);
+
+        // 伤害公式（GDD §12.3）：基础伤害 × 技能威力
+        let baseDmg = Math.max(1, actor.atk - target.def * DEF_COEFF);
+        // 防御buff减伤
+        if (target._defendBuff) {
+          baseDmg = Math.floor(baseDmg * (1 - target._defendBuff));
+          target._defendBuff = 0; // 消耗
+        }
+        let dmg = baseDmg;
+        // 技能威力加成
+        if (skill) {
+          dmg = Math.floor(dmg * skill.skillPower);
+        }
         if (isCrit) dmg = Math.floor(dmg * (1 + actor.critDmg));
         dmg = Math.floor(dmg * (0.9 + Math.random() * 0.2));
-        target.hp = Math.max(0, target.hp - dmg);
+        dmg = Math.max(1, dmg);
 
-        log.push({
-          round, actor: actor.name, skill: skillName,
-          target: target.name, hit: true, dmg, crit: isCrit,
-          targetHp: target.hp, targetMaxHp: target.maxHp,
-        });
+        // AOE技能：对所有存活敌人造成伤害（威力分散）
+        if (skill && skill.skillType === 'aoe') {
+          const aoeTargets = enemies.filter(e => e.hp > 0);
+          aoeTargets.forEach(t => {
+            let aoeDmg = Math.max(1, Math.floor(dmg * 0.6));
+            t.hp = Math.max(0, t.hp - aoeDmg);
+            log.push({
+              round, actor: actor.name, skill: skillName,
+              target: t.name, hit: true, dmg: aoeDmg, crit: isCrit,
+              targetHp: t.hp, targetMaxHp: t.maxHp, aoe: true,
+            });
+          });
+        } else {
+          target.hp = Math.max(0, target.hp - dmg);
+          log.push({
+            round, actor: actor.name, skill: skillName,
+            target: target.name, hit: true, dmg, crit: isCrit,
+            targetHp: target.hp, targetMaxHp: target.maxHp,
+          });
+        }
       }
       // 检查是否一方全灭
       const aAlive = all.some(u => u.side === 'A' && u.hp > 0);
@@ -1008,10 +1327,17 @@ const SECT = {
         if (l.end) return;
         if (!l.hit) {
           html += '<span style="font-size:9px;opacity:.5">  第' + l.round + '回合：' + l.actor + '使用【' + l.skill + '】，未命中</span><br>';
+        } else if (l.defend) {
+          html += '<span style="font-size:9px;opacity:.7;color:var(--teal-t)">  第' + l.round + '回合：' + l.actor + '使用【' + l.skill + '】，进入防御姿态</span><br>';
+        } else if (l.dodge) {
+          html += '<span style="font-size:9px;opacity:.7;color:var(--green-t)">  第' + l.round + '回合：' + l.actor + '使用【' + l.skill + '】，身法提升</span><br>';
         } else {
           const hpInfo = (l.targetHp !== undefined && l.targetMaxHp !== undefined)
             ? '，剩余气血 ' + l.targetHp + '/' + l.targetMaxHp : '';
-          html += '<span style="font-size:9px;opacity:.8">  第' + l.round + '回合：<b>' + l.actor + '</b>使用【' + l.skill + '】，对' + l.target + '造成 <b style="color:' + (l.crit ? 'var(--red)' : 'var(--amber)') + '">' + l.dmg + '</b> 点伤害' + (l.crit ? '（暴击！）' : '') + hpInfo + '</span><br>';
+          const critText = l.crit ? '（暴击！）' : '';
+          const aoeText = l.aoe ? '（群攻）' : '';
+          const dmgColor = l.crit ? 'var(--red)' : 'var(--amber)';
+          html += '<span style="font-size:9px;opacity:.8">  第' + l.round + '回合：' + l.actor + '使用【' + l.skill + '】，对' + l.target + '造成 <b style="color:' + dmgColor + '">' + l.dmg + '</b> 点伤害' + critText + aoeText + hpInfo + '</span><br>';
         }
       });
       html += '</div>';
@@ -1745,6 +2071,7 @@ const SECT = {
       backstory: backstory.id, backstoryName: backstory.name, traits, task: null,
       techniques: ['t_breathe'],
       status: '正常', recruitedTurn: this.turn,
+      relations: [], // 人物关系（GDD §4.3）
       _storyStage: 0, _awayTurns: 0,
     };
     this.disciples.push(disc);
@@ -1802,9 +2129,10 @@ const SECT = {
         case 'cultivate': {
           let bonus = 0;
           if (cont?.bonus.cultivate) bonus += cont.bonus.cultivate;
+          if (_hasTrait(d, 'diligent')) bonus += 15;   // 勤勉：修炼效率+15%
           (d.techniques || []).forEach(tid => {
             const t = SECT_TECHNIQUES.find(tt => tt.id === tid);
-            if (t?.effect.cultivate) bonus += t.effect.cultivate;
+            if (t?.effect.cultivate) bonus += _techEff(t, t.effect.cultivate, this.continent);
           });
           if (this.flags.spiritBuff) bonus += this.flags.spiritBuff;
           const alchemyBld = this.buildings.find(b => b.id === 'alchemy');
@@ -1813,16 +2141,20 @@ const SECT = {
           const gain = Math.round(base * (1 + bonus / 100));
           d.cultivation += gain;
           lines.push('info|' + d.name + ' 潜心修炼，修为+' + gain);
-          // 修炼风险：小概率心魔滋生
-          if (Math.random() < 0.04) { d.innerDemon += _randInt(3, 10); lines.push('bad|' + d.name + ' 修炼中杂念丛生，心魔微涨...'); }
+          // 修炼风险：小概率心魔滋生（阴郁易涨，沉着/孤僻不易涨）
+          let demonChance = 0.04;
+          if (_hasTrait(d, 'gloomy')) demonChance += 0.05;
+          if (_hasTrait(d, 'calm') || _hasTrait(d, 'loner')) demonChance = Math.max(0, demonChance - 0.03);
+          if (Math.random() < demonChance) { d.innerDemon += _randInt(3, 10); lines.push('bad|' + d.name + ' 修炼中杂念丛生，心魔微涨...'); }
           break;
         }
         case 'gather': {
           let bonus = 0;
           if (cont?.bonus.gather) bonus += cont.bonus.gather;
+          if (_hasTrait(d, 'crafty')) bonus += 10;   // 机敏：采集不易被骗，效率+10%
           (d.techniques || []).forEach(tid => {
             const t = SECT_TECHNIQUES.find(tt => tt.id === tid);
-            if (t?.effect.gather) bonus += t.effect.gather;
+            if (t?.effect.gather) bonus += _techEff(t, t.effect.gather, this.continent);
           });
           const treasuryBld = this.buildings.find(b => b.id === 'treasury');
           if (treasuryBld) bonus += treasuryBld.lv * 10;
@@ -1831,16 +2163,18 @@ const SECT = {
           const gain = Math.round(base * (1 + bonus / 100));
           turnStones += gain;
           lines.push('info|' + d.name + ' 采集资源，灵石+' + gain);
-          // 采集也有风险：小概率受伤
-          if (Math.random() < 0.06) { d.cultivation = Math.max(0, d.cultivation - _randInt(2, 6)); lines.push('bad|' + d.name + ' 采集时被妖兽袭击，受了轻伤！'); }
+          // 采集也有风险：小概率受伤（机敏可规避）
+          if (!_hasTrait(d, 'crafty') && Math.random() < 0.06) { d.cultivation = Math.max(0, d.cultivation - _randInt(2, 6)); lines.push('bad|' + d.name + ' 采集时被妖兽袭击，受了轻伤！'); }
           break;
         }
         case 'adventure': {
           let bonus = 0, danger = 5;
           if (cont?.bonus.adventure) bonus += cont.bonus.adventure;
+          if (_hasTrait(d, 'warlike') || _hasTrait(d, 'brave')) bonus += 12;   // 好战/无畏：历练效率+12%
+          if (_hasTrait(d, 'brave')) danger = Math.max(1, danger - 2);          // 无畏：不畏强敌，降低遇险难度
           (d.techniques || []).forEach(tid => {
             const t = SECT_TECHNIQUES.find(tt => tt.id === tid);
-            if (t?.effect.adventure) bonus += t.effect.adventure;
+            if (t?.effect.adventure) bonus += _techEff(t, t.effect.adventure, this.continent);
           });
           if (this.buildings.find(b => b.id === 'arena')) danger = 2;
           if (this.buildings.find(b => b.id === 'formation')) danger = Math.max(1, danger - 1);
@@ -1864,7 +2198,7 @@ const SECT = {
             d.cultivation += Math.round(cultGain * (1 + bonus / 100));
             lines.push('good|' + d.name + ' 击败' + npc.name + '！灵石+' + stoneGain + ' 声望+' + repGain);
           } else {
-            const injury = _randInt(3, 10);
+            const injury = Math.round(_randInt(3, 10) * (_hasTrait(d, 'brave') ? 0.6 : 1));
             d.cultivation = Math.max(0, d.cultivation - injury);
             d.loyalty -= _randInt(1, 5);
             lines.push('bad|' + d.name + ' 遭遇' + npc.name + '不敌败退，修为-' + injury);
@@ -1885,14 +2219,16 @@ const SECT = {
         case 'market': {
           let bonus = 0;
           if (cont?.bonus.market) bonus += cont.bonus.market;
+          if (_hasTrait(d, 'generous')) bonus += 12;  // 豪爽：人气高，坊市收入+12%
+          if (_hasTrait(d, 'crafty')) bonus += 8;     // 机敏：精于算计，坊市收入+8%
           (d.techniques || []).forEach(tid => {
             const t = SECT_TECHNIQUES.find(tt => tt.id === tid);
-            if (t?.effect.market) bonus += t.effect.market;
+            if (t?.effect.market) bonus += _techEff(t, t.effect.market, this.continent);
           });
           const base = _randInt(3, 10);
           const gain = Math.round(base * (1 + bonus / 100));
           turnStones += gain;
-          const repGain = _randInt(0, 1);
+          const repGain = _randInt(0, 1) + (_hasTrait(d, 'generous') && Math.random() < 0.3 ? 1 : 0);
           turnRep += repGain;
           lines.push('info|' + d.name + ' 坊市摆摊，灵石+' + gain + (repGain ? ' 声望+' + repGain : ''));
           // 极低概率淘到功法残卷
@@ -1900,8 +2236,49 @@ const SECT = {
             const avail = SECT_TECHNIQUES.filter(t => !this.techniques.includes(t.id) && t.reqLv <= this.level);
             if (avail.length) { const t = avail[Math.floor(Math.random() * avail.length)]; this.techniques.push(t.id); lines.push('good|' + d.name + ' 在坊市淘到功法「' + t.name + '」！'); }
           }
-          // 坊市也有风险：可能被骗
-          if (Math.random() < 0.05) { const lost = _randInt(5, 15); turnStones = Math.max(0, turnStones - lost); lines.push('bad|' + d.name + ' 在坊市被人以假灵石骗了' + lost + '灵石！'); }
+          // 坊市也有风险：可能被骗（机敏可规避）
+          if (!_hasTrait(d, 'crafty') && Math.random() < 0.05) { const lost = _randInt(5, 15); turnStones = Math.max(0, turnStones - lost); lines.push('bad|' + d.name + ' 在坊市被人以假灵石骗了' + lost + '灵石！'); }
+          break;
+        }
+        case 'visit': {
+          // 拜访周边宗门（GDD §5）— 外交关系+情报，可能触发联姻/结盟/冲突
+          const nb = SECT_NEARBY[Math.floor(Math.random() * SECT_NEARBY.length)];
+          const charmBonus = Math.floor(d.charm / 20);
+          const roll = Math.random() + charmBonus * 0.05;
+          if (roll < 0.15) {
+            // 冲突
+            const npc = _pickNPC(nb.power >= 4 ? 'eliteDisc' : 'rivalDisc');
+            const result = this._executeCombat([this._deriveCombatStats(d)], [npc], 'diplomacy', nb.name + '弟子');
+            if (result.myWon) {
+              this.reputation += 3;
+              lines.push('bad|' + d.name + ' 拜访' + nb.name + '时发生冲突，但力压对手！声望+3');
+            } else {
+              d.loyalty -= _randInt(2, 6);
+              this.reputation -= 2;
+              lines.push('bad|' + d.name + ' 拜访' + nb.name + '时发生冲突，不敌对手...');
+            }
+          } else if (roll < 0.5) {
+            // 正常外交
+            const repGain = _randInt(1, 3);
+            turnRep += repGain;
+            this.spiritStones += _randInt(5, 15);
+            lines.push('info|' + d.name + ' 拜访了' + nb.name + '，双方相谈甚欢。声望+' + repGain);
+          } else if (roll < 0.7) {
+            // 结盟/好感提升
+            const repGain = _randInt(3, 6);
+            turnRep += repGain;
+            this.bloodBlade.hostility = Math.max(0, this.bloodBlade.hostility - 3);
+            lines.push('good|' + d.name + ' 与' + nb.name + '建立了良好关系！声望+' + repGain + '，血刀门略有忌惮');
+          } else {
+            // 情报收集
+            this.bloodBlade.intel = Math.min(100, this.bloodBlade.intel + _randInt(3, 8));
+            lines.push('info|' + d.name + ' 从' + nb.name + '处打探到了一些江湖消息');
+          }
+          // 小概率获得功法
+          if (Math.random() < 0.08) {
+            const avail = SECT_TECHNIQUES.filter(t => t.reqLv <= this.level && !this.techniques.includes(t.id));
+            if (avail.length) { const t = avail[Math.floor(Math.random() * avail.length)]; this.techniques.push(t.id); lines.push('good|' + d.name + ' 在' + nb.name + '交流时获赠功法「' + t.name + '」！'); }
+          }
           break;
         }
       }
@@ -1913,6 +2290,12 @@ const SECT = {
     // 应用资源变化
     this.spiritStones += turnStones;
     this.reputation += turnRep;
+    if (turnRep > 0) this.totalReputation += turnRep;
+
+    // 声望衰减：本回合无声望收入时，30%概率声望-1（最低0）
+    if (turnRep === 0 && this.reputation > 0 && Math.random() < 0.3) {
+      this.reputation = Math.max(0, this.reputation - 1);
+    }
 
     // 宗门基础产出（灵石矿脉/香火钱）— 量少
     const passiveStones = _randInt(2, 5) + this.level;
@@ -1927,15 +2310,20 @@ const SECT = {
     // ── 弟子忠诚度/叛逃检查 ──
     this.disciples.forEach(d => {
       if (d.status !== '正常') return;
-      // 极低忠诚 → 叛逃风险
-      if (d.loyalty < 25 && Math.random() < 0.15) {
-        d.status = '叛离'; this._addLog('bad', '💔 ' + d.name + ' 不满宗门已久，趁夜叛逃而去！');
-        _removeDisc(this, d);
+      // 极低忠诚 → 叛逃风险（赤诚永不叛变，野心勃勃更易叛）
+      if (!_hasTrait(d, 'loyal') && d.loyalty < 25) {
+        let deserChance = 0.15;
+        if (_hasTrait(d, 'ambitious')) deserChance += 0.1;
+        if (Math.random() < deserChance) {
+          d.status = '叛离'; this._addLog('bad', '💔 ' + d.name + ' 不满宗门已久，趁夜叛逃而去！');
+          _removeDisc(this, d);
+          return;
+        }
       }
-      // 忠诚度自然衰减（无特殊事件时缓慢下降）
-      if (Math.random() < 0.08) { d.loyalty = Math.max(0, d.loyalty - _randInt(1, 3)); }
-      // 心魔过高 → 有概率走火入魔
-      if (d.innerDemon > 70 && Math.random() < 0.1) {
+      // 忠诚度自然衰减（无特殊事件时缓慢下降，赤诚衰减更慢）
+      if (Math.random() < (_hasTrait(d, 'loyal') ? 0.03 : 0.08)) { d.loyalty = Math.max(0, d.loyalty - _randInt(1, 3)); }
+      // 心魔过高 → 有概率走火入魔（沉着/孤僻更能自持）
+      if (d.innerDemon > 70 && Math.random() < (_hasTrait(d, 'calm') || _hasTrait(d, 'loner') ? 0.05 : 0.1)) {
         d.cultivation = Math.max(0, d.cultivation - _randInt(10, 25));
         d.loyalty -= 5;
         this._addLog('bad', '🔥 ' + d.name + ' 心魔发作，修为大损！');
@@ -1945,12 +2333,36 @@ const SECT = {
         d.realmIdx--; d.realm = SECT_REALMS[d.realmIdx]; d.cultivation = 0;
         this._addLog('bad', '💀 ' + d.name + ' 走火入魔，境界跌落至【' + d.realm.name + '】！');
       }
+      // ── 性格驱动的自主小行为（与任务无关，纯性格触发）──
+      if (_hasTrait(d, 'loyal') && d.loyalty >= 70 && Math.random() < 0.06) {
+        this.spiritStones += _randInt(5, 15);
+        this._addLog('good', '🙏 ' + d.name + ' 感念宗门恩情，私下进献了些灵石。');
+      } else if (_hasTrait(d, 'generous') && Math.random() < 0.05) {
+        const others = this.disciples.filter(o => o.id !== d.id && o.status === '正常');
+        if (others.length) {
+          const o = others[Math.floor(Math.random() * others.length)];
+          o.loyalty = Math.min(100, o.loyalty + 2);
+          this._addLog('info', '🎁 ' + d.name + ' 慷慨地送了' + o.name + '一些礼物，二人交情渐深。');
+        }
+      } else if (_hasTrait(d, 'ambitious') && Math.random() < 0.06) {
+        d.cultivation += _randInt(2, 6);
+        this._addLog('info', '💪 ' + d.name + ' 私下加练，不甘落于人后。');
+      } else if (_hasTrait(d, 'loner') && Math.random() < 0.05) {
+        d.innerDemon = Math.max(0, d.innerDemon - 2);
+        this._addLog('info', '🍃 ' + d.name + ' 独自静坐了许久，心境渐渐平和。');
+      } else if (_hasTrait(d, 'gloomy') && d.loyalty < 60 && Math.random() < 0.05) {
+        d.innerDemon += _randInt(1, 4);
+        this._addLog('bad', '🌧 ' + d.name + ' 独自枯坐，眉头深锁，似有心事。');
+      } else if (_hasTrait(d, 'warlike') && Math.random() < 0.04) {
+        d.cultivation += _randInt(1, 3);
+        this._addLog('info', '🔥 ' + d.name + ' 闲不下来，私自加练拳脚。');
+      }
     });
 
     // ── 弟子日常对话（1-2条） ──
     const normalDiscs = this.disciples.filter(d => d.status === '正常');
     if (normalDiscs.length >= 2) {
-      const dialogsToShow = Math.random() < 0.6 ? 1 : (Math.random() < 0.3 ? 2 : 0);
+      const dialogsToShow = Math.random() < 0.35 ? 1 : (Math.random() < 0.1 ? 2 : 0);
       for (let i = 0; i < dialogsToShow; i++) {
         const pool = SECT_DIALOGUES;
         const [template, type] = pool[Math.floor(Math.random() * pool.length)];
@@ -1962,30 +2374,28 @@ const SECT = {
       }
     }
 
-    // ── 江湖消息（30%概率）─ 关联玩家所在洲 ──
-    if (Math.random() < 0.3) {
+    // ── 江湖消息（20%概率）─ 关联玩家所在洲 ──
+    if (Math.random() < 0.2) {
       const contName = cont?.name || '此洲';
       const news = SECT_WORLD_NEWS[Math.floor(Math.random() * SECT_WORLD_NEWS.length)];
       const localNews = news.replace(/九洲|江湖/g, contName + '一带');
       this._addLog('event', '📰 ' + contName + '消息: ' + localNews.replace(contName + '一带' + contName + '一带', contName + '一带'));
     }
 
-    // ── 附近宗门互动（25%概率） ──
-    if (Math.random() < 0.25) {
+    // ── 附近宗门互动（15%概率） ──
+    if (Math.random() < 0.15) {
       const nb = SECT_NEARBY[Math.floor(Math.random() * SECT_NEARBY.length)];
       const actions = [
-        { text: nb.name + '遣使来访，送上了一些薄礼表示善意。', eff: s => { s.spiritStones += _randInt(5, 20); s.reputation += 1; } },
-        { text: nb.name + '的弟子在我宗地界内采药，被巡山弟子拦下。双方正在交涉。', eff: s => {} },
-        { text: nb.name + '放出话来：这一带的灵矿开采权应该归他们所有。', eff: s => { s.reputation -= 1; } },
-        { text: '据传' + nb.name + '最近在招募散修，似乎在为某件大事做准备。', eff: s => {} },
-        { text: nb.name + '的一名叛逃弟子逃到了我宗附近。' + nb.name + '要求我们交人。', eff: s => { s.reputation += 1; } },
-        { text: nb.name + '与我宗之间的山路上，发生了一起不明身份者的劫掠事件。', eff: s => {} },
+        { text: nb.name + '遣使来访，送上薄礼表示善意。', eff: s => { s.spiritStones += _randInt(5, 15); } },
+        { text: nb.name + '的弟子在我宗地界内采药，被巡山弟子拦下。', eff: s => { s.reputation -= 1; s._addLog('info', '对方虽退去，但对此心存不满。'); } },
+        { text: '据传' + nb.name + '最近在招募散修，似乎在为某事做准备。', eff: s => {} },
+        { text: nb.name + '与我宗之间的山路上发生了不明身份者的劫掠事件。', eff: s => { s.spiritStones = Math.max(0, s.spiritStones - _randInt(5, 15)); } },
       ];
       if (nb.style === '好战' && Math.random() < 0.4) {
-        actions.push({ text: nb.name + '突然派人到我宗门口挑衅，声称要「比划比划」！', eff: s => { const champ = s.disciples.filter(d => d.status === '正常').sort((a, b) => s._deriveCombatStats(b).cp - s._deriveCombatStats(a).cp)[0]; if (champ) { const npc = _pickNPC(nb.power >= 4 ? 'eliteDisc' : 'rivalDisc'); const result = s._executeCombat([s._deriveCombatStats(champ)], [npc], 'diplomacy', nb.name + '弟子'); if (result.myWon) { s.reputation += 5; s._addLog('good', champ.name + '代表宗门出战，击败' + nb.name + '弟子！声望+5'); } else { s.reputation -= 3; s._addLog('bad', champ.name + '不敌对手，宗门颜面受损...'); } } else { s.reputation -= 2; s._addLog('bad', '宗门无人应战，只得忍气吞声。声望-2'); } } });
+        actions.push({ text: nb.name + '派人到宗门门口挑衅，声称要「比划比划」！', eff: s => { const champ = s.disciples.filter(d => d.status === '正常').sort((a, b) => s._deriveCombatStats(b).cp - s._deriveCombatStats(a).cp)[0]; if (champ) { const npc = _pickNPC(nb.power >= 4 ? 'eliteDisc' : 'rivalDisc'); const result = s._executeCombat([s._deriveCombatStats(champ)], [npc], 'duel', nb.name + '弟子'); if (result.myWon) { s.reputation += 5; s._addLog('good', champ.name + '击败' + nb.name + '弟子！声望+5'); } else { s.reputation -= 4; s._addLog('bad', champ.name + '不敌对手，宗门颜面受损。'); } } else { s.reputation -= 3; s._addLog('bad', '宗门无人应战，忍气吞声。声望-3'); } } });
       }
       if (nb.style === '邪道' && Math.random() < 0.3) {
-        actions.push({ text: nb.name + '深夜派人偷袭我宗药圃！巡夜弟子奋起反击。', eff: s => { const guard = s.disciples.filter(d => d.status === '正常').sort((a, b) => s._deriveCombatStats(b).cp - s._deriveCombatStats(a).cp)[0]; if (guard) { const npc = _pickNPC('bandit'); npc.name = nb.name + '偷袭者'; const result = s._executeCombat([s._deriveCombatStats(guard)], [npc], 'diplomacy', nb.name + '偷袭者'); if (result.myWon) { s.reputation += 3; s._addLog('good', guard.name + '击退了偷袭者，保住了药圃！声望+3'); } else { s.spiritStones = Math.max(0, s.spiritStones - _randInt(10, 30)); s._addLog('bad', '药圃被毁了一角，损失灵石。与' + nb.name + '的关系恶化。'); } } } });
+        actions.push({ text: nb.name + '深夜派人偷袭药圃！巡夜弟子奋起反击。', eff: s => { const guard = s.disciples.filter(d => d.status === '正常').sort((a, b) => s._deriveCombatStats(b).cp - s._deriveCombatStats(a).cp)[0]; if (guard) { const npc = _pickNPC('bandit'); npc.name = nb.name + '偷袭者'; const result = s._executeCombat([s._deriveCombatStats(guard)], [npc], 'duel', nb.name + '偷袭者'); if (result.myWon) { s.reputation += 3; s._addLog('good', guard.name + '击退偷袭者，保住药圃！声望+3'); } else { s.spiritStones = Math.max(0, s.spiritStones - _randInt(15, 35)); s._addLog('bad', '药圃被毁，损失灵石。'); } } } });
       }
       const action = actions[Math.floor(Math.random() * actions.length)];
       this._addLog('info', '🏛 ' + action.text);
@@ -2008,7 +2418,7 @@ const SECT = {
               _createDisciple(this, _randInt(50, 85));
               this._addLog('good', '你花 ' + cost + ' 灵石拍下了一卷古法——竟是一份上等资质的卖身契！新弟子入门。');
             } else {
-              const avail = SECT_TECHNIQUES.filter(t => t.gradeKey === 'yellow' && !this.techniques.includes(t.id));
+              const avail = SECT_TECHNIQUES.filter(t => t.gradeKey === 'yellow' && t.reqLv <= this.level && !this.techniques.includes(t.id));
               if (avail.length) {
                 const t = avail[Math.floor(Math.random() * avail.length)];
                 this.techniques.push(t.id);
@@ -2068,9 +2478,29 @@ const SECT = {
   },
 
   _generateEvents() {
-    // ── 通用世界事件（40%概率生成1个） ──
-    if (Math.random() < 0.4) {
-      const eligible = SECT_EVENTS.filter(e => e.cond(this));
+    // ── 连锁事件：检查已排期的chain事件是否到期 ──
+    if (this._pendingChains) {
+      this._pendingChains = this._pendingChains.filter(c => {
+        if (this.turn >= c.triggerTurn) {
+          const ev = SECT_EVENTS.find(e => e.id === c.id);
+          if (ev && ev.cond(this) && !this.pendingEvents.some(e => e._chainId === c.id)) {
+            this.pendingEvents.push({
+              id: 'cev_' + _uid(), type: 'chain',
+              title: '⚡ ' + ev.text.slice(0, 25) + '…',
+              text: ev.text, choices: ev.choices,
+              expires: this.turn + _randInt(4, 7),
+              _chainId: c.id,
+            });
+          }
+          return false;
+        }
+        return true;
+      });
+    }
+
+    // ── 通用世界事件（25%概率生成1个，排除连锁事件weight=0） ──
+    if (Math.random() < 0.25) {
+      const eligible = SECT_EVENTS.filter(e => e.cond(this) && e.weight > 0);
       if (eligible.length) {
         const event = _weightedRandom(eligible, e => e.weight);
         this.pendingEvents.push({
@@ -2078,6 +2508,7 @@ const SECT = {
           title: '⚡ ' + event.text.slice(0, 25) + '…',
           text: event.text, choices: event.choices,
           expires: this.turn + _randInt(3, 6),
+          _eventId: event.id,
         });
       }
     }
@@ -2116,7 +2547,8 @@ const SECT = {
     const nextRealm = SECT_REALMS[d.realmIdx + 1];
     if (nextRealm.cost <= 0) return;
     if (d.cultivation >= nextRealm.cost) {
-      const successRate = 0.5 + (d.rootBone + d.comprehension) / 200 - d.innerDemon / 200;
+      let successRate = 0.5 + (d.rootBone + d.comprehension) / 200 - d.innerDemon / 200;
+      if (d._breakBonus) { successRate += d._breakBonus; d._breakBonus = 0; }
       if (Math.random() < successRate) {
         d.realmIdx++;
         d.realm = SECT_REALMS[d.realmIdx];
@@ -2154,7 +2586,7 @@ const SECT = {
     if (!ev) return;
     let html = '<h2>' + ev.title + '</h2>';
     html += '<div style="font-size:10px;color:var(--dim);margin-bottom:8px">'
-      + (ev.type === 'personal' ? '🔶 个人剧情' : ev.type === 'diplomacy' ? '🏛 外交' : '⚡ 宗门事件')
+      + (ev.type === 'personal' ? '🔶 个人剧情' : ev.type === 'chain' ? '🔗 连锁事件' : '⚡ 宗门事件')
       + ' · 剩余 ' + (ev.expires - this.turn) + ' 回合</div>';
     html += '<div class="sct-event-text">' + ev.text + '</div>';
     html += '<div class="sct-event-choices">';
@@ -2172,14 +2604,25 @@ const SECT = {
     const ev = this.pendingEvents[idx];
     if (choiceIdx >= ev.choices.length) return;
 
+    const choice = ev.choices[choiceIdx];
+
     // 个人事件：传入弟子对象（effect内部自行设置_storyStage）
     if (ev.discId) {
       const d = this.disciples.find(dd => dd.id === ev.discId);
       if (d) {
-        ev.choices[choiceIdx].effect(this, d);
+        choice.effect(this, d);
       }
     } else {
-      ev.choices[choiceIdx].effect(this);
+      choice.effect(this);
+    }
+
+    // 连锁事件：如果该选项有chain，排期后续事件
+    if (choice.chain) {
+      this._pendingChains = this._pendingChains || [];
+      this._pendingChains.push({
+        id: choice.chain.id,
+        triggerTurn: this.turn + (choice.chain.delay || 3),
+      });
     }
 
     // 从队列移除
@@ -2250,14 +2693,19 @@ const SECT = {
     });
 
     if (available.length === 0) {
-      html += '<div style="text-align:center;color:var(--dim);padding:8px;font-size:11px">暂无可购买的新功法<br><span style="opacity:.6">Lv.1-2: 人阶 | Lv.3+: 黄阶 | 需藏经阁</span></div>';
+      html += '<div style="text-align:center;color:var(--dim);padding:8px;font-size:11px">暂无可购买的新功法<br><span style="opacity:.6">Lv.3+: 黄品 | Lv.6+: 玄品 | Lv.10+: 地品 | 需藏经阁</span></div>';
     } else if (normalDiscs.length === 0) {
       html += '<div style="text-align:center;color:var(--dim);padding:8px;font-size:11px">没有弟子可学习新功法</div>';
     } else {
       html += '<div class="sct-tech-list">';
       available.forEach(t => {
         const gk = t.gradeKey || 'mortal';
-        const canAfford = this.spiritStones >= t.cost && this.actionPoints >= 1;
+        const discCost = this._repDiscountedCost(t.cost);
+        const discount = this._repDiscount();
+        const costText = discount > 0
+          ? '<span style="text-decoration:line-through;color:var(--dim);font-size:9px">' + t.cost + '</span> ' + discCost
+          : t.cost;
+        const canAfford = this.spiritStones >= discCost && this.actionPoints >= 1;
         html += '<div class="sct-tech-card">'
           + '<div><div class="tch-name">' + t.name + '</div>'
           + '<div class="tch-info">' + Object.entries(t.effect).map(([k, v]) => k + ' +' + v + '%').join(' | ') + '</div></div>'
@@ -2267,7 +2715,7 @@ const SECT = {
           + normalDiscs.map(d => '<option value="' + d.id + '">' + d.name + '</option>').join('')
           + '</select>'
           + '<button class="t-btn" style="margin-top:2px" ' + (canAfford ? '' : 'disabled') + ' onclick="SECT._learnTechnique(\'' + t.id + '\')">'
-          + t.cost + '💎 1⚡</button></div></div></div>';
+          + costText + '💎 1⚡</button></div></div></div>';
       });
       html += '</div>';
     }
@@ -2286,7 +2734,14 @@ const SECT = {
     if (this.actionPoints < 1) return;
     this.actionPoints -= 1;
     d.techniques.push(techId);
-    this._addLog('good', d.name + ' 习得功法「' + (SECT_TECHNIQUES.find(tt => tt.id === techId)?.name || '') + '」！');
+    const t = SECT_TECHNIQUES.find(tt => tt.id === techId);
+    // 跨洲学习惩罚（GDD §7.3）
+    if (t?.continent && t.continent !== this.continent) {
+      d._crossContPenalty = (d._crossContPenalty || 0) + 1;
+      this._addLog('good', d.name + ' 习得功法「' + (t?.name || '') + '」！（跨洲功法，效率-20%）');
+    } else {
+      this._addLog('good', d.name + ' 习得功法「' + (t?.name || '') + '」！');
+    }
     this._closeModal();
     this.save();
     this._render();
@@ -2295,7 +2750,8 @@ const SECT = {
   _learnTechnique(techId) {
     const t = SECT_TECHNIQUES.find(tt => tt.id === techId);
     if (!t || this.techniques.includes(t.id)) return;
-    if (this.spiritStones < t.cost) return;
+    const cost = this._repDiscountedCost(t.cost);
+    if (this.spiritStones < cost) return;
     if (this.actionPoints < 1) return;
     const sel = document.getElementById('sct-tech-disc-' + techId);
     const discId = sel?.value;
@@ -2303,13 +2759,138 @@ const SECT = {
     const d = this.disciples.find(dd => dd.id === discId);
     if (!d) return;
 
-    this.spiritStones -= t.cost;
+    this.spiritStones -= cost;
     this.actionPoints -= 1;
     this.techniques.push(t.id);      // 宗门解锁
     d.techniques.push(t.id);         // 弟子习得
-    this._addLog('good', '解锁功法「' + t.name + '」！' + d.name + ' 已习得。');
+    // 跨洲学习惩罚（GDD §7.3）
+    if (t.continent && t.continent !== this.continent) {
+      d._crossContPenalty = (d._crossContPenalty || 0) + 1;
+      this._addLog('good', '解锁功法「' + t.name + '」！' + d.name + ' 已习得。（跨洲功法，效率-20%）');
+    } else {
+      this._addLog('good', '解锁功法「' + t.name + '」！' + d.name + ' 已习得。');
+    }
     this.save();
     this._closeModal();
+    this._render();
+  },
+
+  // ═══════════════════════════════════════════
+  //  悬赏任务（声望系统，觅长生风格）
+  // ═══════════════════════════════════════════
+  _openBounties() {
+    if (this.view !== 'main') return;
+    const normalDiscs = this.disciples.filter(d => d.status === '正常');
+    const tier = this._repTier();
+    const discount = this._repDiscount();
+
+    let html = '<h2>📋 悬赏榜</h2>';
+    html += '<div style="text-align:center;font-size:11px;color:var(--dim);margin-bottom:12px">'
+      + '当前声望: <b style="color:var(--amber)">' + this.totalReputation + '</b> [' + tier.title + ']'
+      + (discount > 0 ? ' · 购物折扣 <b style="color:var(--green-t)">' + Math.round(discount * 100) + '%</b>' : '')
+      + '</div>';
+
+    // 已接取的悬赏
+    if (this.activeBounties && this.activeBounties.length > 0) {
+      html += '<div style="font-size:12px;color:var(--amber);margin-bottom:6px">📜 进行中</div>';
+      this.activeBounties.forEach(ab => {
+        const b = SECT_BOUNTIES.find(bb => bb.id === ab.id);
+        const d = this.disciples.find(dd => dd.id === ab.discId);
+        if (!b) return;
+        html += '<div class="sct-tech-card" style="opacity:0.7">'
+          + '<div><div class="tch-name">' + b.name + '</div>'
+          + '<div class="tch-info">' + (d ? d.name : '未知弟子') + ' 执行中 · 第' + ab.turn + '回合接取</div></div>'
+          + '<div style="text-align:right"><span style="font-size:10px;color:var(--dim)">⏳ 进行中</span></div>'
+          + '</div>';
+      });
+      html += '<div style="height:12px"></div>';
+    }
+
+    // 可接取的悬赏
+    html += '<div style="font-size:12px;color:var(--amber);margin-bottom:6px">📋 可接取</div>';
+    const available = SECT_BOUNTIES.filter(b => this.totalReputation >= b.reqRep && !this.activeBounties.some(ab => ab.id === b.id));
+    const locked = SECT_BOUNTIES.filter(b => this.totalReputation < b.reqRep);
+
+    if (available.length === 0 && locked.length === 0) {
+      html += '<div style="text-align:center;color:var(--dim);padding:8px;font-size:11px">暂无可接取的悬赏</div>';
+    }
+
+    if (available.length > 0) {
+      html += '<div class="sct-tech-list">';
+      available.forEach(b => {
+        const typeIcon = b.type === 'combat' ? '⚔' : b.type === 'escort' ? '🛡' : b.type === 'gather' ? '🌿' : '🔨';
+        const diffStars = '★'.repeat(b.difficulty) + '☆'.repeat(5 - b.difficulty);
+        const canDo = normalDiscs.length > 0 && this.actionPoints >= 1;
+        html += '<div class="sct-tech-card">'
+          + '<div><div class="tch-name">' + typeIcon + ' ' + b.name + ' <span style="color:var(--red);font-size:10px">' + diffStars + '</span></div>'
+          + '<div class="tch-info">' + b.desc + '</div>'
+          + '<div style="font-size:10px;color:var(--green-t);margin-top:2px">奖励: ' + b.reward.stones[0] + '-' + b.reward.stones[1] + '💎 +' + b.reward.rep + '声望</div></div>'
+          + '<div style="text-align:right">'
+          + '<select id="sct-bounty-disc-' + b.id + '" class="sct-task-select" style="font-size:10px;margin-bottom:4px">'
+          + normalDiscs.map(d => '<option value="' + d.id + '">' + d.name + '(CP' + this._deriveCombatStats(d).cp + ')</option>').join('')
+          + '</select>'
+          + '<button class="t-btn" style="margin-top:2px" ' + (canDo ? '' : 'disabled') + ' onclick="SECT._acceptBounty(\'' + b.id + '\')">接取 1⚡</button>'
+          + '</div></div>';
+      });
+      html += '</div>';
+    }
+
+    if (locked.length > 0) {
+      html += '<div style="font-size:12px;color:var(--dim);margin:12px 0 6px">🔒 未解锁（需更高声望）</div>';
+      html += '<div class="sct-tech-list">';
+      locked.forEach(b => {
+        const typeIcon = b.type === 'combat' ? '⚔' : b.type === 'escort' ? '🛡' : b.type === 'gather' ? '🌿' : '🔨';
+        const diffStars = '★'.repeat(b.difficulty) + '☆'.repeat(5 - b.difficulty);
+        html += '<div class="sct-tech-card" style="opacity:0.4">'
+          + '<div><div class="tch-name">' + typeIcon + ' ' + b.name + ' <span style="color:var(--red);font-size:10px">' + diffStars + '</span></div>'
+          + '<div class="tch-info">' + b.desc + '</div>'
+          + '<div style="font-size:10px;color:var(--dim);margin-top:2px">🔒 需累计声望 ' + b.reqRep + ' · 奖励: ' + b.reward.stones[0] + '-' + b.reward.stones[1] + '💎 +' + b.reward.rep + '声望</div></div>'
+          + '</div>';
+      });
+      html += '</div>';
+    }
+
+    html += '<div style="text-align:center;margin-top:12px"><button class="t-btn" onclick="SECT._closeModal()">关闭</button></div>';
+    this._showModal(null, html, null);
+  },
+
+  _acceptBounty(bountyId) {
+    const b = SECT_BOUNTIES.find(bb => bb.id === bountyId);
+    if (!b) return;
+    if (this.totalReputation < b.reqRep) return;
+    if (this.activeBounties.some(ab => ab.id === bountyId)) return;
+    if (this.actionPoints < 1) return;
+    const sel = document.getElementById('sct-bounty-disc-' + bountyId);
+    const discId = sel?.value;
+    if (!discId) return;
+    const d = this.disciples.find(dd => dd.id === discId);
+    if (!d || d.status !== '正常') return;
+
+    this.actionPoints -= 1;
+    this.activeBounties = this.activeBounties || [];
+    this.activeBounties.push({ id: bountyId, discId, turn: this.turn });
+
+    // 立即执行悬赏
+    const success = b.resolve(this, d);
+    if (success) {
+      const stoneGain = _randInt(b.reward.stones[0], b.reward.stones[1]);
+      this.spiritStones += stoneGain;
+      this._addReputation(b.reward.rep, b.reward.source);
+      d.cultivation += _randInt(3, 8);
+      d.loyalty = Math.min(100, d.loyalty + 2);
+      this._addLog('good', '✅ ' + d.name + ' 完成「' + b.name + '」！获得 ' + stoneGain + '💎 声望+' + b.reward.rep);
+    } else {
+      d.loyalty = Math.max(0, d.loyalty - _randInt(3, 8));
+      d.cultivation = Math.max(0, d.cultivation - _randInt(5, 15));
+      if (Math.random() < 0.3) { d.status = '受伤'; this._addLog('bad', '💔 ' + d.name + ' 执行「' + b.name + '」失败，负伤而归！'); }
+      else { this._addLog('bad', '✕ ' + d.name + ' 执行「' + b.name + '」失败...'); }
+    }
+
+    // 移除已完成的悬赏
+    this.activeBounties = this.activeBounties.filter(ab => ab.id !== bountyId);
+
+    this._closeModal();
+    this.save();
     this._render();
   },
 
@@ -2369,6 +2950,130 @@ const SECT = {
   },
 
   // ═══════════════════════════════════════════
+  //  炼丹/锻造（GDD §8）
+  // ═══════════════════════════════════════════
+  _openCrafting() {
+    if (this.view !== 'main') return;
+    if (this.actionPoints < 1) {
+      this._showModal('行动点不足', '<p style="text-align:center;color:var(--dim)">炼制需要消耗 1 行动点</p>', null);
+      return;
+    }
+    const normalDiscs = this.disciples.filter(d => d.status === '正常');
+    let html = '<h2>⚗ 炼丹锻造</h2>';
+
+    const typeNames = { alchemy: '丹药', forge: '兵器', talisman: '符篆' };
+    const typeIcons = { alchemy: '💊', forge: '⚔', talisman: '📜' };
+
+    ['alchemy', 'forge', 'talisman'].forEach(cat => {
+      const recipes = SECT_CRAFT_RECIPES.filter(r => r.type === cat);
+      const available = recipes.filter(r => {
+        if (r.reqLv > this.level) return false;
+        const bld = this.buildings.find(b => b.id === r.reqBld);
+        if (!bld || bld.lv < 1) return false;
+        return true;
+      });
+
+      html += '<div style="font-size:12px;color:var(--amber);margin:12px 0 6px">' + typeIcons[cat] + ' ' + typeNames[cat] + '</div>';
+
+      if (available.length === 0) {
+        const r = recipes[0];
+        const bldName = SECT_BUILDINGS.find(b => b.id === r?.reqBld)?.name || '';
+        html += '<div style="text-align:center;color:var(--dim);padding:6px;font-size:11px">需建造' + bldName + '并达到 Lv.' + (r?.reqLv || 0) + '</div>';
+        return;
+      }
+
+      html += '<div class="sct-tech-list">';
+      available.forEach(r => {
+        const grade = SECT_TECH_GRADES.find(g => g.key === r.gradeKey) || SECT_TECH_GRADES[0];
+        const discCost = this._repDiscountedCost(r.cost);
+        const discount = this._repDiscount();
+        const costText = discount > 0
+          ? '<span style="text-decoration:line-through;color:var(--dim);font-size:9px">' + r.cost + '</span> ' + discCost
+          : r.cost;
+        const canAfford = this.spiritStones >= discCost && this.actionPoints >= 1;
+        html += '<div class="sct-tech-card">'
+          + '<div><div class="tch-name">' + r.name + '</div>'
+          + '<div class="tch-info">' + r.desc + '</div></div>'
+          + '<div style="text-align:right">'
+          + '<span class="tch-grade ' + r.gradeKey + '">' + grade.name + '</span>'
+          + '<div style="font-size:10px;color:var(--dim);margin-top:3px">' + costText + '💎 · 成功率' + Math.round(r.successRate * 100) + '%</div>'
+          + '<select id="sct-craft-disc-' + r.id + '" class="sct-task-select" style="font-size:10px;margin-top:2px">'
+          + normalDiscs.map(d => '<option value="' + d.id + '">' + d.name + '(悟' + d.comprehension + ')</option>').join('')
+          + '</select>'
+          + '<button class="t-btn" style="margin-top:2px" ' + (canAfford && normalDiscs.length > 0 ? '' : 'disabled') + ' onclick="SECT._doCraft(\'' + r.id + '\')">炼制 1⚡</button>'
+          + '</div></div>';
+      });
+      html += '</div>';
+    });
+
+    html += '<div style="text-align:center;margin-top:12px"><button class="t-btn" onclick="SECT._closeModal()">关闭</button></div>';
+    this._showModal(null, html, null);
+  },
+
+  _doCraft(recipeId) {
+    const r = SECT_CRAFT_RECIPES.find(rr => rr.id === recipeId);
+    if (!r) return;
+    const cost = this._repDiscountedCost(r.cost);
+    if (this.spiritStones < cost) return;
+    if (this.actionPoints < 1) return;
+    const sel = document.getElementById('sct-craft-disc-' + recipeId);
+    const discId = sel?.value;
+    if (!discId) return;
+    const d = this.disciples.find(dd => dd.id === discId);
+    if (!d) return;
+
+    const grade = SECT_TECH_GRADES.find(g => g.key === r.gradeKey) || SECT_TECH_GRADES[0];
+    const rate = _craftingRoll(r.successRate, d.comprehension, grade.tier);
+    this.spiritStones -= cost;
+    this.actionPoints -= 1;
+
+    if (Math.random() < rate) {
+      // 成功
+      if (r.effect.cultivate) {
+        d.cultivation += r.effect.cultivate;
+        this._addLog('good', d.name + ' 炼制「' + r.name + '」成功！修炼加速' + r.effect.cultivate);
+      }
+      if (r.effect.physique) {
+        d.physique += r.effect.physique;
+        this._addLog('good', d.name + ' 服用「' + r.name + '」体魄永久+' + r.effect.physique);
+      }
+      if (r.effect.innerDemon) {
+        d.innerDemon = Math.max(0, d.innerDemon + r.effect.innerDemon);
+        this._addLog('good', d.name + ' 服用「' + r.name + '」心魔' + r.effect.innerDemon);
+      }
+      if (r.effect.breakthrough) {
+        d._breakBonus = (d._breakBonus || 0) + 0.30;
+        this._addLog('good', d.name + ' 服用「' + r.name + '」！下次突破成功率+30%');
+      }
+      if (r.effect.atk || r.effect.def || r.effect.hp) {
+        d._equipBonus = d._equipBonus || {};
+        if (r.effect.atk) d._equipBonus.atk = (d._equipBonus.atk || 0) + r.effect.atk;
+        if (r.effect.def) d._equipBonus.def = (d._equipBonus.def || 0) + r.effect.def;
+        if (r.effect.hp) d._equipBonus.hp = (d._equipBonus.hp || 0) + r.effect.hp;
+        if (r.effect.critRate) d._equipBonus.critRate = (d._equipBonus.critRate || 0) + r.effect.critRate;
+        if (r.weaponType) d._equipBonus.weaponType = r.weaponType;
+        this._addLog('good', d.name + ' 装备「' + r.name + '」！' + r.desc);
+      }
+      if (r.effect.heal) {
+        d._items = d._items || [];
+        d._items.push({ id: r.id, name: r.name, effect: r.effect });
+        this._addLog('good', d.name + ' 制成「' + r.name + '」×1，已存入物品栏');
+      }
+    } else {
+      // 失败
+      this._addLog('bad', d.name + ' 炼制「' + r.name + '」失败，材料损耗' + r.cost + '灵石');
+      // 失败有小概率炸炉受伤
+      if (Math.random() < 0.15) {
+        d.loyalty = Math.max(0, d.loyalty - _randInt(2, 5));
+        this._addLog('bad', d.name + ' 炼制炸炉，受了轻伤，忠诚-' + _randInt(2, 5));
+      }
+    }
+    this.save();
+    this._openCrafting();
+    this._render();
+  },
+
+  // ═══════════════════════════════════════════
   //  Modal
   // ═══════════════════════════════════════════
   _showModal(title, content, onClose) {
@@ -2377,6 +3082,12 @@ const SECT = {
     if (!overlay || !box) return;
     box.innerHTML = (title ? '<h2>' + title + '</h2>' : '') + content;
     overlay.classList.add('open');
+  },
+
+  _toggleCombatLog() {
+    this._combatLogCollapsed = !this._combatLogCollapsed;
+    const panel = document.getElementById('sct-combat-panel');
+    if (panel) panel.classList.toggle('collapsed', this._combatLogCollapsed);
   },
 
   _closeModal() {
@@ -2392,11 +3103,11 @@ const SECT = {
 };
 
 // ── 初始化 ────────────────────────────────────
-// 页面加载后，如果当前 tab 是 calendar 就初始化
+// 页面加载后，如果当前 tab 是 sect 就初始化
 document.addEventListener('DOMContentLoaded', () => {
   // 延迟检查：等 app.js 完成初始化后再判断
   setTimeout(() => {
-    const mod = document.getElementById('mod-calendar');
+    const mod = document.getElementById('mod-sect');
     if (mod && mod.classList.contains('active')) {
       SECT.activate();
     }

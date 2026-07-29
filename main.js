@@ -196,6 +196,10 @@ function createWindow() {
     show: false,
   })
 
+  mainWindow.webContents.on('console-message', (event, level, message, line, sourceId) => {
+    console.log('[renderer]', level, message, sourceId + ':' + line)
+  })
+
   mainWindow.loadURL(`http://localhost:${PORT}`)
   mainWindow.once('ready-to-show', () => {
     mainWindow.show()
