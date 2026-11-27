@@ -763,7 +763,7 @@ const MS = {
       + '<button class="ms-new-btn" onclick="MS.init()" style="margin-left:8px">新游戏</button></div>'
       + '<div class="ms-grid" id="ms-grid" style="grid-template-columns:repeat('+MS.cols+','+c.cs+'px);"></div>'
       + '<div class="ms-lb-panel" id="ms-lb"></div>'
-      + '<div class="gm-hint">左键翻开 | 右键/F 插旗 | 双击数字自动翻开</div>';
+      + '<div class="gm-hint">左键翻开 | 右键/F 插旗 | 双击数字自动翻开 | 盘面保证可推理，无需猜测</div>';
     const grid = document.getElementById('ms-grid');
     for (let r=0;r<MS.rows;r++) for (let co=0;co<MS.cols;co++) {
       const cell = document.createElement('div');
@@ -778,41 +778,109 @@ const MS = {
     MS._renderLB();
   },
 
-  // ── 布雷（首次点击安全区 3×3，周围不放雷） ──
+  // ── 布雷：首次点击 3×3 安全区，并用求解器保证全盘可纯推理解开（无需猜测） ──
   _placeMines(sr,sc) {
-    const safe = new Set();
-    for (let dr=-1;dr<=1;dr++) for (let dc=-1;dc<=1;dc++) {
-      const nr=sr+dr, nc=sc+dc;
-      if (nr>=0&&nr<MS.rows&&nc>=0&&nc<MS.cols) safe.add(nr*MS.cols+nc);
-    }
-    // 收集所有不在安全区的格子
+    const R=MS.rows, C=MS.cols, N=R*C;
     const cand=[];
-    for (let r=0;r<MS.rows;r++) for (let co=0;co<MS.cols;co++) {
-      if (!safe.has(r*MS.cols+co)) cand.push(r*MS.cols+co);
+    for (let i=0;i<N;i++) {
+      const r=Math.floor(i/C), co=i%C;
+      if (Math.abs(r-sr)<=1 && Math.abs(co-sc)<=1) continue;
+      cand.push(i);
     }
-    // Fisher-Yates 洗牌
-    for (let i=cand.length-1;i>0;i--) {
-      const j=Math.floor(Math.random()*(i+1));
-      [cand[i],cand[j]]=[cand[j],cand[i]];
-    }
-    // 放置地雷
-    const toPlace = Math.min(MS.mines, cand.length);
-    for (let i=0;i<toPlace;i++) {
-      const idx = cand[i];
-      const r = Math.floor(idx / MS.cols), co = idx % MS.cols;
-      MS.board[r][co].mine = true;
-    }
-    // 计算邻雷数
-    for (let r=0;r<MS.rows;r++) for (let co=0;co<MS.cols;co++) {
-      if (MS.board[r][co].mine) { MS.board[r][co].adj = -1; continue; }
-      let a=0;
-      for (let dr=-1;dr<=1;dr++) for (let dc=-1;dc<=1;dc++) {
-        if (dr===0&&dc===0) continue;
-        const nr=r+dr, nc=co+dc;
-        if (nr>=0&&nr<MS.rows&&nc>=0&&nc<MS.cols&&MS.board[nr][nc].mine) a++;
+    const total=Math.min(MS.mines, cand.length);
+    const nb=MS._neighbors(R,C);
+    const t0=Date.now();
+    let best=null, bestLeft=Infinity;
+    for (let attempt=0; attempt<5000; attempt++) {
+      for (let i=cand.length-1;i>0;i--) {
+        const j=Math.floor(Math.random()*(i+1));
+        [cand[i],cand[j]]=[cand[j],cand[i]];
       }
-      MS.board[r][co].adj=a;
+      const mine=new Uint8Array(N);
+      for (let i=0;i<total;i++) mine[cand[i]]=1;
+      const left=MS._solveLeft(mine,nb,sr*C+sc,total);
+      if (left<bestLeft) { best=mine; bestLeft=left; }
+      if (left===0 || Date.now()-t0>1500) break;
     }
+    for (let r=0;r<R;r++) for (let co=0;co<C;co++) {
+      const i=r*C+co, b=MS.board[r][co];
+      b.mine=!!best[i];
+      if (b.mine) { b.adj=-1; continue; }
+      let a=0; for (const j of nb[i]) if (best[j]) a++;
+      b.adj=a;
+    }
+  },
+
+  _neighbors(R,C) {
+    const nb=new Array(R*C);
+    for (let r=0;r<R;r++) for (let c=0;c<C;c++) {
+      const a=[];
+      for (let dr=-1;dr<=1;dr++) for (let dc=-1;dc<=1;dc++) {
+        if (!dr&&!dc) continue;
+        const nr=r+dr, nc=c+dc;
+        if (nr>=0&&nr<R&&nc>=0&&nc<C) a.push(nr*C+nc);
+      }
+      nb[r*C+c]=a;
+    }
+    return nb;
+  },
+
+  // 模拟玩家只用逻辑推理（单格规则 + 两格子集/重叠规则 + 剩余雷数），返回推不出来的安全格数，0 = 无需猜测
+  _solveLeft(mine,nb,start,total) {
+    const N=mine.length, adj=new Int8Array(N), st=new Int8Array(N); // st: 0 未知 / 1 翻开 / 2 确定是雷
+    for (let i=0;i<N;i++) { let k=0; for (const j of nb[i]) if (mine[j]) k++; adj[i]=k; }
+    let left=N-total, flags=0;
+    const open=(s)=>{
+      const q=[s];
+      while (q.length) {
+        const i=q.pop(); if (st[i]) continue;
+        st[i]=1; left--;
+        if (adj[i]===0) for (const j of nb[i]) if (!st[j]) q.push(j);
+      }
+    };
+    open(start);
+    while (left>0) {
+      const cons=[];
+      for (let i=0;i<N;i++) {
+        if (st[i]!==1||adj[i]===0) continue;
+        const u=[]; let f=0;
+        for (const j of nb[i]) { if (st[j]===0) u.push(j); else if (st[j]===2) f++; }
+        if (u.length) cons.push({u, n:adj[i]-f, s:new Set(u)});
+      }
+      const safe=new Set(), mn=new Set();
+      for (const k of cons) {
+        if (k.n===0) k.u.forEach(x=>safe.add(x));
+        else if (k.n===k.u.length) k.u.forEach(x=>mn.add(x));
+      }
+      if (!safe.size&&!mn.size) {
+        const byCell=new Map();
+        cons.forEach((k,ci)=>k.u.forEach(x=>{ if(!byCell.has(x)) byCell.set(x,[]); byCell.get(x).push(ci); }));
+        for (let a=0;a<cons.length&&!safe.size&&!mn.size;a++) {
+          const A=cons[a], near=new Set();
+          for (const x of A.u) for (const b of byCell.get(x)) if (b!==a) near.add(b);
+          for (const b of near) {
+            const B=cons[b];
+            const bOnly=B.u.filter(x=>!A.s.has(x)), aOnly=A.u.filter(x=>!B.s.has(x));
+            if (!aOnly.length && bOnly.length) {
+              const d=B.n-A.n;
+              if (d===0) bOnly.forEach(x=>safe.add(x));
+              else if (d===bOnly.length) bOnly.forEach(x=>mn.add(x));
+            } else if (bOnly.length && B.n-A.n===bOnly.length) {
+              bOnly.forEach(x=>mn.add(x)); aOnly.forEach(x=>safe.add(x));
+            }
+          }
+        }
+      }
+      if (!safe.size&&!mn.size) {
+        let unk=0; for (let i=0;i<N;i++) if (st[i]===0) unk++;
+        const rem=total-flags;
+        if (rem===0 || rem===unk) for (let i=0;i<N;i++) if (st[i]===0) (rem===0?safe:mn).add(i);
+      }
+      if (!safe.size&&!mn.size) return left;
+      for (const x of mn) if (st[x]===0) { st[x]=2; flags++; }
+      for (const x of safe) open(x);
+    }
+    return 0;
   },
 
   _getCell(r,c) { const grid=document.getElementById('ms-grid'); return grid?grid.children[r*MS.cols+c]:null; },
